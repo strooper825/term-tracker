@@ -74,8 +74,8 @@ All settings come from environment variables, optionally loaded from `.env` (git
 | `CONGRESS_GOV_API_KEY` | Ingestion (Phase 1) | Issued via api.data.gov |
 | `FEC_API_KEY` | Ingestion (Phase 2) | Issued via api.data.gov |
 
-GitHub Actions repository secrets use the same names. The nightly workflow also expects a
-`DATABASE_URL` secret once a managed Postgres exists (Phase 1e).
+GitHub Actions repository secrets use the same two names: `CONGRESS_GOV_API_KEY` and
+`FEC_API_KEY`. How the nightly job reaches the managed Postgres is decided in Phase 1e.
 
 ## Repository layout
 

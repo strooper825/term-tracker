@@ -1,8 +1,8 @@
 name: Nightly ingest
 
 # Phase 0: manual trigger only. The 06:00 UTC schedule is enabled in Phase 1e, once a managed
-# Postgres exists (open decision in docs/PLAN.md section 12) and its URL is stored as the
-# DATABASE_URL repository secret.
+# Postgres exists (open decision in docs/PLAN.md section 12). How that job reaches the database
+# is decided in Phase 1e; the only repository secrets are CONGRESS_GOV_API_KEY and FEC_API_KEY.
 on:
   workflow_dispatch:
   # schedule:
@@ -15,7 +15,6 @@ jobs:
     env:
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
       FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
