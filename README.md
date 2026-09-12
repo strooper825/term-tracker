@@ -4,8 +4,10 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 0 (scaffold). The database is empty, the API serves only
-`/api/v1/meta/freshness`, and no ingestion sources are registered yet.
+**Status:** Phase 1a. The `legislators` source (unitedstates/congress-legislators) loads
+members, terms, committees, and assignments; dbt builds `mart.member`, `term`, `constituency`,
+`committee`, `committee_membership`; the API serves `/api/v1/members` and
+`/api/v1/meta/freshness`.
 
 ## Stack
 
@@ -39,6 +41,23 @@ Interactive docs are at <http://localhost:8000/docs>.
 
 Stop with `docker compose down`; add `-v` to also drop the database volume.
 
+## Loading data
+
+The API image only serves; ingestion and dbt run from the host (see local development below
+for the venv). With the Compose database up:
+
+```bash
+python -m ingest.run --source legislators
+```
+
+```bash
+PGPORT=5433 dbt build --project-dir dbt --profiles-dir dbt
+```
+
+Then `curl http://localhost:8000/api/v1/members`. dbt reads `PGHOST`, `PGPORT`, `PGUSER`,
+`PGPASSWORD`, `PGDATABASE` (defaults match the Compose database except the port). dbt is an
+optional extra: `pip install -e ".[dev,dbt]"`.
+
 ## Local development (host Python)
 
 Prerequisites: Python 3.12 or newer and a running Postgres (the Compose `db` service works:
@@ -47,7 +66,7 @@ Prerequisites: Python 3.12 or newer and a running Postgres (the Compose `db` ser
 ```bash
 python -m venv .venv
 . .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -e ".[dev,dbt]"
 cp .env.example .env          # DATABASE_URL points at the Compose db on localhost:5433
 alembic upgrade head
 uvicorn api.main:app --reload
@@ -60,8 +79,10 @@ ruff check . && ruff format --check .
 pytest -q
 ```
 
-Integration tests (marked `integration`) need the database. They are skipped locally when it
-is unreachable and fail in CI, where `CI=true` is set.
+Integration tests (marked `integration`) need the database, and the end-to-end members test
+(also marked `dbt`) needs the dbt CLI on PATH. Both are skipped locally when unavailable and
+fail in CI, where `CI=true` is set. Ingestion tests use recorded fixtures under
+`tests/fixtures/`; nothing in the test suite calls a live API.
 
 ## Configuration
 
@@ -82,7 +103,7 @@ GitHub Actions repository secrets use the same two names: `CONGRESS_GOV_API_KEY`
 ```
 api/            FastAPI app: main.py, routers/, schemas/, config.py, db.py
 ingest/         Ingestion CLI (python -m ingest.run --source all), sources/, models/, load.py
-dbt/            dbt project: models/staging, models/mart, seeds, macros
+dbt/            dbt project: models/staging, models/mart, seeds (fips, tracked_members), macros, tests
 migrations/     Alembic environment and versions/
 tests/          api/, ingest/, fixtures/ (recorded payloads; CI never calls live APIs)
 docs/           PLAN.md, data-dictionary.md, adr/

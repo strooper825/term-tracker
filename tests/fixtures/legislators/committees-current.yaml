@@ -1,0 +1,194 @@
+# Trimmed from https://raw.githubusercontent.com/unitedstates/congress-legislators/main/committees-current.yaml
+# retrieved 2026-09-12. Contact details and the bio block are removed; nothing else is altered.
+- type: house
+  name: House Committee on Financial Services
+  url: https://financialservices.house.gov/
+  minority_url: https://republicans-financialservices.house.gov/
+  thomas_id: HSBA
+  house_committee_id: BA
+  subcommittees:
+  - name: Capital Markets
+    thomas_id: '16'
+  - name: Digital Assets, Financial Technology, and Artificial Intelligence
+    thomas_id: '21'
+  jurisdiction: The House Financial Services Committee has jurisdiction over issues
+    pertaining to the economy, the banking system, housing, insurance, and securities
+    and exchanges. Additionally, the Committee also has jurisdiction over monetary
+    policy, international finance, international monetary organizations, and efforts
+    to combat terrorist financing. The Committee oversees the Nation’s economy through
+    its oversight of the Federal Reserve Board and individual reserve banks, the Treasury,
+    the production and distribution of currency, and the Nation’s capital markets.
+  jurisdiction_source: https://financialservices.house.gov/about/
+- type: house
+  name: House Committee on House Administration
+  url: https://cha.house.gov/
+  minority_url: https://republicans-cha.house.gov/
+  thomas_id: HSHA
+  house_committee_id: HA
+  subcommittees: []
+  jurisdiction: The Committee on House Administration has legislative jurisdiction
+    over the federal elections and the day-to-day operations of the House. The Committee's
+    jurisdiction over federal elections requires it to consider proposals to amend
+    federal election law and to monitor congressional elections across the United
+    States. The Committee also sets budget authorizations for expenses of other House
+    committees and members of Congress. It also oversees several federal organizations
+    such as the Library of Congress and Smithsonian Institution.
+  jurisdiction_source: https://cha.house.gov/about
+- type: joint
+  name: Joint Economic Committee
+  url: http://www.jec.senate.gov/
+  thomas_id: JSEC
+  house_committee_id: EC
+  senate_committee_id: JSEC
+  wikipedia: Joint Economic Committee
+  subcommittees: []
+- type: joint
+  name: Joint Committee of Congress on the Library
+  url: https://cha.house.gov/jointcommittees/joint-committee-library
+  thomas_id: JSLC
+  house_committee_id: JL
+  senate_committee_id: JSLC
+  wikipedia: Joint Committee on the Library
+  subcommittees: []
+- type: joint
+  name: Joint Committee on Printing
+  url: https://cha.house.gov/jointcommittees/joint-committee-on-printing
+  thomas_id: JSPR
+  senate_committee_id: JSPR
+  house_committee_id: JP
+  wikipedia: Joint Committee on Printing
+  subcommittees: []
+- type: senate
+  name: Senate Select Committee on Intelligence
+  url: http://www.intelligence.senate.gov/
+  thomas_id: SLIN
+  senate_committee_id: SLIN
+  wikipedia: United States Senate Select Committee on Intelligence
+  jurisdiction: The Senate Committee on Intelligence was created to study the intelligence
+    activities and programs of the United States Government and report to the Senate
+    concerning such intelligence activities and programs. The Committee is also responsible
+    for proposing legislation and providing legislative oversight to ensure that intelligence
+    activities of the United States are in conformity with the Constitution and the
+    law.
+  jurisdiction_source: https://www.intelligence.senate.gov/about
+  subcommittees: []
+- type: senate
+  name: Senate Committee on Appropriations
+  url: http://www.appropriations.senate.gov/
+  thomas_id: SSAP
+  senate_committee_id: SSAP
+  subcommittees:
+  - name: Energy and Water Development
+    thomas_id: '22'
+    wikipedia: United States Senate Appropriations Subcommittee on Financial Services
+      and General Government
+  - name: Department of Interior, Environment, and Related Agencies
+    thomas_id: '17'
+    wikipedia: United States Senate Appropriations Subcommittee on Interior, Environment,
+      and Related Agencies
+  - name: Departments of Labor, Health and Human Services, and Education, and Related
+      Agencies
+    thomas_id: '18'
+    wikipedia: United States Senate Appropriations Subcommittee on Labor, Health and
+      Human Services, Education, and Related Agencies
+  - name: Military Construction, Veterans Affairs, and Related Agencies
+    thomas_id: '19'
+    wikipedia: United States Senate Appropriations Subcommittee on Military Construction,
+      Veterans Affairs, and Related Agencies
+  - name: Agriculture, Rural Development, Food and Drug Administration, and Related
+      Agencies
+    thomas_id: '01'
+    wikipedia: United States Senate Appropriations Subcommittee on Agriculture, Rural
+      Development, Food and Drug Administration, and Related Agencies
+  - name: Department of Defense
+    thomas_id: '02'
+    wikipedia: United States Senate Appropriations Subcommittee on Defense
+  wikipedia: United States Senate Committee on Appropriations
+  jurisdiction: The Senate Committee on Appropriations is responsible for legislation
+    allocating federal funds prior to expenditure from the treasury. Appropriations
+    are generally limited to the levels set by the Budget Resolution drafted by the
+    Senate Committee on the Budget. The Committee is also responsible for supplemental
+    spending bills, which are sometimes needed in the middle of a fiscal year to compensate
+    for emergency expenses.
+  jurisdiction_source: https://www.appropriations.senate.gov/about/jurisdiction
+- type: senate
+  name: Senate Committee on Armed Services
+  url: http://www.armed-services.senate.gov/
+  thomas_id: SSAS
+  senate_committee_id: SSAS
+  subcommittees:
+  - name: Airland
+    thomas_id: '14'
+    wikipedia: United States Senate Armed Services Subcommittee on Airland
+  - name: Emerging Threats and Capabilities
+    thomas_id: '20'
+    wikipedia: United States Senate Armed Services Subcommittee on Emerging Threats
+      and Capabilities
+  - name: Strategic Forces
+    thomas_id: '16'
+    wikipedia: United States Senate Armed Services Subcommittee on Strategic Forces
+  - thomas_id: '21'
+    name: Cybersecurity
+  wikipedia: United States Senate Committee on Armed Services
+  jurisdiction: The Senate Committee on Armed Services has legislative jurisdiction
+    over military and defense.
+  jurisdiction_source: https://www.armed-services.senate.gov/about/history
+- type: senate
+  name: Senate Committee on Commerce, Science, and Transportation
+  url: http://www.commerce.senate.gov/
+  thomas_id: SSCM
+  senate_committee_id: SSCM
+  subcommittees:
+  - thomas_id: '34'
+    name: Telecommunications and Media
+  - thomas_id: '35'
+    name: Consumer Protection, Technology, and Data Privacy
+  - thomas_id: '36'
+    name: Coast Guard, Maritime, and Fisheries
+  - thomas_id: '37'
+    name: Science, Manufacturing, and Competitiveness
+  wikipedia: United States Senate Committee on Commerce, Science and Transportation
+  jurisdiction: The Senate Committee on Commerce, Science, and Transportation has
+    legislative jurisdiction on matters related to science and technology, oceans
+    policy, transportation, communications, and consumer affairs.
+  jurisdiction_source: https://www.commerce.senate.gov/public/index.cfm/jurisdiction
+- type: senate
+  name: Senate Committee on Energy and Natural Resources
+  url: http://www.energy.senate.gov/
+  thomas_id: SSEG
+  senate_committee_id: SSEG
+  subcommittees:
+  - name: Energy
+    thomas_id: '01'
+    wikipedia: United States Senate Energy Subcommittee on Energy
+  - name: Public Lands, Forests, and Mining
+    thomas_id: '03'
+    wikipedia: United States Senate Energy Subcommittee on Public Lands, Forests and
+      Mining
+  wikipedia: United States Senate Committee on Energy and Natural Resources
+  jurisdiction: The Senate Committee on Energy and Natural Resources has legislative
+    jurisdiction on matters related to energy resources and development, nuclear energy,
+    Indian affairs, public lands and their renewable resources, surface mining, territories
+    and insular possessions, and water resources.
+  jurisdiction_source: https://www.energy.senate.gov/public/index.cfm/jurisdiction
+- type: senate
+  name: Senate Committee on Health, Education, Labor, and Pensions
+  url: http://www.help.senate.gov/
+  thomas_id: SSHR
+  senate_committee_id: SSHR
+  subcommittees:
+  - name: Employment and Workplace Safety
+    thomas_id: '11'
+    wikipedia: United States Senate Health Subcommittee on Employment and Workplace
+      Safety
+  - name: Primary Health and Retirement Security
+    thomas_id: '12'
+    wikipedia: United States Senate Health Subcommittee on Primary Health and Aging
+  wikipedia: United States Senate Committee on Health, Education, Labor, and Pensions
+  jurisdiction: The Senate Committee on Health, Education, Labor, and Pensions has
+    jurisdiction over most of the agencies, institutes, and programs of the Department
+    of Health and Human Services, including the Food and Drug Administration, the
+    Centers for Disease Control and Prevention, the National Institutes of Health,
+    the Administration on Aging, the Substance Abuse and Mental Health Services Administration,
+    and the Agency for Healthcare Research and Quality.
+  jurisdiction_source: https://www.help.senate.gov/about/issues/

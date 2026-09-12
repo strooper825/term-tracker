@@ -13,12 +13,16 @@ dependencies = [
     "pydantic>=2.13,<3",
     "pydantic-settings>=2.15,<3",
     "httpx>=0.28,<1",
+    "pyyaml>=6,<7",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9,<10",
     "ruff>=0.16,<1",
+]
+dbt = [
+    "dbt-postgres>=1.9,<2",
 ]
 
 [build-system]
@@ -43,4 +47,5 @@ known-first-party = ["api", "ingest"]
 testpaths = ["tests"]
 markers = [
     "integration: needs a reachable Postgres at DATABASE_URL (skipped locally if unreachable, required in CI)",
+    "dbt: additionally needs the dbt CLI on PATH (skipped locally if missing, required in CI)",
 ]

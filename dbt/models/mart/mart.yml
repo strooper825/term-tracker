@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: constituency
+    description: One row per state (district null) and per current House district.
+    columns:
+      - name: fips_state
+        tests: [not_null]
+      - name: label
+        tests: [unique, not_null]
+      - name: source
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+      - name: fetched_at
+        tests: [not_null]
+
+  - name: member
+    description: One row per tracked member.
+    columns:
+      - name: bioguide_id
+        tests: [unique, not_null]
+      - name: official_full_name
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+      - name: fetched_at
+        tests: [not_null]
+
+  - name: term
+    description: Tracked member-terms overlapping the current Congress.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: chamber
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: fips_state
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('fips'), field: fips_state } }
+      - name: congress
+        tests: [not_null]
+
+  - name: committee
+    description: All committees and subcommittees; subcommittees point at parent_thomas_id.
+    columns:
+      - name: thomas_id
+        tests: [unique, not_null]
+      - name: parent_thomas_id
+        tests:
+          - relationships: { arguments: { to: ref('committee'), field: thomas_id } }
+
+  - name: committee_membership
+    description: Committee assignments of tracked members.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: committee_thomas_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('committee'), field: thomas_id } }

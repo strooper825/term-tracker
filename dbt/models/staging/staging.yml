@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: stg_legislators
+    columns:
+      - name: bioguide_id
+        tests: [unique, not_null]
+  - name: stg_legislator_terms
+    columns:
+      - name: bioguide_id
+        tests: [not_null]
+      - name: chamber
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: start_date
+        tests: [not_null]
+      - name: end_date
+        tests: [not_null]
+  - name: stg_committees
+    columns:
+      - name: thomas_id
+        tests: [unique, not_null]
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate", "joint"] } }
+  - name: stg_committee_memberships
+    columns:
+      - name: committee_id
+        tests: [not_null]
+      - name: bioguide_id
+        tests: [not_null]

@@ -1,0 +1,131 @@
+# Trimmed from https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml
+# retrieved 2026-09-12. Contact details and the bio block are removed; nothing else is altered.
+- id:
+    bioguide: B001230
+    thomas: 01558
+    lis: S354
+    govtrack: 400013
+    opensecrets: N00004367
+    votesmart: 3470
+    fec:
+    - H8WI00018
+    - S2WI00219
+    cspan: 57884
+    wikipedia: Tammy Baldwin
+    house_history: 10361
+    ballotpedia: Tammy Baldwin
+    maplight: 136
+    icpsr: 29940
+    wikidata: Q40628
+    google_entity_id: kg:/m/024v02
+    pictorial: 13412
+  name:
+    first: Tammy
+    last: Baldwin
+    official_full: Tammy Baldwin
+  leadership_roles:
+  - title: Senate Democratic Conference Secretary
+    chamber: senate
+    start: '2021-01-03'
+    end: '2023-01-03'
+  - title: Senate Democratic Conference Secretary
+    chamber: senate
+    start: '2023-01-03'
+    end: '2025-01-03'
+  - title: Senate Democratic Conference Secretary
+    chamber: senate
+    start: '2025-01-03'
+  terms:
+  - type: sen
+    start: '2019-01-03'
+    end: '2025-01-03'
+    state: WI
+    class: 1
+    party: Democrat
+    state_rank: junior
+    url: https://www.baldwin.senate.gov
+    rss_url: http://www.baldwin.senate.gov/rss/feeds/?type=all
+  - type: sen
+    start: '2025-01-03'
+    end: '2031-01-03'
+    state: WI
+    class: 1
+    state_rank: junior
+    party: Democrat
+    url: https://www.baldwin.senate.gov
+    rss_url: http://www.baldwin.senate.gov/rss/feeds/?type=all
+- id:
+    govtrack: 412508
+    bioguide: C001095
+    thomas: 02098
+    cspan: 63928
+    votesmart: 135651
+    wikipedia: Tom Cotton
+    fec:
+    - H2AR04083
+    - S4AR00103
+    opensecrets: N00033363
+    ballotpedia: Tom Cotton
+    maplight: 1732
+    icpsr: 21301
+    lis: S374
+    wikidata: Q3090307
+    google_entity_id: kg:/m/02g3ds
+    pictorial: 13407
+  name:
+    first: Tom
+    last: Cotton
+    official_full: Tom Cotton
+  leadership_roles:
+  - title: Senate Republican Conference Chair
+    chamber: senate
+    start: '2025-01-03'
+  terms:
+  - type: sen
+    start: '2015-01-06'
+    end: '2021-01-03'
+    state: AR
+    class: 2
+    state_rank: junior
+    party: Republican
+    url: https://www.cotton.senate.gov
+  - type: sen
+    start: '2021-01-03'
+    end: '2027-01-03'
+    state: AR
+    class: 2
+    state_rank: junior
+    party: Republican
+    url: https://www.cotton.senate.gov
+- id:
+    bioguide: S001213
+    fec:
+    - H8WI01156
+    govtrack: 412836
+    wikipedia: Bryan Steil
+    wikidata: Q58494431
+    opensecrets: N00043379
+    icpsr: 21970
+    ballotpedia: Bryan Steil
+    google_entity_id: kg:/g/11fhnfybnd
+    votesmart: 181289
+    pictorial: 13322
+  name:
+    first: Bryan
+    last: Steil
+    official_full: Bryan Steil
+  terms:
+  - type: rep
+    start: '2023-01-03'
+    end: '2025-01-03'
+    state: WI
+    district: 1
+    party: Republican
+    url: https://steil.house.gov
+  - type: rep
+    start: '2025-01-03'
+    end: '2027-01-03'
+    state: WI
+    district: 1
+    party: Republican
+    url: https://steil.house.gov
