@@ -1,0 +1,40 @@
+{
+ "bill": {
+  "congress": 119,
+  "introducedDate": "2026-08-06",
+  "latestAction": {
+   "actionDate": "2026-08-06",
+   "text": "Read twice and referred to the Committee on the Judiciary."
+  },
+  "legislationUrl": "https://www.congress.gov/bill/119th-congress/senate-bill/5337",
+  "number": "5337",
+  "originChamber": "Senate",
+  "originChamberCode": "S",
+  "policyArea": {
+   "name": "Immigration"
+  },
+  "sponsors": [
+   {
+    "bioguideId": "B001319",
+    "firstName": "Katie",
+    "fullName": "Sen. Britt, Katie Boyd [R-AL]",
+    "isByRequest": "N",
+    "lastName": "Britt",
+    "party": "R",
+    "state": "AL",
+    "url": "https://api.congress.gov/v3/member/B001319?format=json"
+   }
+  ],
+  "title": "Keep Our Communities Safe Act of 2026",
+  "type": "S",
+  "updateDate": "2026-08-19T20:46:23Z",
+  "updateDateIncludingText": "2026-08-19T20:46:23Z"
+ },
+ "request": {
+  "billNumber": "5337",
+  "billType": "s",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

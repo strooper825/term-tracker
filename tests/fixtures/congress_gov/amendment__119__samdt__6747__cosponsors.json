@@ -1,0 +1,60 @@
+{
+ "cosponsors": [
+  {
+   "bioguideId": "C001095",
+   "firstName": "Tom",
+   "fullName": "Sen. Cotton, Tom [R-AR]",
+   "isOriginalCosponsor": true,
+   "lastName": "Cotton",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "AR",
+   "url": "https://api.congress.gov/v3/member/C001095?format=json"
+  },
+  {
+   "bioguideId": "R000618",
+   "firstName": "Pete",
+   "fullName": "Sen. Ricketts, Pete [R-NE]",
+   "isOriginalCosponsor": true,
+   "lastName": "Ricketts",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "NE",
+   "url": "https://api.congress.gov/v3/member/R000618?format=json"
+  },
+  {
+   "bioguideId": "L000575",
+   "firstName": "James",
+   "fullName": "Sen. Lankford, James [R-OK]",
+   "isOriginalCosponsor": true,
+   "lastName": "Lankford",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "OK",
+   "url": "https://api.congress.gov/v3/member/L000575?format=json"
+  },
+  {
+   "bioguideId": "G000386",
+   "firstName": "Chuck",
+   "fullName": "Sen. Grassley, Chuck [R-IA]",
+   "isOriginalCosponsor": true,
+   "lastName": "Grassley",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "IA",
+   "url": "https://api.congress.gov/v3/member/G000386?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 4,
+  "countIncludingWithdrawnCosponsors": 4
+ },
+ "request": {
+  "amendmentNumber": "6747",
+  "amendmentType": "samdt",
+  "amendmentUrl": "https://api.congress.gov/v3/amendment/119/samdt/6747?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

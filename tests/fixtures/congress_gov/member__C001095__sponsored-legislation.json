@@ -1,0 +1,49 @@
+{
+ "sponsoredLegislation": [
+  {
+   "congress": 119,
+   "introducedDate": "2025-07-15",
+   "latestAction": {
+    "actionDate": "2025-07-15",
+    "text": "Read twice and referred to the Committee on the Judiciary."
+   },
+   "number": "2274",
+   "policyArea": {
+    "name": "Immigration"
+   },
+   "title": "Constitutional Citizenship Clarification Act of 2025",
+   "type": "S",
+   "url": "https://api.congress.gov/v3/bill/119/s/2274?format=json"
+  },
+  {
+   "amendmentNumber": "6683",
+   "congress": 119,
+   "introducedDate": "2026-07-14",
+   "latestAction": null,
+   "type": null,
+   "url": "https://api.congress.gov/v3/amendment/119/samdt/6683?format=json"
+  },
+  {
+   "congress": 118,
+   "introducedDate": "2024-12-19",
+   "latestAction": {
+    "actionDate": "2024-12-19",
+    "text": "Referred to the Committee on the Judiciary. (text: CR S7242)"
+   },
+   "number": "935",
+   "policyArea": {
+    "name": "Crime and Law Enforcement"
+   },
+   "title": "A resolution condemning the commutation of Michael Conahan granted by President Biden on December 12, 2024.",
+   "type": "SRES",
+   "url": "https://api.congress.gov/v3/bill/118/sres/935?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 3
+ },
+ "request": {
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

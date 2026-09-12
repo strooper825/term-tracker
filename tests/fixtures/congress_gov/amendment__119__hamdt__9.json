@@ -1,0 +1,45 @@
+{
+ "amendment": {
+  "amendedBill": {
+   "congress": 119,
+   "number": "198",
+   "originChamber": "House",
+   "originChamberCode": "H",
+   "title": "Providing for the expenses of certain committees of the House of Representatives in the One Hundred Nineteenth Congress.",
+   "type": "HRES",
+   "updateDateIncludingText": "2026-07-19",
+   "url": "https://api.congress.gov/v3/bill/119/hres/198?format=json"
+  },
+  "chamber": "House of Representatives",
+  "congress": 119,
+  "description": "Amendment is the reported version of the resolution, House Report 119-17 as reported by the Committee on House Administration.",
+  "latestAction": {
+   "actionDate": "2025-03-24",
+   "actionTime": "19:13:32",
+   "text": "On agreeing to the Steil amendment (A001) Agreed to without objection."
+  },
+  "number": "9",
+  "sponsors": [
+   {
+    "bioguideId": "S001213",
+    "district": 1,
+    "firstName": "Bryan",
+    "fullName": "Rep. Steil, Bryan [R-WI-1]",
+    "lastName": "Steil",
+    "party": "R",
+    "state": "WI",
+    "url": "https://api.congress.gov/v3/member/S001213?format=json"
+   }
+  ],
+  "submittedDate": "2025-03-24T04:00:00Z",
+  "type": "HAMDT",
+  "updateDate": "2025-03-25T13:55:07Z"
+ },
+ "request": {
+  "amendmentNumber": "9",
+  "amendmentType": "hamdt",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

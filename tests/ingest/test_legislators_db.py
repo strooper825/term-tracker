@@ -31,7 +31,7 @@ def _runs_since(engine: Engine, after_id: int) -> list[dict]:
             dict(r)
             for r in conn.execute(
                 text(
-                    "SELECT id, source, status, rows_loaded, error, finished_at "
+                    "SELECT id, source, status, rows_loaded, error, started_at, finished_at "
                     "FROM meta.ingest_run WHERE id > :after AND source = :source ORDER BY id"
                 ),
                 {"after": after_id, "source": src.SOURCE},
@@ -67,6 +67,7 @@ def test_load_fixtures_is_idempotent(migrated_engine: Engine, run_watermark: int
     runs = _runs_since(migrated_engine, run_watermark)
     assert [r["status"] for r in runs] == ["success", "success"]
     assert all(r["rows_loaded"] == first and r["finished_at"] is not None for r in runs)
+    assert all(r["finished_at"] >= r["started_at"] for r in runs)
 
 
 def test_payload_stored_verbatim_with_iso_dates(

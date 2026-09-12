@@ -65,7 +65,8 @@ def record_run(conn: Connection, source: str, source_url: str) -> Iterator[Inges
     A ``running`` row is committed up front. On normal exit the load transaction is committed
     and the row marked ``success`` with ``rows_loaded``; on exception the load is rolled back
     (no partial data) and the row marked ``failed`` with the error, then the exception is
-    re-raised.
+    re-raised. ``finished_at`` uses ``clock_timestamp()`` because ``now()`` is pinned to the
+    start of the (possibly long) load transaction.
     """
     with conn.cursor() as cur:
         cur.execute(
@@ -84,8 +85,8 @@ def record_run(conn: Connection, source: str, source_url: str) -> Iterator[Inges
         conn.rollback()
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE meta.ingest_run SET status = 'failed', finished_at = now(), error = %s "
-                "WHERE id = %s",
+                "UPDATE meta.ingest_run SET status = 'failed', "
+                "finished_at = clock_timestamp(), error = %s WHERE id = %s",
                 (f"{type(exc).__name__}: {exc}"[:4000], run.id),
             )
         conn.commit()
@@ -93,7 +94,7 @@ def record_run(conn: Connection, source: str, source_url: str) -> Iterator[Inges
     else:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE meta.ingest_run SET status = 'success', finished_at = now(), "
+                "UPDATE meta.ingest_run SET status = 'success', finished_at = clock_timestamp(), "
                 "rows_loaded = %s WHERE id = %s",
                 (run.rows_loaded, run.id),
             )

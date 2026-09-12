@@ -1,0 +1,53 @@
+{
+ "sponsoredLegislation": [
+  {
+   "congress": 119,
+   "introducedDate": "2025-07-23",
+   "latestAction": {
+    "actionDate": "2025-07-23",
+    "text": "Referred to the House Committee on Financial Services."
+   },
+   "number": "4735",
+   "policyArea": {
+    "name": "Finance and Financial Sector"
+   },
+   "title": "Business of Insurance Regulatory Reform Act of 2025",
+   "type": "HR",
+   "url": "https://api.congress.gov/v3/bill/119/hr/4735?format=json"
+  },
+  {
+   "amendmentNumber": "9",
+   "congress": 119,
+   "introducedDate": "2025-03-24",
+   "latestAction": {
+    "actionDate": "2025-03-24",
+    "actionTime": "19:13:32",
+    "text": "On agreeing to the Steil amendment (A001) Agreed to without objection."
+   },
+   "type": null,
+   "url": "https://api.congress.gov/v3/amendment/119/hamdt/9?format=json"
+  },
+  {
+   "congress": 118,
+   "introducedDate": "2023-07-11",
+   "latestAction": {
+    "actionDate": "2025-01-03",
+    "text": "Placed on the Union Calendar, Calendar No. 825."
+   },
+   "number": "4563",
+   "policyArea": {
+    "name": "Government Operations and Politics"
+   },
+   "title": "ACE Act",
+   "type": "HR",
+   "url": "https://api.congress.gov/v3/bill/118/hr/4563?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 3
+ },
+ "request": {
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

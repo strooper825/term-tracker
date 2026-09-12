@@ -16,6 +16,11 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://term:term@localhost:5433/term_tracker"
 
+    # Ingestion (Congress.gov). The key is issued via api.data.gov; see .env.example.
+    congress_gov_api_key: str | None = None
+    congress_gov_requests_per_hour: int = 5000  # documented per-key limit
+    current_congress: int = 119  # keep in step with the dbt var of the same name
+
 
 @lru_cache
 def get_settings() -> Settings:

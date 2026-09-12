@@ -1,0 +1,41 @@
+{
+ "bill": {
+  "congress": 119,
+  "introducedDate": "2025-02-21",
+  "latestAction": {
+   "actionDate": "2025-02-21",
+   "text": "Referred to the House Committee on Financial Services."
+  },
+  "legislationUrl": "https://www.congress.gov/bill/119th-congress/house-bill/1502",
+  "number": "1502",
+  "originChamber": "House",
+  "originChamberCode": "H",
+  "policyArea": {
+   "name": "Armed Forces and National Security"
+  },
+  "sponsors": [
+   {
+    "bioguideId": "S001172",
+    "district": 3,
+    "firstName": "Adrian",
+    "fullName": "Rep. Smith, Adrian [R-NE-3]",
+    "isByRequest": "N",
+    "lastName": "Smith",
+    "party": "R",
+    "state": "NE",
+    "url": "https://api.congress.gov/v3/member/S001172?format=json"
+   }
+  ],
+  "title": "North Platte Canteen Congressional Gold Medal Act",
+  "type": "HR",
+  "updateDate": "2026-09-11T08:05:35Z",
+  "updateDateIncludingText": "2026-09-11T08:05:35Z"
+ },
+ "request": {
+  "billNumber": "1502",
+  "billType": "hr",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

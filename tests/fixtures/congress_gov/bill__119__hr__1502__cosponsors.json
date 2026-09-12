@@ -1,0 +1,64 @@
+{
+ "cosponsors": [
+  {
+   "bioguideId": "S001213",
+   "district": 1,
+   "firstName": "Bryan",
+   "fullName": "Rep. Steil, Bryan [R-WI-1]",
+   "isOriginalCosponsor": false,
+   "lastName": "Steil",
+   "party": "R",
+   "sponsorshipDate": "2026-09-03",
+   "state": "WI",
+   "url": "https://api.congress.gov/v3/member/S001213?format=json"
+  },
+  {
+   "bioguideId": "B001298",
+   "district": 2,
+   "firstName": "Don",
+   "fullName": "Rep. Bacon, Don [R-NE-2]",
+   "isOriginalCosponsor": true,
+   "lastName": "Bacon",
+   "party": "R",
+   "sponsorshipDate": "2025-02-21",
+   "state": "NE",
+   "url": "https://api.congress.gov/v3/member/B001298?format=json"
+  },
+  {
+   "bioguideId": "F000474",
+   "district": 1,
+   "firstName": "Mike",
+   "fullName": "Rep. Flood, Mike [R-NE-1]",
+   "isOriginalCosponsor": true,
+   "lastName": "Flood",
+   "party": "R",
+   "sponsorshipDate": "2025-02-21",
+   "state": "NE",
+   "url": "https://api.congress.gov/v3/member/F000474?format=json"
+  },
+  {
+   "bioguideId": "M001196",
+   "district": 6,
+   "firstName": "Seth",
+   "fullName": "Rep. Moulton, Seth [D-MA-6]",
+   "isOriginalCosponsor": false,
+   "lastName": "Moulton",
+   "party": "D",
+   "sponsorshipDate": "2025-07-17",
+   "state": "MA",
+   "url": "https://api.congress.gov/v3/member/M001196?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 4,
+  "countIncludingWithdrawnCosponsors": 4
+ },
+ "request": {
+  "billNumber": "1502",
+  "billType": "hr",
+  "billUrl": "https://api.congress.gov/v3/bill/119/hr/1502?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

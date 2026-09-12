@@ -1,0 +1,56 @@
+{
+ "cosponsoredLegislation": [
+  {
+   "congress": 119,
+   "introducedDate": "2026-09-04",
+   "latestAction": {
+    "actionDate": "2025-09-10",
+    "text": "Referred to the Committee on Energy and Commerce, and in addition to the Committee on Ways and Means, for a period to be subsequently determined by the Speaker, in each case for consideration of such provisions as fall within the jurisdiction of the committee concerned."
+   },
+   "number": "5269",
+   "policyArea": {
+    "name": "Health"
+   },
+   "title": "RESULTS Act",
+   "type": "HR",
+   "url": "https://api.congress.gov/v3/bill/119/hr/5269?format=json"
+  },
+  {
+   "congress": 119,
+   "introducedDate": "2026-09-03",
+   "latestAction": {
+    "actionDate": "2025-02-21",
+    "text": "Referred to the House Committee on Financial Services."
+   },
+   "number": "1502",
+   "policyArea": {
+    "name": "Armed Forces and National Security"
+   },
+   "title": "North Platte Canteen Congressional Gold Medal Act",
+   "type": "HR",
+   "url": "https://api.congress.gov/v3/bill/119/hr/1502?format=json"
+  },
+  {
+   "congress": 118,
+   "introducedDate": "2024-12-16",
+   "latestAction": {
+    "actionDate": "2024-12-16",
+    "text": "Referred to the House Committee on Education and the Workforce."
+   },
+   "number": "10427",
+   "policyArea": {
+    "name": "International Affairs"
+   },
+   "title": "Continuing Opportunities for People with Disabilities to Excel Act",
+   "type": "HR",
+   "url": "https://api.congress.gov/v3/bill/118/hr/10427?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 3
+ },
+ "request": {
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

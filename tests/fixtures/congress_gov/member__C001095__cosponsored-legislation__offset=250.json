@@ -1,0 +1,26 @@
+{
+ "cosponsoredLegislation": [
+  {
+   "congress": 119,
+   "introducedDate": "2026-08-06",
+   "latestAction": {
+    "actionDate": "2026-08-06",
+    "text": "Read twice and referred to the Committee on the Judiciary."
+   },
+   "number": "5337",
+   "policyArea": {
+    "name": "Immigration"
+   },
+   "title": "Keep Our Communities Safe Act of 2026",
+   "type": "S",
+   "url": "https://api.congress.gov/v3/bill/119/s/5337?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 3
+ },
+ "request": {
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

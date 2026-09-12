@@ -1,0 +1,64 @@
+{
+ "cosponsors": [
+  {
+   "bioguideId": "B001282",
+   "district": 6,
+   "firstName": "Andy",
+   "fullName": "Rep. Barr, Andy [R-KY-6]",
+   "isOriginalCosponsor": true,
+   "lastName": "Barr",
+   "party": "R",
+   "sponsorshipDate": "2025-07-23",
+   "state": "KY",
+   "url": "https://api.congress.gov/v3/member/B001282?format=json"
+  },
+  {
+   "bioguideId": "M001204",
+   "district": 9,
+   "firstName": "Daniel",
+   "fullName": "Rep. Meuser, Daniel [R-PA-9]",
+   "isOriginalCosponsor": true,
+   "lastName": "Meuser",
+   "party": "R",
+   "sponsorshipDate": "2025-07-23",
+   "state": "PA",
+   "url": "https://api.congress.gov/v3/member/M001204?format=json"
+  },
+  {
+   "bioguideId": "H001058",
+   "district": 4,
+   "firstName": "Bill",
+   "fullName": "Rep. Huizenga, Bill [R-MI-4]",
+   "isOriginalCosponsor": true,
+   "lastName": "Huizenga",
+   "party": "R",
+   "sponsorshipDate": "2025-07-23",
+   "state": "MI",
+   "url": "https://api.congress.gov/v3/member/H001058?format=json"
+  },
+  {
+   "bioguideId": "F000471",
+   "district": 5,
+   "firstName": "Scott",
+   "fullName": "Rep. Fitzgerald, Scott [R-WI-5]",
+   "isOriginalCosponsor": true,
+   "lastName": "Fitzgerald",
+   "party": "R",
+   "sponsorshipDate": "2025-07-23",
+   "state": "WI",
+   "url": "https://api.congress.gov/v3/member/F000471?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 4,
+  "countIncludingWithdrawnCosponsors": 4
+ },
+ "request": {
+  "billNumber": "4735",
+  "billType": "hr",
+  "billUrl": "https://api.congress.gov/v3/bill/119/hr/4735?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}
