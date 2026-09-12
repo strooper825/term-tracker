@@ -5,9 +5,8 @@ Usage::
     python -m ingest.run --source all
     python -m ingest.run --source congress_gov
 
-Sources register themselves in ``SOURCES`` as they are implemented (Phase 1). With no
-sources registered the command logs a warning and exits 0, so the nightly workflow can
-be wired up before the first source lands.
+Sources register in ``SOURCES`` as they are implemented (Phase 1). With no sources
+registered the command logs a warning and exits 0.
 """
 
 from __future__ import annotations
@@ -17,10 +16,14 @@ import logging
 import sys
 from collections.abc import Callable, Sequence
 
+from ingest.sources import legislators
+
 log = logging.getLogger("ingest")
 
 # name -> callable that runs that source end to end and returns rows loaded.
-SOURCES: dict[str, Callable[[], int]] = {}
+SOURCES: dict[str, Callable[[], int]] = {
+    legislators.SOURCE: legislators.run,
+}
 
 
 def build_parser() -> argparse.ArgumentParser:

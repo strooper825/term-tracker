@@ -59,5 +59,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_ingest_run_source_finished_at", table_name="ingest_run", schema="meta")
     op.drop_table("ingest_run", schema="meta")
+    # cascade: dbt-built objects (staging views, mart tables) live in these schemas too.
     for schema in reversed(SCHEMAS):
-        op.execute(DropSchema(schema, if_exists=True))
+        op.execute(DropSchema(schema, cascade=True, if_exists=True))

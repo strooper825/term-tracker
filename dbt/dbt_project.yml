@@ -6,6 +6,7 @@ profile: term_tracker
 model-paths: ["models"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
+test-paths: ["tests"]
 target-path: target
 clean-targets: ["target", "dbt_packages"]
 
@@ -19,3 +20,16 @@ models:
     mart:
       +schema: mart
       +materialized: table
+
+seeds:
+  term_tracker:
+    +schema: seed
+
+vars:
+  # The Congress the dashboards cover in v1 (plan section 1).
+  current_congress: 119
+  current_congress_start: "2025-01-03"
+  current_congress_end: "2027-01-03"
+  # Provenance for seeds/fips.csv (Census state FIPS reference file).
+  fips_source_url: "https://www2.census.gov/geo/docs/reference/state.txt"
+  fips_fetched_at: "2026-09-12"

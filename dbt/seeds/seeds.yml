@@ -1,0 +1,28 @@
+version: 2
+
+seeds:
+  - name: fips
+    description: >
+      Census state FIPS reference (https://www2.census.gov/geo/docs/reference/state.txt),
+      retrieved 2026-09-12. States, DC, and territories. Column names follow the Census file.
+    config:
+      column_types:
+        fips_state: text
+        state_abbr: text
+        state_name: text
+        statens: text
+    columns:
+      - name: fips_state
+        tests: [unique, not_null]
+      - name: state_abbr
+        tests: [unique, not_null]
+
+  - name: tracked_members
+    description: Members in scope for ingestion and the mart (plan section 3, principle 5).
+    config:
+      column_types:
+        bioguide_id: text
+        note: text
+    columns:
+      - name: bioguide_id
+        tests: [unique, not_null]

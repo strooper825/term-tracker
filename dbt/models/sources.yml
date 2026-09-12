@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Verbatim upstream payloads loaded by ingest/ (one table per source entity).
+    schema: raw
+    tables:
+      - name: legislator
+        description: legislators-current.yaml, one row per current member; payload has id, name, bio, terms.
+      - name: committee
+        description: committees-current.yaml, one row per top-level committee; subcommittees nested in payload.
+      - name: committee_membership
+        description: committee-membership-current.yaml, one row per committee or subcommittee id; payload is the member list.

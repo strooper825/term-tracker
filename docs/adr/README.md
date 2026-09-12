@@ -6,7 +6,8 @@ also recorded here once made.
 
 ## Index
 
-None yet. Phase 0 followed the plan as written.
+- [0001. Constituency natural key](0001-constituency-key.md)
+- [0002. Bulk snapshot sources are loaded whole into raw](0002-bulk-snapshots-load-whole.md)
 
 ## Format
 

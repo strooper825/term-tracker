@@ -7,9 +7,10 @@ or changes a table (docs/PLAN.md, section 11).
 
 | Schema | Written by | Purpose |
 |---|---|---|
-| `raw` | `ingest/` | Source payloads as JSONB plus extracted natural-key columns. One table per source entity. Phase 1. |
-| `staging` | dbt | Typed, renamed views over `raw`. Phase 1d. |
-| `mart` | dbt | Tables the API reads. Every mart table carries `source`, `source_url`, `fetched_at`. Phase 1d. |
+| `raw` | `ingest/` | Source payloads as JSONB plus extracted natural-key columns. One table per source entity. |
+| `staging` | dbt | Typed, renamed views over `raw` (`stg_*`). |
+| `mart` | dbt | Tables the API reads. Every mart table carries `source`, `source_url`, `fetched_at`. |
+| `seed` | dbt seeds | Hand-maintained inputs: `fips`, `tracked_members`. |
 | `meta` | `ingest/` and Alembic | Operational metadata about the pipeline itself. |
 
 Alembic's own `alembic_version` table lives in `public`.
@@ -33,3 +34,81 @@ latest `status = 'success'` row per `source`.
 Index: `ix_ingest_run_source_finished_at (source, finished_at)`.
 
 Migration: `migrations/versions/20260912_0001_initial_schemas.py`.
+
+## Raw tables (Alembic migration `0002`)
+
+All three share `payload jsonb`, `source_url text`, `fetched_at timestamptz` and are upserted
+whole from the unitedstates/congress-legislators YAML files (see ADR 0002). Dates in payloads
+are ISO strings.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.legislator` | `bioguide_id` | current member of Congress (`legislators-current.yaml`) |
+| `raw.committee` | `thomas_id` | top-level committee; subcommittees nested in `payload.subcommittees` (`committees-current.yaml`) |
+| `raw.committee_membership` | `committee_id` | committee or subcommittee id (e.g. `HSBA`, `HSBA21`); payload is its member list (`committee-membership-current.yaml`) |
+
+## Seeds (`seed` schema, dbt)
+
+| Table | Key | Description |
+|---|---|---|
+| `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
+| `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. |
+
+## Staging views (`staging` schema, dbt)
+
+`stg_legislators`, `stg_legislator_terms` (one row per term, `chamber` mapped from `rep`/`sen`
+to `house`/`senate`), `stg_committees` (committees and subcommittees flattened; subcommittee
+`thomas_id` = parent id + suffix), `stg_committee_memberships` (one row per committee member).
+
+## Mart tables (`mart` schema, dbt)
+
+Every table carries `source` (`legislators` or `census_fips`), `source_url`, `fetched_at`.
+
+### `mart.constituency`
+
+Natural key `(fips_state, district)`; `district` NULL is the state itself, 0 an at-large
+district (ADR 0001). States come from the FIPS seed; districts from current House terms.
+
+| Column | Type | Description |
+|---|---|---|
+| `fips_state` | text | Census state FIPS |
+| `district` | int | NULL for the state; 0 for at-large |
+| `state_abbr`, `state_name` | text | From the FIPS seed |
+| `label` | text | `Wisconsin`, `WI-1`, `AK (At Large)` |
+
+### `mart.member`
+
+One row per tracked member. Key `bioguide_id`.
+
+| Column | Type | Description |
+|---|---|---|
+| `first_name`, `last_name`, `official_full_name` | text | From congress-legislators `name` |
+| `govtrack_id`, `icpsr_id` | int | For later joins (Voteview uses ICPSR) |
+| `fec_ids` | jsonb | Array of FEC candidate ids (Phase 2) |
+| `photo_url` | text | Congress.gov member image convention; replaced by the API value in Phase 1b |
+
+### `mart.term`
+
+Tracked member-terms overlapping the current Congress. Natural key
+`(bioguide_id, congress, chamber, start_date)`.
+
+| Column | Type | Description |
+|---|---|---|
+| `congress` | int | Congress in session when the term began (macro `congress_number`) |
+| `chamber` | text | `house` / `senate` |
+| `start_date`, `end_date` | date | From the source term |
+| `state_abbr`, `fips_state`, `state_name` | text | Joined to the FIPS seed |
+| `district` | int | House only |
+| `senate_class`, `state_rank` | int, text | Senate only |
+| `party` | text | Party during the term |
+
+### `mart.committee`
+
+All committees and subcommittees. Key `thomas_id`; `parent_thomas_id` NULL for top-level.
+Columns `name`, `chamber` (`house`/`senate`/`joint`), `url`, `jurisdiction`.
+
+### `mart.committee_membership`
+
+Assignments of tracked members. Natural key `(bioguide_id, committee_thomas_id, congress)`.
+Columns `rank`, `title` (e.g. `Chair`, `Ranking Member`), `party`. `congress` is the dbt var
+`current_congress` because the source file is the current snapshot.

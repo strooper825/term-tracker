@@ -1,0 +1,167 @@
+# Trimmed from https://raw.githubusercontent.com/unitedstates/congress-legislators/main/committee-membership-current.yaml
+# retrieved 2026-09-12. Contact details and the bio block are removed; nothing else is altered.
+SSAP:
+- name: Tammy Baldwin
+  party: minority
+  rank: 8
+  bioguide: B001230
+SSAP01:
+- name: Tammy Baldwin
+  party: minority
+  rank: 3
+  bioguide: B001230
+SSAP02:
+- name: Tammy Baldwin
+  party: minority
+  rank: 6
+  bioguide: B001230
+SSAP22:
+- name: Tammy Baldwin
+  party: minority
+  rank: 5
+  bioguide: B001230
+SSAP17:
+- name: Tammy Baldwin
+  party: minority
+  rank: 4
+  bioguide: B001230
+SSAP18:
+- name: Tammy Baldwin
+  party: minority
+  rank: 1
+  title: Ranking Member
+  bioguide: B001230
+SSAP19:
+- name: Tammy Baldwin
+  party: minority
+  rank: 5
+  bioguide: B001230
+SSAS:
+- name: Tom Cotton
+  party: majority
+  rank: 3
+  bioguide: C001095
+SSAS14:
+- name: Tom Cotton
+  party: majority
+  rank: 3
+  bioguide: C001095
+SSAS21:
+- name: Tom Cotton
+  party: majority
+  rank: 2
+  bioguide: C001095
+SSAS20:
+- name: Tom Cotton
+  party: majority
+  rank: 2
+  bioguide: C001095
+SSAS16:
+- name: Tom Cotton
+  party: majority
+  rank: 2
+  bioguide: C001095
+SSCM:
+- name: Tammy Baldwin
+  party: minority
+  rank: 6
+  bioguide: B001230
+SSCM34:
+- name: Tammy Baldwin
+  party: minority
+  rank: 6
+  bioguide: B001230
+SSCM35:
+- name: Tammy Baldwin
+  party: minority
+  rank: 5
+  bioguide: B001230
+SSCM36:
+- name: Tammy Baldwin
+  party: minority
+  rank: 4
+  bioguide: B001230
+SSCM37:
+- name: Tammy Baldwin
+  party: minority
+  rank: 1
+  title: Ranking Member
+  bioguide: B001230
+SSEG:
+- name: Tom Cotton
+  party: majority
+  rank: 5
+  bioguide: C001095
+SSEG01:
+- name: Tom Cotton
+  party: majority
+  rank: 4
+  bioguide: C001095
+SSEG03:
+- name: Tom Cotton
+  party: majority
+  rank: 4
+  bioguide: C001095
+SSHR:
+- name: Tammy Baldwin
+  party: minority
+  rank: 3
+  bioguide: B001230
+SSHR11:
+- name: Tammy Baldwin
+  party: minority
+  rank: 2
+  bioguide: B001230
+SSHR12:
+- name: Tammy Baldwin
+  party: minority
+  rank: 3
+  bioguide: B001230
+JSPR:
+- name: Bryan Steil
+  party: majority
+  rank: 1
+  title: Vice Chair
+  bioguide: S001213
+  chamber: house
+JSLC:
+- name: Bryan Steil
+  party: majority
+  rank: 1
+  title: Chair
+  bioguide: S001213
+  chamber: house
+JSEC:
+- name: Tom Cotton
+  party: majority
+  rank: 2
+  bioguide: C001095
+  chamber: senate
+SLIN:
+- name: Tom Cotton
+  party: majority
+  rank: 1
+  title: Chairman
+  bioguide: C001095
+HSBA:
+- name: Bryan Steil
+  party: majority
+  rank: 12
+  bioguide: S001213
+HSHA:
+- name: Bryan Steil
+  party: majority
+  rank: 1
+  title: Chair
+  bioguide: S001213
+HSBA21:
+- name: Bryan Steil
+  party: majority
+  rank: 1
+  title: Chairman
+  bioguide: S001213
+HSBA16:
+- name: Bryan Steil
+  party: majority
+  rank: 6
+  bioguide: S001213
