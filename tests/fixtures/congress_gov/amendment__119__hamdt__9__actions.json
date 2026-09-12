@@ -1,0 +1,59 @@
+{
+ "actions": [
+  {
+   "actionCode": "72000",
+   "actionDate": "2025-03-24",
+   "actionTime": "19:13:32",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "On agreeing to the Steil amendment (A001) Agreed to without objection.",
+   "type": "Floor"
+  },
+  {
+   "actionCode": "71000",
+   "actionDate": "2025-03-24",
+   "actionTime": "19:13:21",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "Amendment (A001) in the nature of a substitute offered by Mr. Steil. (consideration: CR H1215-1216; text: CR H1215-1216)",
+   "type": "Floor"
+  },
+  {
+   "actionCode": "71000",
+   "actionDate": "2025-03-24",
+   "actionTime": "19:13:21",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "House Amendment Offered",
+   "type": "Floor"
+  },
+  {
+   "actionCode": "72000",
+   "actionDate": "2025-03-24",
+   "actionTime": "19:13:32",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "House amendment agreed to: On agreeing to the Steil amendment (A001) Agreed to without objection.",
+   "type": "Floor"
+  }
+ ],
+ "pagination": {
+  "count": 4
+ },
+ "request": {
+  "amendmentNumber": "9",
+  "amendmentType": "hamdt",
+  "amendmentUrl": "https://api.congress.gov/v3/amendment/119/hamdt/9?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

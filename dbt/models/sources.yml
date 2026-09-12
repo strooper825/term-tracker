@@ -11,3 +11,11 @@ sources:
         description: committees-current.yaml, one row per top-level committee; subcommittees nested in payload.
       - name: committee_membership
         description: committee-membership-current.yaml, one row per committee or subcommittee id; payload is the member list.
+      - name: member_legislation
+        description: One row per sponsored/cosponsored list item per tracked member, current Congress only.
+      - name: bill
+        description: Detail record per bill or amendment (payload from /bill or /amendment).
+      - name: bill_actions
+        description: Actions list per bill or amendment; payload is a JSON array.
+      - name: bill_cosponsors
+        description: Cosponsors list per bill or amendment; payload is a JSON array.

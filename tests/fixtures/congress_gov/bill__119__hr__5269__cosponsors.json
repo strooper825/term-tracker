@@ -1,0 +1,66 @@
+{
+ "cosponsors": [
+  {
+   "bioguideId": "S001213",
+   "district": 1,
+   "firstName": "Bryan",
+   "fullName": "Rep. Steil, Bryan [R-WI-1]",
+   "isOriginalCosponsor": false,
+   "lastName": "Steil",
+   "party": "R",
+   "sponsorshipDate": "2026-09-04",
+   "state": "WI",
+   "url": "https://api.congress.gov/v3/member/S001213?format=json"
+  },
+  {
+   "bioguideId": "P000608",
+   "district": 50,
+   "firstName": "Scott",
+   "fullName": "Rep. Peters, Scott H. [D-CA-50]",
+   "isOriginalCosponsor": true,
+   "lastName": "Peters",
+   "middleName": "H.",
+   "party": "D",
+   "sponsorshipDate": "2025-09-10",
+   "state": "CA",
+   "url": "https://api.congress.gov/v3/member/P000608?format=json"
+  },
+  {
+   "bioguideId": "B001257",
+   "district": 12,
+   "firstName": "Gus",
+   "fullName": "Rep. Bilirakis, Gus M. [R-FL-12]",
+   "isOriginalCosponsor": true,
+   "lastName": "Bilirakis",
+   "middleName": "M.",
+   "party": "R",
+   "sponsorshipDate": "2025-09-10",
+   "state": "FL",
+   "url": "https://api.congress.gov/v3/member/B001257?format=json"
+  },
+  {
+   "bioguideId": "K000391",
+   "district": 8,
+   "firstName": "Raja",
+   "fullName": "Rep. Krishnamoorthi, Raja [D-IL-8]",
+   "isOriginalCosponsor": true,
+   "lastName": "Krishnamoorthi",
+   "party": "D",
+   "sponsorshipDate": "2025-09-10",
+   "state": "IL",
+   "url": "https://api.congress.gov/v3/member/K000391?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 4,
+  "countIncludingWithdrawnCosponsors": 4
+ },
+ "request": {
+  "billNumber": "5269",
+  "billType": "hr",
+  "billUrl": "https://api.congress.gov/v3/bill/119/hr/5269?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

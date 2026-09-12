@@ -65,3 +65,39 @@ models:
         tests:
           - not_null
           - relationships: { arguments: { to: ref('committee'), field: thomas_id } }
+
+  - name: bill
+    description: Bills and amendments sponsored or cosponsored by tracked members.
+    columns:
+      - name: kind
+        tests:
+          - accepted_values: { arguments: { values: ["bill", "amendment"] } }
+      - name: title
+        tests: [not_null]
+      - name: introduced_date
+        tests: [not_null]
+      - name: congress_gov_url
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: bill_sponsorship
+    description: Sponsor and cosponsor relationships of tracked members.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: role
+        tests:
+          - accepted_values: { arguments: { values: ["sponsor", "cosponsor"] } }
+      - name: date
+        tests: [not_null]
+
+  - name: bill_action
+    description: Actions on bills in mart.bill.
+    columns:
+      - name: action_date
+        tests: [not_null]
+      - name: action_hash
+        tests: [not_null]

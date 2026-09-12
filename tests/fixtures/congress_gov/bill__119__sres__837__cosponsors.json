@@ -1,0 +1,62 @@
+{
+ "cosponsors": [
+  {
+   "bioguideId": "C001095",
+   "firstName": "Tom",
+   "fullName": "Sen. Cotton, Tom [R-AR]",
+   "isOriginalCosponsor": true,
+   "lastName": "Cotton",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "AR",
+   "url": "https://api.congress.gov/v3/member/C001095?format=json"
+  },
+  {
+   "bioguideId": "K000383",
+   "firstName": "Angus",
+   "fullName": "Sen. King, Angus S., Jr. [I-ME]",
+   "isOriginalCosponsor": true,
+   "lastName": "King",
+   "middleName": "S.",
+   "party": "I",
+   "sponsorshipDate": "2026-08-06",
+   "state": "ME",
+   "url": "https://api.congress.gov/v3/member/K000383?format=json"
+  },
+  {
+   "bioguideId": "L000571",
+   "firstName": "Cynthia",
+   "fullName": "Sen. Lummis, Cynthia M. [R-WY]",
+   "isOriginalCosponsor": true,
+   "lastName": "Lummis",
+   "middleName": "M.",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "WY",
+   "url": "https://api.congress.gov/v3/member/L000571?format=json"
+  },
+  {
+   "bioguideId": "G000574",
+   "firstName": "Ruben",
+   "fullName": "Sen. Gallego, Ruben [D-AZ]",
+   "isOriginalCosponsor": true,
+   "lastName": "Gallego",
+   "party": "D",
+   "sponsorshipDate": "2026-08-06",
+   "state": "AZ",
+   "url": "https://api.congress.gov/v3/member/G000574?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 4,
+  "countIncludingWithdrawnCosponsors": 4
+ },
+ "request": {
+  "billNumber": "837",
+  "billType": "sres",
+  "billUrl": "https://api.congress.gov/v3/bill/119/sres/837?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

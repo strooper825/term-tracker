@@ -1,59 +1,16 @@
 """End to end on fixtures: raw load -> dbt build -> GET /api/v1/members.
 
-Needs Postgres and the dbt CLI. Skipped locally when either is missing; required in CI.
+Needs Postgres and the dbt CLI (see the built_mart fixture in conftest).
 """
 
 from __future__ import annotations
 
-import os
-import shutil
-import subprocess
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
-from sqlalchemy.engine import make_url
 
-from ingest.db import connect
 from ingest.sources import legislators as src
-from tests.fixtures.legislators import fixture_fetch
 
 pytestmark = [pytest.mark.integration, pytest.mark.dbt]
-
-ROOT = Path(__file__).resolve().parents[2]
-
-
-def _dbt_env(database_url: str) -> dict[str, str]:
-    url = make_url(database_url)
-    return {
-        **os.environ,
-        "PGHOST": url.host or "localhost",
-        "PGPORT": str(url.port or 5432),
-        "PGUSER": url.username or "",
-        "PGPASSWORD": url.password or "",
-        "PGDATABASE": url.database or "",
-    }
-
-
-@pytest.fixture(scope="module")
-def built_mart(migrated_engine: Engine) -> None:
-    dbt = shutil.which("dbt")
-    if dbt is None:
-        if os.environ.get("CI"):
-            pytest.fail("dbt CLI not on PATH in CI")
-        pytest.skip("dbt CLI not on PATH")
-
-    with connect() as conn:
-        src.load(conn, fetch=fixture_fetch)
-
-    result = subprocess.run(
-        [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],
-        env=_dbt_env(migrated_engine.url.render_as_string(hide_password=False)),
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, f"dbt build failed:\n{result.stdout}\n{result.stderr}"
 
 
 def test_members_returns_both_tracked_members(built_mart: None, client: TestClient) -> None:

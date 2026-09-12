@@ -16,13 +16,14 @@ import logging
 import sys
 from collections.abc import Callable, Sequence
 
-from ingest.sources import legislators
+from ingest.sources import congress_gov, legislators
 
 log = logging.getLogger("ingest")
 
 # name -> callable that runs that source end to end and returns rows loaded.
-SOURCES: dict[str, Callable[[], int]] = {
+SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
+    congress_gov.SOURCE: congress_gov.run,
 }
 
 
@@ -36,6 +37,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--source",
         default="all",
         help=f"Source to run, or 'all' (default). Known sources: {known}.",
+    )
+    parser.add_argument(
+        "--full-refresh",
+        action="store_true",
+        help="Re-fetch dependent records even when the source reports no change.",
     )
     return parser
 
@@ -60,7 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     for name in selected:
         log.info("Running source %s", name)
-        rows = SOURCES[name]()
+        rows = SOURCES[name](full_refresh=args.full_refresh)
         log.info("Source %s loaded %d rows", name, rows)
     return 0
 

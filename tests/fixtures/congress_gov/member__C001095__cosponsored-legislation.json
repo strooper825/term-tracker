@@ -1,0 +1,38 @@
+{
+ "cosponsoredLegislation": [
+  {
+   "congress": 119,
+   "introducedDate": "2026-08-06",
+   "latestAction": {
+    "actionDate": "2026-08-06",
+    "text": "Submitted in the Senate, considered, and agreed to without amendment and with a preamble by Unanimous Consent."
+   },
+   "number": "837",
+   "policyArea": {
+    "name": "Public Lands and Natural Resources"
+   },
+   "title": "A resolution designating the week of August 22 through August 30, 2026, as \"National Park Week\".",
+   "type": "SRES",
+   "url": "https://api.congress.gov/v3/bill/119/sres/837?format=json"
+  },
+  {
+   "amendmentNumber": "6747",
+   "congress": 119,
+   "introducedDate": "2026-08-06",
+   "latestAction": {
+    "actionDate": "2026-08-08",
+    "text": "Motion to table amendment SA 6747 agreed to in Senate by Yea-Nay Vote. 61 - 32. Record Vote Number: 227."
+   },
+   "type": null,
+   "url": "https://api.congress.gov/v3/amendment/119/samdt/6747?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 3,
+  "next": "https://api.congress.gov/v3/member/C001095/cosponsored-legislation?offset=250&limit=250&format=json"
+ },
+ "request": {
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

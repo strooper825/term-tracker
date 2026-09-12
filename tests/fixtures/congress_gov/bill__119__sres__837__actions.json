@@ -1,0 +1,33 @@
+{
+ "actions": [
+  {
+   "actionDate": "2026-08-06",
+   "sourceSystem": {
+    "name": "Senate"
+   },
+   "text": "Submitted in the Senate, considered, and agreed to without amendment and with a preamble by Unanimous Consent.",
+   "type": "Floor"
+  },
+  {
+   "actionCode": "17000",
+   "actionDate": "2026-08-06",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "Passed/agreed to in Senate: Submitted in the Senate, considered, and agreed to without amendment and with a preamble by Unanimous Consent.",
+   "type": "Floor"
+  }
+ ],
+ "pagination": {
+  "count": 2
+ },
+ "request": {
+  "billNumber": "837",
+  "billType": "sres",
+  "billUrl": "https://api.congress.gov/v3/bill/119/sres/837?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

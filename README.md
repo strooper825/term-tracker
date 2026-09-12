@@ -4,10 +4,11 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 1a. The `legislators` source (unitedstates/congress-legislators) loads
-members, terms, committees, and assignments; dbt builds `mart.member`, `term`, `constituency`,
-`committee`, `committee_membership`; the API serves `/api/v1/members` and
-`/api/v1/meta/freshness`.
+**Status:** Phase 1b. Sources `legislators` (unitedstates/congress-legislators) and
+`congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors for tracked
+members) are loaded nightly-style into `raw`; dbt builds the `mart` tables listed in
+[docs/data-dictionary.md](docs/data-dictionary.md); the API serves `/api/v1/members` and
+`/api/v1/meta/freshness` (bill endpoints arrive in Phase 1d).
 
 ## Stack
 
@@ -49,6 +50,15 @@ for the venv). With the Compose database up:
 ```bash
 python -m ingest.run --source legislators
 ```
+
+```bash
+python -m ingest.run --source congress_gov_bills
+```
+
+The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the
+database (run the dbt command below once first). It makes roughly 500 to 1,400 requests for two
+members, throttled to 5,000 per hour; add `--full-refresh` to re-fetch every actions and
+cosponsors list regardless of Congress.gov `updateDate`.
 
 ```bash
 PGPORT=5433 dbt build --project-dir dbt --profiles-dir dbt

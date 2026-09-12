@@ -1,0 +1,74 @@
+{
+ "amendment": {
+  "amendedAmendment": {
+   "congress": 119,
+   "number": "6732",
+   "purpose": "In the nature of a substitute.",
+   "type": "SAMDT",
+   "updateDate": "2026-08-13T14:36:06Z",
+   "url": "https://api.congress.gov/v3/amendment/119/samdt/6732?format=json"
+  },
+  "amendedBill": {
+   "congress": 119,
+   "number": "6500",
+   "originChamber": "House",
+   "originChamberCode": "H",
+   "title": "Continuing Appropriations and Extensions Act, 2027",
+   "type": "HR",
+   "updateDateIncludingText": "2026-09-10",
+   "url": "https://api.congress.gov/v3/bill/119/hr/6500?format=json"
+  },
+  "chamber": "Senate",
+  "congress": 119,
+  "latestAction": {
+   "actionDate": "2026-08-08",
+   "links": [
+    {
+     "name": "Record Vote Number: 227",
+     "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1192/vote_119_2_00227.htm"
+    },
+    {
+     "name": "SA 6747",
+     "url": "https://www.congress.gov/amendment/119th-congress/senate-amendment/6747"
+    }
+   ],
+   "text": "Motion to table amendment SA 6747 agreed to in Senate by Yea-Nay Vote. 61 - 32. Record Vote Number: 227."
+  },
+  "number": "6747",
+  "onBehalfOfSponsor": [
+   {
+    "bioguideId": "B001305",
+    "firstName": "Ted",
+    "fullName": "Rep. Budd, Ted [R-NC-13]",
+    "lastName": "Budd",
+    "party": "R",
+    "state": "NC",
+    "type": "Proposed on behalf of",
+    "url": "https://api.congress.gov/v3/member/B001305?format=json"
+   }
+  ],
+  "proposedDate": "2026-08-08T04:00:00Z",
+  "purpose": "To strike section 2019.",
+  "sponsors": [
+   {
+    "bioguideId": "B001305",
+    "firstName": "Ted",
+    "fullName": "Sen. Budd, Ted [R-NC]",
+    "lastName": "Budd",
+    "party": "R",
+    "state": "NC",
+    "url": "https://api.congress.gov/v3/member/B001305?format=json"
+   }
+  ],
+  "submittedDate": "2026-08-06T04:00:00Z",
+  "type": "SAMDT",
+  "updateDate": "2026-08-11T11:08:28Z"
+ },
+ "request": {
+  "amendmentNumber": "6747",
+  "amendmentType": "samdt",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

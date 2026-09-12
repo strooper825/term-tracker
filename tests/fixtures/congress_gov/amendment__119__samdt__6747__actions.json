@@ -1,0 +1,82 @@
+{
+ "actions": [
+  {
+   "actionDate": "2026-08-08",
+   "recordedVotes": [
+    {
+     "chamber": "Senate",
+     "congress": 119,
+     "date": "2026-08-08T07:37:01Z",
+     "rollNumber": 227,
+     "sessionNumber": 2,
+     "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1192/vote_119_2_00227.xml"
+    }
+   ],
+   "sourceSystem": {
+    "code": 0,
+    "name": "Senate"
+   },
+   "text": "Motion to table amendment SA 6747 agreed to in Senate by Yea-Nay Vote. 61 - 32. Record Vote Number: 227.",
+   "type": "Floor"
+  },
+  {
+   "actionDate": "2026-08-08",
+   "sourceSystem": {
+    "code": 0,
+    "name": "Senate"
+   },
+   "text": "Amendment SA 6747 proposed by Senator Budd to Amendment SA 6732. (consideration: CR S4542, S4554-4555)",
+   "type": "Floor"
+  },
+  {
+   "actionCode": "Intro-S",
+   "actionDate": "2026-08-06",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "type": "IntroReferral"
+  },
+  {
+   "actionCode": "93000",
+   "actionDate": "2026-08-08",
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "Senate amendment proposed (on the floor): Amendment SA 6747 proposed by Senator Budd to Amendment SA 6732.",
+   "type": "Floor"
+  },
+  {
+   "actionCode": "97000",
+   "actionDate": "2026-08-08",
+   "recordedVotes": [
+    {
+     "chamber": "Senate",
+     "congress": 119,
+     "date": "2026-08-08T07:37:01Z",
+     "rollNumber": 227,
+     "sessionNumber": 2,
+     "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1192/vote_119_2_00227.xml"
+    }
+   ],
+   "sourceSystem": {
+    "code": 9,
+    "name": "Library of Congress"
+   },
+   "text": "Roll call votes on amendments in Senate: Motion to table amendment SA 6747 agreed to in Senate by Yea-Nay Vote. 61 - 32. Record Vote Number: 227.",
+   "type": "Floor"
+  }
+ ],
+ "pagination": {
+  "count": 5
+ },
+ "request": {
+  "amendmentNumber": "6747",
+  "amendmentType": "samdt",
+  "amendmentUrl": "https://api.congress.gov/v3/amendment/119/samdt/6747?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

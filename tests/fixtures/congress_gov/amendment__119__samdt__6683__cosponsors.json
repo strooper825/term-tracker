@@ -1,0 +1,15 @@
+{
+ "cosponsors": [],
+ "pagination": {
+  "count": 0,
+  "countIncludingWithdrawnCosponsors": 0
+ },
+ "request": {
+  "amendmentNumber": "6683",
+  "amendmentType": "samdt",
+  "amendmentUrl": "https://api.congress.gov/v3/amendment/119/samdt/6683?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "cosponsors": [
+  {
+   "bioguideId": "C001095",
+   "firstName": "Tom",
+   "fullName": "Sen. Cotton, Tom [R-AR]",
+   "isOriginalCosponsor": true,
+   "lastName": "Cotton",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "AR",
+   "url": "https://api.congress.gov/v3/member/C001095?format=json"
+  },
+  {
+   "bioguideId": "T000278",
+   "firstName": "Tommy",
+   "fullName": "Sen. Tuberville, Tommy [R-AL]",
+   "isOriginalCosponsor": true,
+   "lastName": "Tuberville",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "AL",
+   "url": "https://api.congress.gov/v3/member/T000278?format=json"
+  },
+  {
+   "bioguideId": "C001098",
+   "firstName": "Ted",
+   "fullName": "Sen. Cruz, Ted [R-TX]",
+   "isOriginalCosponsor": true,
+   "lastName": "Cruz",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "TX",
+   "url": "https://api.congress.gov/v3/member/C001098?format=json"
+  },
+  {
+   "bioguideId": "M001198",
+   "firstName": "Roger",
+   "fullName": "Sen. Marshall, Roger [R-KS]",
+   "isOriginalCosponsor": true,
+   "lastName": "Marshall",
+   "party": "R",
+   "sponsorshipDate": "2026-08-06",
+   "state": "KS",
+   "url": "https://api.congress.gov/v3/member/M001198?format=json"
+  }
+ ],
+ "pagination": {
+  "count": 4,
+  "countIncludingWithdrawnCosponsors": 4
+ },
+ "request": {
+  "billNumber": "5337",
+  "billType": "s",
+  "billUrl": "https://api.congress.gov/v3/bill/119/s/5337?format=json",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

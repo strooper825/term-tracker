@@ -1,0 +1,38 @@
+{
+ "amendment": {
+  "amendedBill": {
+   "congress": 119,
+   "number": "4784",
+   "originChamber": "Senate",
+   "originChamberCode": "S",
+   "title": "National Defense Authorization Act for Fiscal Year 2027",
+   "type": "S",
+   "updateDateIncludingText": "2026-08-31",
+   "url": "https://api.congress.gov/v3/bill/119/s/4784?format=json"
+  },
+  "chamber": "Senate",
+  "congress": 119,
+  "number": "6683",
+  "sponsors": [
+   {
+    "bioguideId": "C001095",
+    "firstName": "Tom",
+    "fullName": "Sen. Cotton, Tom [R-AR]",
+    "lastName": "Cotton",
+    "party": "R",
+    "state": "AR",
+    "url": "https://api.congress.gov/v3/member/C001095?format=json"
+   }
+  ],
+  "submittedDate": "2026-07-14T04:00:00Z",
+  "type": "SAMDT",
+  "updateDate": "2026-07-15T11:08:32Z"
+ },
+ "request": {
+  "amendmentNumber": "6683",
+  "amendmentType": "samdt",
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

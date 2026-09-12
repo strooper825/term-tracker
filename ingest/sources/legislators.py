@@ -155,6 +155,6 @@ def load(conn: Connection, fetch: Fetch = fetch_text) -> int:
     return run.rows_loaded
 
 
-def run() -> int:
+def run(*, full_refresh: bool = False) -> int:  # noqa: ARG001 - whole-file source
     with connect() as conn:
         return load(conn)

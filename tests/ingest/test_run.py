@@ -22,7 +22,7 @@ def test_unknown_source_is_a_usage_error(monkeypatch: pytest.MonkeyPatch) -> Non
 def test_registered_source_runs(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
-    def fake_source() -> int:
+    def fake_source(*, full_refresh: bool = False) -> int:
         calls.append("legislators")
         return 3
 

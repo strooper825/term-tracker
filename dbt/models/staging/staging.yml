@@ -30,3 +30,31 @@ models:
         tests: [not_null]
       - name: bioguide_id
         tests: [not_null]
+  - name: stg_member_legislation
+    columns:
+      - name: role
+        tests:
+          - accepted_values: { arguments: { values: ["sponsor", "cosponsor"] } }
+  - name: stg_bills
+    columns:
+      - name: kind
+        tests:
+          - accepted_values: { arguments: { values: ["bill", "amendment"] } }
+      - name: title
+        tests: [not_null]
+      - name: introduced_date
+        tests: [not_null]
+      - name: update_date
+        tests: [not_null]
+  - name: stg_bill_actions
+    columns:
+      - name: action_date
+        tests: [not_null]
+      - name: action_hash
+        tests: [not_null]
+  - name: stg_bill_cosponsors
+    columns:
+      - name: bioguide_id
+        tests: [not_null]
+      - name: sponsorship_date
+        tests: [not_null]
