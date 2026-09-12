@@ -1,0 +1,29 @@
+name: Nightly ingest
+
+# Phase 0: manual trigger only. The 06:00 UTC schedule is enabled in Phase 1e, once a managed
+# Postgres exists (open decision in docs/PLAN.md section 12) and its URL is stored as the
+# DATABASE_URL repository secret.
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 6 * * *"
+
+jobs:
+  ingest:
+    name: ingest -> dbt run -> freshness check
+    runs-on: ubuntu-latest
+    env:
+      CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
+      FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install .
+      - name: Ingest
+        run: python -m ingest.run --source all
+      # Phase 1d: dbt run against the mart.
+      # Phase 1e: freshness check (fail the job if any source is stale) and failure alerting.

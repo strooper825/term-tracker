@@ -1,0 +1,5 @@
+# Normalize line endings: store as LF, check out as LF, so files copied into Linux containers
+# and run in CI behave the same as on a Windows checkout.
+* text=auto eol=lf
+*.png binary
+*.jpg binary

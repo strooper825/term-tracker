@@ -1,0 +1,14 @@
+# dbt profile for local and CI use. Values come from the environment so no credentials live here.
+# Run dbt from the dbt/ directory: `dbt run --profiles-dir .`
+term_tracker:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5432') | as_number }}"
+      user: "{{ env_var('PGUSER', 'term') }}"
+      password: "{{ env_var('PGPASSWORD', 'term') }}"
+      dbname: "{{ env_var('PGDATABASE', 'term_tracker') }}"
+      schema: public
+      threads: 4

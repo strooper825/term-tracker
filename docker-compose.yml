@@ -1,0 +1,36 @@
+# Local development stack: Postgres 16 plus the read-only API.
+# `docker compose up` starts the database, applies Alembic migrations, and serves the API on :8000.
+# Credentials below are for local development only.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: term
+      POSTGRES_PASSWORD: term
+      POSTGRES_DB: term_tracker
+    ports:
+      # Host port 5433 so a locally installed PostgreSQL on 5432 does not clash. Override with
+      # POSTGRES_PORT=... (also update DATABASE_URL in .env when you do).
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U term -d term_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://term:term@db:5432/term_tracker
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000"]
+
+volumes:
+  pgdata:

@@ -1,0 +1,14 @@
+.git
+.venv
+.env
+.env.*
+__pycache__
+*.pyc
+*.egg-info
+.pytest_cache
+.ruff_cache
+dbt/target
+dbt/logs
+docs
+tests
+.github
