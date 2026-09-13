@@ -1,121 +1,119 @@
-name: Deploy site
+name: Nightly ingest
 
-# Builds the static site from an API started in the runner against the managed database and
-# deploys the prebuilt output with the Vercel CLI (no Git integration, no runtime server).
-# Called by ingest.yml after a successful ingest, and dispatchable on its own so a frontend
-# change can be published in minutes without an ingest cycle.
+# Runs against the managed Postgres (Neon) named by the DATABASE_URL repository secret:
+# migrate -> dbt seed -> ingest (all sources) -> dbt build -> freshness check and size report,
+# then calls deploy.yml in the same run so the site is rebuilt from the fresh mart. A failure
+# in either job opens an issue labelled nightly-failure (or comments on the open one); a fully
+# successful run closes it. deploy.yml is also dispatchable on its own, so a frontend change
+# can be published without an ingest cycle.
 on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC nightly (plan section 3)
   workflow_dispatch:
     inputs:
-      deploy_target:
-        description: "Vercel target: auto = production from main, preview from any other branch"
-        type: choice
-        options: [auto, preview, production]
-        default: auto
-  workflow_call:
-    inputs:
-      deploy_target:
-        description: auto, preview, or production (auto = production from main, preview elsewhere)
-        type: string
-        default: auto
+      full_refresh:
+        description: Re-fetch every actions, cosponsors, and Senate roll-call list
+        type: boolean
+        default: false
+      max_age_hours:
+        description: Freshness threshold for the check step
+        type: number
+        default: 26
+      deploy:
+        description: Rebuild and deploy the site after a successful ingest (production from main, preview from any other branch)
+        type: boolean
+        default: true
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: nightly-ingest
   cancel-in-progress: false
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
-  deploy:
-    name: build site -> static check -> deploy
+  ingest:
+    name: migrate -> seed -> ingest -> dbt build -> freshness check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      API_BASE_URL: http://127.0.0.1:8000
+      CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
+      FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
     steps:
-      # `auto` follows the branch: main deploys to production, anything else to preview. The
-      # flag is computed in shell here rather than with an expression whose "true" branch is
-      # the empty string (that branch is falsy and the expression always yields the other one).
-      - name: Resolve the deployment target
-        id: target
-        env:
-          REQUESTED: ${{ inputs.deploy_target }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          case "$REQUESTED" in
-            production|preview) target="$REQUESTED" ;;
-            auto|"") if [ "$REF_NAME" = "main" ]; then target=production; else target=preview; fi ;;
-            *) echo "::error::deploy_target must be auto, preview, or production (got '$REQUESTED')"; exit 1 ;;
-          esac
-          prod_flag=""
-          if [ "$target" = production ]; then prod_flag="--prod"; fi
-          echo "target=$target" >> "$GITHUB_OUTPUT"
-          echo "prod_flag=$prod_flag" >> "$GITHUB_OUTPUT"
-          echo "Deploying to $target (requested: '${REQUESTED:-auto}', branch: $REF_NAME)"
-
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install "."
+      - run: pip install ".[dbt]"
 
-      - name: Check the secrets are set
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Check the database secret is set
         run: |
-          for name in DATABASE_URL VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-            if [ -z "${!name}" ]; then echo "::error::$name secret is not set"; exit 1; fi
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set"; exit 1
+          fi
+
+      - name: Export dbt connection settings from DATABASE_URL
+        run: python -m ingest.dbt_env >> "$GITHUB_ENV"
+
+      - name: Migrate
+        run: alembic upgrade head
+
+      # Seeds first: the bills source reads seed.tracked_members, which does not exist on a fresh
+      # database until dbt has created it. dbt seed is idempotent (truncate and reload).
+      - name: dbt seed
+        run: dbt seed --project-dir dbt --profiles-dir dbt --no-use-colors
+
+      - name: Ingest (all sources, votes before bills)
+        run: python -m ingest.run --source all ${{ inputs.full_refresh == true && '--full-refresh' || '' }}
+
+      - name: dbt build (seeds, models, tests)
+        run: dbt build --project-dir dbt --profiles-dir dbt --no-use-colors
+
+      - name: Freshness check and size report
+        run: python -m ingest.freshness --max-age-hours ${{ inputs.max_age_hours || 26 }}
+
+  # Same run, so a deploy failure fails this run and the alert job below sees it. The schedule
+  # always deploys; a manual dispatch can opt out with the `deploy` input. deploy.yml resolves
+  # `auto` to production on main and preview on any other branch.
+  deploy:
+    name: deploy
+    needs: ingest
+    if: github.event_name == 'schedule' || inputs.deploy
+    uses: ./.github/workflows/deploy.yml
+    with:
+      deploy_target: auto
+    secrets: inherit
+
+  alert:
+    name: nightly-failure issue
+    needs: [ingest, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      INGEST_RESULT: ${{ needs.ingest.result }}
+      DEPLOY_RESULT: ${{ needs.deploy.result }}
+    steps:
+      - name: Open or update the failure issue
+        if: needs.ingest.result == 'failure' || needs.deploy.result == 'failure'
+        run: |
+          gh label create nightly-failure --color B60205 --description "Nightly ingest failed" --force
+          existing=$(gh issue list --label nightly-failure --state open --json number --jq '.[0].number')
+          body="The nightly run failed on $(date -u +%Y-%m-%d) (event: ${{ github.event_name }}; ingest: $INGEST_RESULT, deploy: $DEPLOY_RESULT). Run: $RUN_URL"
+          if [ -z "$existing" ]; then
+            gh issue create --title "Nightly ingest failed $(date -u +%Y-%m-%d)" --label nightly-failure --body "$body"
+          else
+            gh issue comment "$existing" --body "$body"
+          fi
+
+      - name: Close the failure issue after a successful run
+        if: needs.ingest.result == 'success' && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
+        run: |
+          for n in $(gh issue list --label nightly-failure --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Recovered: the nightly run succeeded on $(date -u +%Y-%m-%d) (deploy: $DEPLOY_RESULT). Run: $RUN_URL"
           done
-
-      - name: Start the API against the managed database
-        run: |
-          nohup uvicorn api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:8000/api/v1/meta/freshness > /dev/null && exit 0
-            sleep 1
-          done
-          echo "::error::API did not start"; cat api.log; exit 1
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: site/package-lock.json
-      - name: Install site dependencies
-        run: npm ci --no-audit --no-fund
-        working-directory: site
-
-      - name: Build the site (Vercel prebuilt output)
-        working-directory: site
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          TARGET: ${{ steps.target.outputs.target }}
-          PROD_FLAG: ${{ steps.target.outputs.prod_flag }}
-        run: |
-          npx vercel pull --yes --environment="$TARGET" --token="$VERCEL_TOKEN"
-          npx vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
-
-      - name: Confirm the built site cannot reach the API
-        working-directory: site
-        run: node scripts/check-static.mjs .vercel/output/static
-
-      - name: Deploy the prebuilt output to Vercel
-        working-directory: site
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          TARGET: ${{ steps.target.outputs.target }}
-          PROD_FLAG: ${{ steps.target.outputs.prod_flag }}
-        run: |
-          url=$(npx vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
-          echo "deployed: $url"
-          echo "## Site" >> "$GITHUB_STEP_SUMMARY"
-          echo "Deployed $TARGET from \`${{ github.ref_name }}\`: $url" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Stop the API
-        if: always()
-        run: pkill -f "uvicorn api.main:app" || true
