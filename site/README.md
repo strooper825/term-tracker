@@ -13,7 +13,8 @@ API_BASE_URL=http://127.0.0.1:8000 npm run build   # needs the API running again
 node scripts/check-static.mjs out                  # fails if the output could reach the API
 ```
 
-Routes: `/` and `/members` (index), `/members/{bioguide}` for every row of `tracked_members`.
+Routes: `/members` (index; `/` redirects to it on Vercel via `vercel.json`), `/members/{bioguide}`
+for every row of `tracked_members`.
 
 ## Tests
 

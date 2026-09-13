@@ -115,7 +115,10 @@ jobs:
           npx vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
       - name: Confirm the built site cannot reach the API
         working-directory: site
-        run: node scripts/check-static.mjs .vercel/output/static
+        run: |
+          node scripts/check-static.mjs .vercel/output/static
+          echo '--- output listing'; ls -la .vercel/output/static | head -20
+          echo '--- routes'; node -e "const c=require('./.vercel/output/config.json');console.log(JSON.stringify(c.routes||[],null,1).slice(0,3000))"
       - name: Deploy the prebuilt output to Vercel
         working-directory: site
         env:
