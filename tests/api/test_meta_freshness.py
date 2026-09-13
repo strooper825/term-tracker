@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi.testclient import TestClient
 
@@ -74,3 +74,59 @@ def test_openapi_docs_render(client: TestClient) -> None:
     assert client.get("/docs").status_code == 200
     paths = client.get("/openapi.json").json()["paths"]
     assert "/api/v1/meta/freshness" in paths
+
+
+def _session_row(**overrides) -> dict:
+    row = {
+        "congress": 119,
+        "session": 2,
+        "session_year": 2026,
+        "start_date": date(2026, 1, 3),
+        "end_date": date(2027, 1, 3),
+        "first_roll_call_date": date(2026, 1, 5),
+        "last_roll_call_date": date(2026, 9, 10),
+        "roll_calls": 526,
+        "is_current": True,
+        "source": "congress_gov",
+        "source_url": "https://www.congress.gov/days-in-session",
+        "fetched_at": datetime(2026, 9, 13, tzinfo=UTC),
+    }
+    row.update(overrides)
+    return row
+
+
+def test_sessions_returns_the_bounds_the_feed_filter_uses(client: TestClient) -> None:
+    _use_rows(
+        [
+            _session_row(
+                session=1,
+                session_year=2025,
+                start_date=date(2025, 1, 3),
+                end_date=date(2026, 1, 2),
+                is_current=False,
+            ),
+            _session_row(),
+        ]
+    )
+    body = client.get("/api/v1/meta/sessions").json()
+    assert [s["session"] for s in body["sessions"]] == [1, 2]
+    current = [s for s in body["sessions"] if s["is_current"]]
+    assert len(current) == 1
+    assert current[0] == {
+        "congress": 119,
+        "session": 2,
+        "year": 2026,
+        "start_date": "2026-01-03",
+        "end_date": "2027-01-03",
+        "first_roll_call_date": "2026-01-05",
+        "last_roll_call_date": "2026-09-10",
+        "roll_calls": 526,
+        "is_current": True,
+    }
+    assert body["sources"][0]["source"] == "congress_gov"
+
+
+def test_sessions_on_an_empty_database_is_an_empty_list(client: TestClient) -> None:
+    _use_rows([])
+    body = client.get("/api/v1/meta/sessions").json()
+    assert body == {"sessions": [], "sources": []}

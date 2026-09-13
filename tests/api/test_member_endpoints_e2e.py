@@ -308,3 +308,35 @@ def test_fundraising_every_member_filed_from_fixtures(built_mart: None, client: 
     assert steil["receipts"]["other"]["amount"] == 148791.51  # offsets + other receipts
     kiley = client.get(f"{KILEY}/fundraising").json()
     assert kiley["receipts"]["self_funding"]["amount"] == 15.0
+
+
+def test_feed_rows_carry_the_policy_area_the_filter_reads(
+    built_mart: None, client: TestClient
+) -> None:
+    """mart.member_feed.policy_area is set for bill events and null for everything else, which
+    is what lets the frontend offer the filter without joining or guessing."""
+    items = client.get(f"{STEIL}/feed?limit=200").json()["items"]
+    assert items
+    for item in items:
+        if item["policy_area"] is not None:
+            # only a bill carries one, and only one that is in mart.bill
+            assert item["bill_type"] and item["bill_number"]
+            assert item["bill_label"], item["headline"]
+    # a nomination or procedural roll call never has one
+    for item in items:
+        if item["bill_type"] is None:
+            assert item["policy_area"] is None, item["headline"]
+
+
+def test_sessions_cover_the_tracked_congress(built_mart: None, client: TestClient) -> None:
+    body = client.get("/api/v1/meta/sessions").json()
+    assert body["sessions"], "the fixture roll calls span at least one session"
+    for s in body["sessions"]:
+        assert s["congress"] == 119
+        assert s["start_date"] < s["end_date"]
+        assert s["start_date"] <= s["first_roll_call_date"] <= s["end_date"]
+        assert s["roll_calls"] > 0
+    assert sum(s["is_current"] for s in body["sessions"]) == 1
+    assert [s["session"] for s in body["sessions"]] == sorted(
+        s["session"] for s in body["sessions"]
+    )

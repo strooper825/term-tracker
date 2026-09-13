@@ -8,6 +8,7 @@ import {
   buildFundraising,
   buildHeader,
   buildIndexRow,
+  buildDateRanges,
   buildKeyDates,
   buildStats,
   buildTerm,
@@ -15,6 +16,7 @@ import {
   eventTotals,
   groupFeed,
   lastUpdated,
+  policyAreaTotals,
   timelineRange,
   type IndexRow,
 } from './model';
@@ -45,14 +47,16 @@ export async function indexPageProps(): Promise<{
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
   const detail = await api.member(bioguide);
   const range = timelineRange(detail, today);
-  const [timeline, feed, committees, keyDates, fundraising, freshness] = await Promise.all([
-    api.timeline(bioguide, range.from, range.to),
-    api.feedAll(bioguide),
-    api.committees(bioguide),
-    api.keyDates(bioguide),
-    api.fundraising(bioguide),
-    api.freshness(),
-  ]);
+  const [timeline, feed, committees, keyDates, fundraising, freshness, sessions] =
+    await Promise.all([
+      api.timeline(bioguide, range.from, range.to),
+      api.feedAll(bioguide),
+      api.committees(bioguide),
+      api.keyDates(bioguide),
+      api.fundraising(bioguide),
+      api.freshness(),
+      api.sessions(),
+    ]);
   const totals = eventTotals(feed);
   const total = Object.values(totals).reduce((a, b) => a + b, 0);
   return {
@@ -63,6 +67,10 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     feedGroups: groupFeed(feed),
     eventTotals: totals,
     totalLabel: formatNumber(total),
+    policyAreas: policyAreaTotals(feed),
+    // The rolling windows count back from the latest ingest rather than the build clock, so
+    // every boundary the filter uses comes from data.
+    dateRanges: buildDateRanges(sessions.sessions, detail.term, latestIngest(freshness, today)),
     election: buildElection(keyDates.items, detail, today),
     committees: buildCommitteeRows(committees.items),
     keyDates: buildKeyDates(keyDates.items),
@@ -98,4 +106,11 @@ export async function billPageProps(
     trail.push({ label: bill.sponsorName, href: `/members/${detail.sponsor.bioguide_id}` });
   }
   return { bill, trail, lastUpdated: lastUpdated(freshness) };
+}
+
+/** The most recent successful ingest, the anchor for the rolling date windows. Falls back to
+ *  `today` on a database with no recorded run. */
+function latestIngest(freshness: { sources: { fetched_at: string }[] }, today: Date): Date {
+  const latest = freshness.sources.map((s) => s.fetched_at).sort().at(-1);
+  return latest ? new Date(latest) : today;
 }

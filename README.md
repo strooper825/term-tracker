@@ -11,8 +11,8 @@ XML), and `fec` (OpenFEC: principal campaign committee totals, current cycle) lo
 `raw`; dbt builds the `mart` tables listed in
 [docs/data-dictionary.md](docs/data-dictionary.md); the API serves every Phase 1 endpoint
 from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`, `/bills`,
-`/committees`, `/key-dates`, `/meta/freshness`) plus `/members/{id}/fundraising`, `/bills`
-and `/bills/{congress}/{type}/{number}`, documented at `/docs`. Six members are
+`/committees`, `/key-dates`, `/meta/freshness`) plus `/members/{id}/fundraising`, `/bills`,
+`/bills/{congress}/{type}/{number}`, and `/meta/sessions`, documented at `/docs`. Six members are
 tracked (`dbt/seeds/tracked_members.csv`): Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries.
 `/members/{id}` carries biography (birthday, age, gender, name parts), the full terms
 history with "serving since" and term counts, leadership roles, and external ids

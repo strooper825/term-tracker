@@ -4,9 +4,11 @@
 import type { EventKey } from '@/data/eventTypes';
 import type {
   CommitteeRow,
+  DateRange,
   ElectionModel,
   FeedGroup,
   FundraisingModel,
+  PolicyAreaCount,
   KeyDateRow,
   MemberHeaderModel,
   Stat,
@@ -28,6 +30,8 @@ export interface DashboardProps {
   feedGroups: FeedGroup[];
   eventTotals: Record<EventKey, number>;
   totalLabel: string;
+  policyAreas: PolicyAreaCount[];
+  dateRanges: DateRange[];
   election: ElectionModel | null;
   committees: CommitteeRow[];
   keyDates: KeyDateRow[];
@@ -74,6 +78,8 @@ export function MemberDashboard(props: DashboardProps) {
               groups={props.feedGroups}
               totals={props.eventTotals}
               totalLabel={props.totalLabel}
+              policyAreas={props.policyAreas}
+              dateRanges={props.dateRanges}
             />
           </div>
           <div className="flex flex-col gap-5 min-w-0">

@@ -173,6 +173,9 @@ export interface FeedItem {
   bill_number: string | null;
   /** Human bill form when the bill has a detail page on this site, else null. */
   bill_label: string | null;
+  /** Congress.gov policy area of the bill this event concerns; null for nomination votes,
+   *  procedural roll calls, amendments, and bills the source has not classified. */
+  policy_area: string | null;
   url: string | null;
   source_url: string;
 }
@@ -369,5 +372,22 @@ export interface BillDetail extends BillListItem {
   cosponsor_list: BillCosponsor[];
   actions: BillAction[];
   roll_calls: BillRollCall[];
+  sources: SourceRef[];
+}
+
+export interface CongressSession {
+  congress: number;
+  session: number;
+  year: number;
+  start_date: string;
+  end_date: string;
+  first_roll_call_date: string;
+  last_roll_call_date: string;
+  roll_calls: number;
+  is_current: boolean;
+}
+
+export interface SessionsResponse {
+  sessions: CongressSession[];
   sources: SourceRef[];
 }

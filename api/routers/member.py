@@ -79,7 +79,7 @@ FEED_SQL = text(
     """
     SELECT event_key, event_type, congress, event_at, event_date, headline, detail, detail_full,
            position, chamber,
-           session, roll_number, bill_type, bill_number, bill_label, url,
+           session, roll_number, bill_type, bill_number, bill_label, policy_area, url,
            source, source_url, fetched_at
     FROM mart.member_feed
     WHERE bioguide_id = :bioguide

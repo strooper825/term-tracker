@@ -10,7 +10,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_session
-from api.schemas.meta import FreshnessResponse, SourceFreshness
+from api.schemas.members import SourceRef
+from api.schemas.meta import (
+    CongressSession,
+    FreshnessResponse,
+    SessionsResponse,
+    SourceFreshness,
+)
 
 router = APIRouter(prefix="/meta", tags=["meta"])
 
@@ -42,5 +48,46 @@ def freshness(session: Annotated[Session, Depends(get_session)]) -> FreshnessRes
                 rows_loaded=row["rows_loaded"],
             )
             for row in rows
+        ],
+    )
+
+
+SESSIONS_SQL = text(
+    """
+    SELECT congress, session, session_year, start_date, end_date, first_roll_call_date,
+           last_roll_call_date, roll_calls, is_current, source, source_url, fetched_at
+    FROM mart.congress_session
+    ORDER BY congress, session
+    """
+)
+
+
+@router.get(
+    "/sessions",
+    response_model=SessionsResponse,
+    summary="Sessions of the tracked Congress and the dates that bound them",
+)
+def sessions(session: Annotated[Session, Depends(get_session)]) -> SessionsResponse:
+    rows = session.execute(SESSIONS_SQL).mappings().all()
+    return SessionsResponse(
+        sessions=[
+            CongressSession(
+                congress=row["congress"],
+                session=row["session"],
+                year=row["session_year"],
+                start_date=row["start_date"],
+                end_date=row["end_date"],
+                first_roll_call_date=row["first_roll_call_date"],
+                last_roll_call_date=row["last_roll_call_date"],
+                roll_calls=row["roll_calls"],
+                is_current=row["is_current"],
+            )
+            for row in rows
+        ],
+        sources=[
+            SourceRef(
+                source=row["source"], source_url=row["source_url"], fetched_at=row["fetched_at"]
+            )
+            for row in rows[:1]
         ],
     )
