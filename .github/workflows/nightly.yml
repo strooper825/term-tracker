@@ -108,9 +108,11 @@ jobs:
         working-directory: site
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # inputs.deploy_target is empty on the schedule, so anything but 'preview' is production
+          PROD_FLAG: ${{ inputs.deploy_target != 'preview' && '--prod' || '' }}
         run: |
           npx vercel pull --yes --environment=${{ inputs.deploy_target == 'preview' && 'preview' || 'production' }} --token="$VERCEL_TOKEN"
-          npx vercel build ${{ inputs.deploy_target == 'preview' && '' || '--prod' }} --token="$VERCEL_TOKEN"
+          npx vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
       - name: Confirm the built site cannot reach the API
         working-directory: site
         run: node scripts/check-static.mjs .vercel/output/static
@@ -118,8 +120,9 @@ jobs:
         working-directory: site
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROD_FLAG: ${{ inputs.deploy_target != 'preview' && '--prod' || '' }}
         run: |
-          url=$(npx vercel deploy --prebuilt ${{ inputs.deploy_target == 'preview' && '' || '--prod' }} --token="$VERCEL_TOKEN")
+          url=$(npx vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
           echo "deployed: $url"
           echo "## Site" >> "$GITHUB_STEP_SUMMARY"
           echo "Deployed ${{ inputs.deploy_target == 'preview' && 'preview' || 'production' }}: $url" >> "$GITHUB_STEP_SUMMARY"

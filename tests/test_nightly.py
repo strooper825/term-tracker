@@ -102,6 +102,9 @@ def test_nightly_workflow_shape() -> None:
     )
     deploy = next(s for s in job["steps"] if s.get("name", "").startswith("Deploy the prebuilt"))
     assert "--prebuilt" in deploy["run"] and "if" not in deploy  # a deploy failure fails the job
+    # the empty-string branch of `cond && '' || x` is falsy and always yields x; never use it
+    assert "&& '' ||" not in (ROOT / ".github/workflows/nightly.yml").read_text(encoding="utf-8")
+    assert "!= 'preview' && '--prod' || ''" in deploy["env"]["PROD_FLAG"]
     failure_steps = [s for s in job["steps"] if s.get("if") == "failure()"]
     assert failure_steps and "gh issue" in failure_steps[0]["run"]
     assert workflow["permissions"]["issues"] == "write"
