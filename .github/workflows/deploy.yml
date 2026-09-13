@@ -104,6 +104,12 @@ jobs:
         working-directory: site
         run: node scripts/check-static.mjs .vercel/output/static
 
+      # --archive=tgz uploads the output as one tarball instead of file by file. The static
+      # export is 9,435 files (one HTML page plus four prefetch payloads per route, 1,884
+      # pages), and the free tier refuses a deployment of more than 5,000 files:
+      # "Too many requests - try again in 24 hours (more than 5000, code: api-upload-free)".
+      # `vercel build` has no such flag and needs none: it only writes .vercel/output locally,
+      # and nothing is uploaded until this step.
       - name: Deploy the prebuilt output to Vercel
         working-directory: site
         env:
@@ -111,7 +117,7 @@ jobs:
           TARGET: ${{ steps.target.outputs.target }}
           PROD_FLAG: ${{ steps.target.outputs.prod_flag }}
         run: |
-          url=$(npx vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          url=$(npx vercel deploy --prebuilt --archive=tgz $PROD_FLAG --token="$VERCEL_TOKEN")
           echo "deployed: $url"
           echo "## Site" >> "$GITHUB_STEP_SUMMARY"
           echo "Deployed $TARGET from \`${{ github.ref_name }}\`: $url" >> "$GITHUB_STEP_SUMMARY"

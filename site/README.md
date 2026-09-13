@@ -28,7 +28,13 @@ npm run typecheck
 ## Deploy
 
 `.github/workflows/deploy.yml` builds the site and deploys the prebuilt output with the Vercel
-CLI (`vercel build`, `vercel deploy --prebuilt`) using the `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and
-`VERCEL_PROJECT_ID` secrets. Vercel's Git integration is not used. The nightly ingest calls
-it after `dbt build`; dispatch it on its own (Actions tab, `deploy_target` auto, preview, or
-production) to publish a frontend change without an ingest.
+CLI (`vercel build`, `vercel deploy --prebuilt --archive=tgz`) using the `VERCEL_TOKEN`,
+`VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` secrets. Vercel's Git integration is not used. The
+nightly ingest calls it after `dbt build`; dispatch it on its own (Actions tab,
+`deploy_target` auto, preview, or production) to publish a frontend change without an ingest.
+
+`--archive=tgz` uploads the output as one tarball. Since the bill pages landed, the export is
+9,435 files (one HTML page plus four prefetch payloads per route across 1,884 pages) and the
+free tier refuses a deployment of more than 5,000 files. `vercel build` has no archive flag
+and needs none: it only writes `.vercel/output` locally. Plan section 12 records what this
+means for bill search.
