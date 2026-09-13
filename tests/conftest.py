@@ -89,7 +89,33 @@ def migrated_engine() -> Engine:
         pytest.skip(message)
 
     command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
+    _refuse_live_database(engine)
     return engine
+
+
+# A fixture load never touches more legislators than this; a live ingest holds about 540.
+LIVE_DATABASE_LEGISLATORS = 50
+
+
+def _refuse_live_database(engine: Engine) -> None:
+    """Fail rather than run the integration suite against a database holding a real ingest.
+
+    The suite upserts trimmed fixtures over live rows with the same keys (eight roll calls
+    with five or six members instead of a full chamber, ten bills, seven legislators), which
+    silently corrupts the live mart: on 2026-09-13 it left four tracked members short of
+    positions on exactly those roll calls. Use a scratch database (`term_tracker_test`) or set
+    TERM_TRACKER_ALLOW_LIVE_DB=1 to override knowingly.
+    """
+    if os.environ.get("TERM_TRACKER_ALLOW_LIVE_DB"):
+        return
+    with engine.connect() as conn:
+        legislators = conn.execute(text("SELECT count(*) FROM raw.legislator")).scalar_one()
+    if legislators > LIVE_DATABASE_LEGISLATORS:
+        pytest.fail(
+            f"DATABASE_URL points at a database with {legislators} legislators in raw, which "
+            "looks like a live ingest; the fixtures would overwrite live roll calls and bills. "
+            "Point DATABASE_URL at a scratch database, or set TERM_TRACKER_ALLOW_LIVE_DB=1."
+        )
 
 
 def _dbt_env(database_url: str) -> dict[str, str]:

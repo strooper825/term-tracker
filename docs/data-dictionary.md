@@ -254,6 +254,16 @@ attendance percent = `100 * votes_cast / positions`. GovTrack reports the comple
 votes percent) per quarter on the member page; summing its 2025 and 2026 rows gives the
 119th-Congress figure to compare against, within 0.5 points (plan section 10, 1c).
 
+The equality holds because both sources list every seated member on every roll call, Not
+Voting included, so a member with fewer positions than roll calls in their term window means
+a member list was lost or overwritten. The dbt test `assert_positions_cover_roll_calls`
+enforces it for every tracked member with at least one position in the chamber and Congress
+(roll calls counted from `term.start_date` up to `term.end_date`). The one known way to break
+it is loading the trimmed test fixtures into a live database, which the test suite now refuses
+(see `tests/conftest.py`); `docs/verification-notes.md` records the instance that prompted
+both. A member seated after the first roll call of a Congress legitimately has fewer positions
+than `roll_calls`, and the test allows that by counting from the term start.
+
 ### `mart.key_date`
 
 The `key_dates` seed with `source`, `source_url`, `fetched_at`. `/members/{id}/key-dates`
