@@ -228,3 +228,68 @@ class KeyDatesResponse(BaseModel):
     bioguide_id: str
     items: list[KeyDate]
     sources: list[SourceRef]
+
+
+FundraisingStatus = Literal["filed", "no_filings", "no_committee", "no_candidate"]
+
+
+class FecCandidateRef(BaseModel):
+    candidate_id: str
+    name: str | None
+    fec_url: str = Field(description="Public candidate page, two-year totals for the cycle")
+
+
+class FecCommitteeRef(BaseModel):
+    committee_id: str
+    name: str | None
+    fec_url: str = Field(description="Public committee page for the cycle")
+
+
+class FundraisingCoverage(BaseModel):
+    start_date: dt.date
+    end_date: dt.date = Field(description="Through date of the latest report summed in")
+    last_report_type: str | None = Field(description="e.g. JULY QUARTERLY, PRE-PRIMARY")
+    last_report_year: int | None
+
+
+class FundraisingTotals(BaseModel):
+    raised: float = Field(description="Total receipts for the cycle")
+    spent: float = Field(description="Total disbursements for the cycle")
+    cash_on_hand: float = Field(description="At the end of the latest report")
+    debts: float = Field(description="Debts owed by the committee at the end of the latest report")
+
+
+class ReceiptSource(BaseModel):
+    amount: float
+    pct: float | None = Field(description="Share of total receipts, from the mart")
+
+
+class ReceiptBreakdown(BaseModel):
+    individual_small: ReceiptSource = Field(description="Individuals, $200 or less (unitemized)")
+    individual_large: ReceiptSource = Field(description="Individuals, over $200 (itemized)")
+    individual: ReceiptSource = Field(description="All individual contributions")
+    pac: ReceiptSource = Field(description="Other political committees")
+    party: ReceiptSource = Field(description="Party committees")
+    self_funding: ReceiptSource = Field(description="Candidate contributions plus candidate loans")
+    transfers: ReceiptSource = Field(description="Transfers from other authorized committees")
+    other: ReceiptSource = Field(description="Offsets, other receipts, other loans (residual)")
+
+
+class FundraisingResponse(BaseModel):
+    bioguide_id: str
+    cycle: int = Field(description="Two-year election cycle, e.g. 2026 for 2025-2026")
+    status: FundraisingStatus = Field(
+        description="filed, or how far the chain candidate -> principal committee -> totals got"
+    )
+    candidate: FecCandidateRef | None
+    committee: FecCommitteeRef | None = Field(description="Principal campaign committee")
+    coverage: FundraisingCoverage | None
+    totals: FundraisingTotals | None
+    receipts: ReceiptBreakdown | None
+    small_donor_pct: float | None = Field(
+        description="Individual contributions of $200 or less as a share of total receipts"
+    )
+    small_donor_of_individual_pct: float | None = Field(
+        description="Same, as a share of individual contributions only"
+    )
+    sources: list[SourceRef]

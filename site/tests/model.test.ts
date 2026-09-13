@@ -3,6 +3,7 @@ import {
   MIN_TICK_GAP_WEEKS,
   buildCommitteeRows,
   buildElection,
+  buildFundraising,
   buildHeader,
   buildIndexRow,
   buildKeyDates,
@@ -17,18 +18,30 @@ import {
   serviceLine,
   timelineRange,
 } from '@/lib/model';
-import { formatDate, formatLongDate, ordinal } from '@/lib/format';
+import {
+  cycleLabel,
+  formatDate,
+  formatLongDate,
+  formatMoney,
+  formatShare,
+  ordinal,
+  titleCase,
+} from '@/lib/format';
 import {
   COTTON,
   COTTON_LIST,
   EN_BLOC,
   FEED,
+  NO_CANDIDATE_FUNDRAISING,
+  NO_COMMITTEE_FUNDRAISING,
+  NO_FILINGS_FUNDRAISING,
   SANDERS,
   SANDERS_LIST,
   SLOTKIN,
   SLOTKIN_LIST,
   STEIL,
   STEIL_COMMITTEES,
+  STEIL_FUNDRAISING,
   STEIL_KEY_DATES,
   STEIL_LIST,
   WEEKS,
@@ -217,5 +230,59 @@ describe('weeks, key dates, election, index', () => {
     // a Class 1 senator whose term runs to 2031 is not on the 2026 ballot
     expect(buildElection(congressOnly, SANDERS, TODAY)).toMatchObject({ date: 'Nov 3, 2026', onBallot: false });
     expect(buildKeyDates([])).toEqual([]);
+  });
+});
+
+describe('fundraising: every figure is a mart column, only formatted', () => {
+  it('money, share, cycle and title-case formatters', () => {
+    expect(formatMoney(5467777.07)).toBe('$5,467,777');
+    expect(formatMoney(0)).toBe('$0');
+    expect(formatMoney(-12.6)).toBe('-$13');
+    expect(formatShare(4.63)).toBe('4.6%');
+    expect(formatShare(null)).toBe('n/a');
+    expect(cycleLabel(2026)).toBe('2025–26 cycle');
+    expect(titleCase('STEIL FOR WISCONSIN, INC.')).toBe('Steil for Wisconsin, Inc.');
+    expect(titleCase('FRIENDS OF BERNIE SANDERS')).toBe('Friends of Bernie Sanders');
+    expect(titleCase('PRE-PRIMARY')).toBe('Pre-Primary');
+  });
+
+  it('filed row: stats, share rows in source order (zero rows dropped), footer, source', () => {
+    const m = buildFundraising(STEIL_FUNDRAISING, 'house');
+    expect(m.filed).toBe(true);
+    expect(m.stats.map((s) => [s.label, s.value, s.note])).toEqual([
+      ['Raised', '$5,467,777', undefined],
+      ['Spent', '$1,359,849', undefined],
+      ['Cash on hand', '$6,327,099', 'no debts'],
+      ['Small-donor share', '4.6%', 'of total raised'],
+    ]);
+    expect(m.shares.map((r) => [r.label, r.pct, r.pctLabel, r.amount])).toEqual([
+      ['Individuals, $200 and under', 4.63, '4.6%', '$253,363'],
+      ['Individuals, over $200', 22.68, '22.7%', '$1,240,060'],
+      ['PACs', 29.88, '29.9%', '$1,633,675'],
+      ['Party committees', 0.02, '0.0%', '$1,000'],
+      ['Transfers from authorized committees', 40.07, '40.1%', '$2,190,888'],
+      ['Other receipts', 2.72, '2.7%', '$148,792'],
+    ]);
+    expect(m.footer).toEqual([
+      'Through Jul 22, 2026 · Pre-Primary report',
+      'Steil for Wisconsin, Inc. · principal campaign committee',
+    ]);
+    expect(m.sourceUrl).toBe('https://www.fec.gov/data/committee/C00677286/?cycle=2026');
+  });
+
+  it('missing data: one message per status, nothing formatted as a zero', () => {
+    const noFilings = buildFundraising(NO_FILINGS_FUNDRAISING, 'house');
+    expect(noFilings.filed).toBe(false);
+    expect(noFilings.stats).toEqual([]);
+    expect(noFilings.message).toBe('Steil for Wisconsin, Inc. has not filed a report covering the 2025–26 cycle yet.');
+    expect(noFilings.footer).toEqual(['Steil for Wisconsin, Inc.']);
+    const noCommittee = buildFundraising(NO_COMMITTEE_FUNDRAISING, 'senate');
+    expect(noCommittee.message).toBe('No principal campaign committee is registered with the FEC for the 2025–26 cycle.');
+    expect(noCommittee.footer).toEqual(['FEC candidate H8WI01156']);
+    expect(noCommittee.sourceUrl).toBe('https://www.fec.gov/data/candidate/H8WI01156/?cycle=2026&election_full=false');
+    const noCandidate = buildFundraising(NO_CANDIDATE_FUNDRAISING, 'senate');
+    expect(noCandidate.message).toBe('The FEC has no Senate candidate record for this member, so there are no filings to show.');
+    expect(noCandidate.footer).toEqual([]);
+    expect(noCandidate.sourceUrl).toBeNull();
   });
 });

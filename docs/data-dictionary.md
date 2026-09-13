@@ -94,6 +94,28 @@ Senate roll calls are fetched once (senate.gov publishes no update stamp) unless
 `--full-refresh` is passed. XML becomes JSON via xmltodict with `vote` and `member` always
 lists; nothing else is altered.
 
+## Raw tables: OpenFEC (Alembic migration `0005`)
+
+Loaded by `python -m ingest.run --source fec` for every member in `seed.tracked_members`,
+current cycle only (`fec_cycle`, derived from `CURRENT_CONGRESS`: 119 -> 2026). All rows share
+`payload jsonb`, `source_url text`, `fetched_at timestamptz`. Every record is re-fetched each
+run (about four requests per member; `--full-refresh` changes nothing for this source). See
+ADR 0006 for what is and is not loaded.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.fec_candidate` | `candidate_id` | `/candidate/{id}/` record for every id in the member's congress-legislators `id.fec` list, old offices included; `bioguide_id` links it back |
+| `raw.fec_committee` | `committee_id`, `cycle` | item of `/candidate/{id}/committees/?cycle=` for the member's current-office candidate: every committee linked to the candidate in the cycle (`candidate_id` column), whatever its designation |
+| `raw.fec_committee_totals` | `committee_id`, `cycle` | `/committee/{id}/totals/?cycle=` record of the principal campaign committee |
+
+Source shapes (verified 2026-09-13): the totals endpoint has no `cash_on_hand_end_period`;
+cash on hand and debts are `last_cash_on_hand_end_period` and `last_debts_owed_by_committee`.
+House and Senate committees both report transfers as
+`transfers_from_other_authorized_committee`. Candidate totals (`/candidate/{id}/totals/`)
+equal the committee totals for all six tracked members (no second authorized committee).
+The key reports a 60-requests-per-minute limit in `X-RateLimit-Limit` on top of the
+documented 1,000 per hour; the client throttles on both.
+
 ## Seeds (`seed` schema, dbt)
 
 | Table | Key | Description |
@@ -121,6 +143,11 @@ Votes: `stg_house_roll_calls`, `stg_house_member_votes` (every member), `stg_sen
 `H.R.` mapped to `bill_type`, nominations `PN` kept in `document_type`/`document_number`),
 `stg_senate_member_votes` (every senator, `lis_member_id` joined to `stg_legislators.lis_id`
 for `bioguide_id`). Positions are normalised by macro `normalize_position` (ADR 0004).
+
+FEC: `stg_fec_candidates` (one row per candidate id: `office`, `state`, `district`,
+`candidate_status`, `cycles`), `stg_fec_committees` (`designation`, `committee_type`,
+`last_file_date`), `stg_fec_committee_totals` (every amount typed as `numeric(14,2)`;
+`cash_on_hand` and `debts` from the `last_*` columns).
 
 ## Mart tables (`mart` schema, dbt)
 
@@ -365,6 +392,80 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
 | `headline`, `detail`, `detail_full` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, `Voted YEA on 48 nominations (en bloc)`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`, and for en bloc votes the question is shortened to `On the Cloture Motion · 48 nominations` with the full nomination list in `detail_full` (null otherwise). Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
+
+### `mart.fec_committee`
+
+One row per FEC committee linked to a tracked member's current-office candidate in a cycle.
+Natural key `(committee_id, cycle)`. Columns `bioguide_id`, `candidate_id`, `name`,
+`designation` (`P` principal campaign committee, `A` other authorized, `J` joint fundraising,
+`D` leadership PAC, ...), `designation_full`, `committee_type`, `is_principal`,
+`first_file_date`, `last_file_date`, `cycles`, `fec_url` (the public committee page for the
+cycle). Cotton's joint fundraising committee and Kiley's leadership PAC are here with
+`is_principal = false`; nothing but the principal committee is summed.
+
+The **current-office candidate** is the member's FEC id whose `office` matches the chamber
+of the latest term (`H` house, `S` senate); Cotton's old House id `H2AR04083` stays in
+`raw.fec_candidate` and `stg_fec_candidates` but never selects a committee. The **principal
+campaign committee** is the one committee with `designation = 'P'` among those the API links
+to that candidate in the cycle. The loader stops on two of either (ADR 0006); the dbt test
+`assert_member_fundraising_one_candidate` catches the same case in the mart.
+
+### `mart.fec_summary`
+
+One row per principal campaign committee and cycle. Natural key `(committee_id, cycle)`.
+Dollar amounts are the FEC's, as `numeric(14,2)`; shares are `round(100 * x / raised, 2)`.
+
+| Column | Description |
+|---|---|
+| `coverage_start_date`, `coverage_end_date`, `last_report_type`, `last_report_year` | The reports summed in: first day of the cycle through the end of the latest processed report (`JULY QUARTERLY`, `PRE-PRIMARY`, ...) |
+| `raised` | Total receipts (`receipts`) |
+| `spent` | Total disbursements (`disbursements`) |
+| `cash_on_hand`, `debts` | At the end of the latest report (`last_cash_on_hand_end_period`, `last_debts_owed_by_committee`) |
+| `individual_small` | Unitemized individual contributions: $200 or less in aggregate per donor (`individual_unitemized_contributions`) |
+| `individual_large` | Itemized individual contributions: over $200 in aggregate (`individual_itemized_contributions`) |
+| `individual_total` | `individual_contributions` |
+| `pac` | `other_political_committee_contributions` |
+| `party` | `political_party_committee_contributions` |
+| `self_funding` | `candidate_contribution` + `loans_made_by_candidate` |
+| `transfers` | `transfers_from_other_authorized_committee` (joint fundraising committees and the like) |
+| `other` | `raised` minus the six sources above: offsets to operating expenditures, other receipts, loans from anyone but the candidate. Never negative (dbt test) |
+| `small_donor_pct` | `100 * individual_small / raised` (the OpenSecrets convention; the panel shows this one) |
+| `small_donor_of_individual_pct` | `100 * individual_small / individual_total` |
+| `individual_small_pct`, `individual_large_pct`, `individual_pct`, `pac_pct`, `party_pct`, `self_funding_pct`, `transfers_pct`, `other_pct` | Shares of `raised`; the seven non-overlapping ones sum to 100 within rounding (dbt test `assert_member_fundraising_consistent`) |
+| `contributions`, `contribution_refunds`, `operating_expenditures`, `other_receipts`, `offsets_to_operating_expenditures` | Kept for reference; not displayed |
+
+Refunds are disbursements and reduce none of the receipt figures. `source` is `fec`;
+`source_url` is the totals API URL; `fec_url` the public committee page.
+
+### `mart.member_fundraising`
+
+One row per tracked member and cycle (the current cycle only), whether or not the FEC has
+anything. Natural key `(bioguide_id, cycle)`. `status` says how far the chain got:
+
+| `status` | Meaning | Populated |
+|---|---|---|
+| `no_candidate` | none of the member's FEC ids is for the current office | identity only |
+| `no_committee` | the candidate has no principal campaign committee in the cycle | `candidate_*` |
+| `no_filings` | the committee has filed nothing covering the cycle yet | `candidate_*`, `committee_*` |
+| `filed` | totals present | everything |
+
+Columns: `candidate_id`, `candidate_name`, `candidate_fec_url` (two-year view of the
+candidate page), `committee_id`, `committee_name`, `committee_fec_url`, then every
+`fec_summary` figure and share listed above. `GET /members/{id}/fundraising` returns the row
+as `totals`, `receipts` (amount and `pct` per source), `coverage`, `candidate`, `committee`,
+and `small_donor_pct`; the site formats those and computes nothing.
+
+## Fundraising verification (Phase 2 done-when)
+
+For each tracked member: `raised`, `spent`, `cash_on_hand`, `debts`, `individual_small`,
+`individual_large`, `pac`, `party`, `transfers` and `coverage_end_date` must equal, to the
+cent, the figures on the FEC's committee page for that committee and cycle
+(`https://www.fec.gov/data/committee/{id}/?cycle=2026`, "Financial summary" and "Total
+receipts" breakdown) and on the candidate page in its two-year view
+(`.../candidate/{id}/?cycle=2026&election_full=false`), read on the same day as the ingest.
+The pages and the API are the same system (the site renders the API), so any gap is a loader
+or mapping defect, not a tolerance; the one legitimate difference is timing, when a report is
+processed between the ingest and the check.
 
 ### `mart.member_activity_timeline`
 

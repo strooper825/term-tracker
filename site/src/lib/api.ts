@@ -6,6 +6,7 @@ import type {
   FeedItem,
   FeedResponse,
   FreshnessResponse,
+  FundraisingResponse,
   KeyDatesResponse,
   MemberDetail,
   MembersResponse,
@@ -36,6 +37,8 @@ export const api = {
   committees: (bioguide: string) =>
     getJson<CommitteesResponse>(`/api/v1/members/${bioguide}/committees`),
   keyDates: (bioguide: string) => getJson<KeyDatesResponse>(`/api/v1/members/${bioguide}/key-dates`),
+  fundraising: (bioguide: string) =>
+    getJson<FundraisingResponse>(`/api/v1/members/${bioguide}/fundraising`),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
   /** Every feed event, following the cursor until the API says there are no more. */
   feedAll: async (bioguide: string): Promise<FeedItem[]> => {

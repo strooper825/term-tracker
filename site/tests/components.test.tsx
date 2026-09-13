@@ -6,6 +6,7 @@ import { MembersIndex } from '@/components/MembersIndex';
 import {
   buildCommitteeRows,
   buildElection,
+  buildFundraising,
   buildHeader,
   buildIndexRow,
   buildKeyDates,
@@ -18,14 +19,19 @@ import {
 import { KeyDatesCard } from '@/components/SideCards';
 import {
   COTTON,
+  COTTON_FUNDRAISING,
   COTTON_LIST,
   FEED,
+  NO_CANDIDATE_FUNDRAISING,
+  NO_COMMITTEE_FUNDRAISING,
+  NO_FILINGS_FUNDRAISING,
   SANDERS,
   SANDERS_LIST,
   SLOTKIN,
   SLOTKIN_LIST,
   STEIL,
   STEIL_COMMITTEES,
+  STEIL_FUNDRAISING,
   STEIL_KEY_DATES,
   STEIL_LIST,
   WEEKS,
@@ -33,7 +39,7 @@ import {
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
-function dashboard(detail = STEIL) {
+function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
   return (
     <MemberDashboard
       member={buildHeader(detail)}
@@ -46,6 +52,7 @@ function dashboard(detail = STEIL) {
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
+      fundraising={buildFundraising(fundraising, detail.seat.chamber)}
       lastUpdated="Sep 13, 2026 02:09 UTC"
     />
   );
@@ -86,10 +93,11 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
     expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
-    for (const title of ['Fundraising', 'Stock trades', 'Public statements', 'District map']) {
+    for (const title of ['Stock trades', 'Public statements', 'District map']) {
       expect(screen.getByText(title)).toBeInTheDocument();
     }
-    expect(screen.getAllByText('Coming in a future release')).toHaveLength(4);
+    expect(screen.getAllByText('Coming in a future release')).toHaveLength(3); // Fundraising is live
+    expect(screen.getByText('3 not yet published')).toBeInTheDocument();
   });
 
   it('Senate member: Class 2 seat, three-Congress term line, state map panel', () => {
@@ -231,5 +239,66 @@ describe('members index', () => {
     fireEvent.click(screen.getByRole('button', { name: /Democratic/ }));
     expect(screen.getByText('1 of 4 members')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Sen\. Bernard Sanders/ })).toBeInTheDocument();
+  });
+});
+
+describe('fundraising card: given a mart.member_fundraising row, this text renders', () => {
+  const card = () => screen.getByRole('region', { name: 'Fundraising' });
+
+  it('four figures, the receipt-share bars, coverage, committee, and the FEC source link', () => {
+    render(dashboard());
+    const c = card();
+    expect(within(c).getByText('2025–26 cycle')).toBeInTheDocument();
+    expect(within(c).getByText('$5,467,777')).toBeInTheDocument(); // raised
+    expect(within(c).getByText('$1,359,849')).toBeInTheDocument(); // spent
+    expect(within(c).getByText('$6,327,099')).toBeInTheDocument(); // cash_on_hand
+    expect(within(c).getByText('no debts')).toBeInTheDocument(); // debts = 0
+    expect(within(c).getAllByText('4.6%')).toHaveLength(2); // small_donor_pct stat and its bar row
+    expect(within(c).getByText('of total raised')).toBeInTheDocument();
+    expect(within(c).getByText('Individuals, $200 and under')).toBeInTheDocument();
+    expect(within(c).getByText('40.1%')).toBeInTheDocument(); // transfers_pct
+    expect(within(c).getByText('29.9%')).toBeInTheDocument(); // pac_pct
+    expect(within(c).queryByText('Self-funding')).not.toBeInTheDocument(); // amount 0 is left out
+    expect(within(c).getByText('Through Jul 22, 2026 · Pre-Primary report')).toBeInTheDocument();
+    expect(within(c).getByText('Steil for Wisconsin, Inc. · principal campaign committee')).toBeInTheDocument();
+    expect(within(c).getByRole('link', { name: /source/ })).toHaveAttribute(
+      'href',
+      'https://www.fec.gov/data/committee/C00677286/?cycle=2026',
+    );
+    const bars = c.querySelectorAll('div[style]');
+    expect(Array.from(bars).map((b) => (b as HTMLElement).style.width)).toEqual([
+      '4.63%',
+      '22.68%',
+      '29.88%',
+      '0.02%',
+      '40.07%',
+      '2.72%',
+    ]);
+  });
+
+  it('Senate committee with debts shows the debt note and its own committee', () => {
+    render(dashboard(COTTON, COTTON_FUNDRAISING));
+    const c = card();
+    expect(within(c).getByText('$9,931,885')).toBeInTheDocument();
+    expect(within(c).getByText('$73,959 in debts')).toBeInTheDocument();
+    expect(within(c).getByText('Cotton for Senate, Inc. · principal campaign committee')).toBeInTheDocument();
+    expect(within(c).getByText('Through Jun 30, 2026 · July Quarterly report')).toBeInTheDocument();
+  });
+
+  it('says what is missing instead of showing zeros', () => {
+    const { unmount } = render(dashboard(STEIL, NO_FILINGS_FUNDRAISING));
+    expect(within(card()).getByText(/Steil for Wisconsin, Inc\. has not filed a report covering the 2025–26 cycle yet/)).toBeInTheDocument();
+    expect(within(card()).queryByText('$0')).not.toBeInTheDocument();
+    expect(within(card()).getByRole('link', { name: /source/ })).toHaveAttribute('href', 'https://www.fec.gov/data/committee/C00677286/?cycle=2026');
+    unmount();
+
+    const second = render(dashboard(STEIL, NO_COMMITTEE_FUNDRAISING));
+    expect(within(card()).getByText(/No principal campaign committee is registered with the FEC for the 2025–26 cycle/)).toBeInTheDocument();
+    expect(within(card()).getByRole('link', { name: /source/ })).toHaveAttribute('href', 'https://www.fec.gov/data/candidate/H8WI01156/?cycle=2026&election_full=false');
+    second.unmount();
+
+    render(dashboard(STEIL, NO_CANDIDATE_FUNDRAISING));
+    expect(within(card()).getByText(/The FEC has no House candidate record for this member/)).toBeInTheDocument();
+    expect(within(card()).queryByRole('link', { name: /source/ })).not.toBeInTheDocument();
   });
 });

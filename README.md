@@ -4,13 +4,15 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 1f. Sources `legislators` (unitedstates/congress-legislators),
+**Status:** Phase 2 (fundraising). Sources `legislators` (unitedstates/congress-legislators),
 `congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors),
-`congress_gov_house_votes` (Congress.gov `/house-vote`), and `senate_votes` (senate.gov LIS
-XML) load into `raw`; dbt builds the `mart` tables listed in
+`congress_gov_house_votes` (Congress.gov `/house-vote`), `senate_votes` (senate.gov LIS
+XML), and `fec` (OpenFEC: principal campaign committee totals, current cycle) load into
+`raw`; dbt builds the `mart` tables listed in
 [docs/data-dictionary.md](docs/data-dictionary.md); the API serves every Phase 1 endpoint
 from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`, `/bills`,
-`/committees`, `/key-dates`, `/meta/freshness`), documented at `/docs`. Six members are
+`/committees`, `/key-dates`, `/meta/freshness`) plus `/members/{id}/fundraising`,
+documented at `/docs`. Six members are
 tracked (`dbt/seeds/tracked_members.csv`): Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries.
 `/members/{id}` carries biography (birthday, age, gender, name parts), the full terms
 history with "serving since" and term counts, leadership roles, and external ids
@@ -70,7 +72,15 @@ python -m ingest.run --source congress_gov_house_votes
 python -m ingest.run --source senate_votes
 ```
 
-The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the
+```bash
+python -m ingest.run --source fec
+```
+
+The last command needs `FEC_API_KEY` in `.env`, the `tracked_members` seed, and the
+`legislators` source loaded first (it reads each member's FEC candidate ids from
+`raw.legislator`). It makes about four requests per member (21 for the six, in six seconds)
+against OpenFEC's limit of 1,000 per hour and 60 per minute, and re-fetches everything each
+run. The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the
 database (run the dbt command below once first). For the six tracked members it makes about
 3,900 requests on a first load (1,874 distinct bills and amendments: member legislation plus
 the bills every roll call references; 39 minutes on 2026-09-13) and roughly half that on a

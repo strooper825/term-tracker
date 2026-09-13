@@ -1,0 +1,92 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 2,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "affiliated_committee_name": "COTTON VICTORY",
+   "candidate_ids": [
+    "H2AR04083",
+    "S4AR00103"
+   ],
+   "committee_id": "C00499988",
+   "committee_type": "S",
+   "committee_type_full": "Senate",
+   "cycles": [
+    2012,
+    2014,
+    2016,
+    2018,
+    2020,
+    2022,
+    2024,
+    2026
+   ],
+   "designation": "P",
+   "designation_full": "Principal campaign committee",
+   "filing_frequency": "Q",
+   "first_f1_date": "2011-08-03",
+   "first_file_date": "2011-08-03",
+   "form_type": "F1",
+   "last_f1_date": "2026-04-21",
+   "last_file_date": "2026-08-02",
+   "leadership_pac": null,
+   "lobbyist_registrant_pac": null,
+   "name": "COTTON FOR SENATE, INC.",
+   "organization_type": null,
+   "organization_type_full": null,
+   "party": "REP",
+   "party_full": "REPUBLICAN PARTY",
+   "party_type": null,
+   "party_type_full": null,
+   "sponsor_candidate_ids": null,
+   "state": "AR",
+   "state_full": "Arkansas",
+   "treasurer_name": "KOCH, THEODORE V"
+  },
+  {
+   "affiliated_committee_name": "NONE",
+   "candidate_ids": [
+    "S4AR00103"
+   ],
+   "committee_id": "C00571018",
+   "committee_type": "N",
+   "committee_type_full": "PAC - Nonqualified",
+   "cycles": [
+    2014,
+    2016,
+    2018,
+    2020,
+    2022,
+    2024,
+    2026
+   ],
+   "designation": "J",
+   "designation_full": "Joint fundraising committee",
+   "filing_frequency": "Q",
+   "first_f1_date": "2014-12-12",
+   "first_file_date": "2014-12-12",
+   "form_type": "F1",
+   "last_f1_date": "2025-01-14",
+   "last_file_date": "2026-07-10",
+   "leadership_pac": null,
+   "lobbyist_registrant_pac": null,
+   "name": "COTTON VICTORY",
+   "organization_type": null,
+   "organization_type_full": null,
+   "party": null,
+   "party_full": null,
+   "party_type": null,
+   "party_type_full": null,
+   "sponsor_candidate_ids": null,
+   "state": "VA",
+   "state_full": "Virginia",
+   "treasurer_name": "KOCH, THEODORE V."
+  }
+ ]
+}

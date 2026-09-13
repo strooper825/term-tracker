@@ -258,3 +258,53 @@ def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
     cotton_dates = client.get(f"{COTTON}/key-dates").json()
     assert any("Arkansas" in d["label"] for d in cotton_dates["items"])
     assert all(d["source_url"] for d in cotton_dates["items"])
+
+
+def test_fundraising_every_member_filed_from_fixtures(built_mart: None, client: TestClient) -> None:
+    """Six members, six principal committees, totals recorded 2026-09-13 (tests/fixtures/fec)."""
+    expected = {
+        STEIL: ("C00677286", 5467777.07, 1359848.79, 6327098.65, 0.0, 253362.51, "2026-07-22"),
+        COTTON: ("C00499988", 6233116.56, 3752101.46, 9931884.93, 73959.0, 552196.55, "2026-06-30"),
+        SANDERS: (
+            "C00411330",
+            24928186.19,
+            12833935.63,
+            22835011.22,
+            0.0,
+            17272177.16,
+            "2026-06-30",
+        ),
+        SLOTKIN: ("C00834218", 5242246.82, 2862382.55, 2662579.65, 0.0, 2984373.74, "2026-06-30"),
+        KILEY: ("C00801985", 2988805.45, 1245830.82, 2123952.7, 6225.0, 433049.42, "2026-06-30"),
+        JEFFRIES: ("C00503052", 14899980.61, 14854085.6, 5000459.66, 0.0, 7235721.28, "2026-06-30"),
+    }
+    for path, (committee, raised, spent, cash, debts, small, through) in expected.items():
+        body = client.get(f"{path}/fundraising").json()
+        assert body["status"] == "filed", path
+        assert body["cycle"] == 2026
+        assert body["committee"]["committee_id"] == committee
+        assert body["totals"] == {
+            "raised": raised,
+            "spent": spent,
+            "cash_on_hand": cash,
+            "debts": debts,
+        }, path
+        assert body["receipts"]["individual_small"]["amount"] == small
+        assert body["coverage"]["end_date"] == through
+        shares = (
+            sum(v["pct"] for v in body["receipts"].values() if v is not None)
+            - body["receipts"]["individual"]["pct"]
+        )
+        assert abs(shares - 100) < 0.1, path
+        assert body["small_donor_pct"] == body["receipts"]["individual_small"]["pct"]
+        assert body["sources"][0]["source"] == "fec"
+        assert body["sources"][0]["source_url"].startswith("https://api.open.fec.gov/v1/committee/")
+
+    # Cotton: the Senate committee, not the House one; Steil: transfers are the largest source
+    cotton = client.get(f"{COTTON}/fundraising").json()
+    assert cotton["candidate"]["candidate_id"] == "S4AR00103"
+    steil = client.get(f"{STEIL}/fundraising").json()
+    assert steil["receipts"]["transfers"]["pct"] == 40.07
+    assert steil["receipts"]["other"]["amount"] == 148791.51  # offsets + other receipts
+    kiley = client.get(f"{KILEY}/fundraising").json()
+    assert kiley["receipts"]["self_funding"]["amount"] == 15.0

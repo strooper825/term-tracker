@@ -27,3 +27,9 @@ sources:
         description: senate.gov session vote menu as JSON, one row per session.
       - name: senate_vote
         description: senate.gov roll-call vote XML as JSON, one row per roll call, all senator positions.
+      - name: fec_candidate
+        description: OpenFEC /candidate/{id}/ record for every FEC candidate id of a tracked member.
+      - name: fec_committee
+        description: OpenFEC /candidate/{id}/committees/?cycle= item, every committee linked to the current-office candidate in the cycle.
+      - name: fec_committee_totals
+        description: OpenFEC /committee/{id}/totals/?cycle= record of the principal campaign committee.

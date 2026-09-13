@@ -92,3 +92,31 @@ models:
       - name: position
         tests:
           - accepted_values: { arguments: { values: ["Yea", "Nay", "Present", "Not Voting", "Other"] } }
+  - name: stg_fec_candidates
+    columns:
+      - name: candidate_id
+        tests: [unique, not_null]
+      - name: bioguide_id
+        tests: [not_null]
+      - name: office
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["H", "S", "P"] } }
+  - name: stg_fec_committees
+    columns:
+      - name: committee_id
+        tests: [not_null]
+      - name: candidate_id
+        tests: [not_null]
+      - name: designation
+        tests: [not_null]
+  - name: stg_fec_committee_totals
+    columns:
+      - name: committee_id
+        tests: [not_null]
+      - name: cycle
+        tests: [not_null]
+      - name: receipts
+        tests: [not_null]
+      - name: coverage_end_date
+        tests: [not_null]

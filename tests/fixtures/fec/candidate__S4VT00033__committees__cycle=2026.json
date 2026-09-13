@@ -1,0 +1,55 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 1,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "affiliated_committee_name": "NONE",
+   "candidate_ids": [
+    "S4VT00033"
+   ],
+   "committee_id": "C00411330",
+   "committee_type": "S",
+   "committee_type_full": "Senate",
+   "cycles": [
+    2006,
+    2008,
+    2010,
+    2012,
+    2014,
+    2016,
+    2018,
+    2020,
+    2022,
+    2024,
+    2026
+   ],
+   "designation": "P",
+   "designation_full": "Principal campaign committee",
+   "filing_frequency": "Q",
+   "first_f1_date": "2005-05-02",
+   "first_file_date": "2005-05-02",
+   "form_type": "F1",
+   "last_f1_date": "2025-11-13",
+   "last_file_date": "2026-08-04",
+   "leadership_pac": null,
+   "lobbyist_registrant_pac": null,
+   "name": "FRIENDS OF BERNIE SANDERS",
+   "organization_type": null,
+   "organization_type_full": null,
+   "party": "IND",
+   "party_full": "INDEPENDENT",
+   "party_type": null,
+   "party_type_full": null,
+   "sponsor_candidate_ids": null,
+   "state": "VT",
+   "state_full": "Vermont",
+   "treasurer_name": "HAGGARD, LORA"
+  }
+ ]
+}

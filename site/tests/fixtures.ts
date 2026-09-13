@@ -2,6 +2,7 @@
 import type {
   CommitteeAssignment,
   FeedItem,
+  FundraisingResponse,
   KeyDate,
   MemberDetail,
   MemberIds,
@@ -481,3 +482,87 @@ export const WEEKS: WeekBucket[] = [
   { week_start: '2025-07-21', vote: 12, bill_sponsored: 1, bill_cosponsored: 3, committee_action: 0, total: 16 },
   { week_start: '2026-08-31', vote: 9, bill_sponsored: 0, bill_cosponsored: 2, committee_action: 1, total: 12 },
 ];
+
+/** mart.member_fundraising row for Steil as the API returned it on 2026-09-13. */
+export const STEIL_FUNDRAISING: FundraisingResponse = {
+  bioguide_id: 'S001213',
+  cycle: 2026,
+  status: 'filed',
+  candidate: {
+    candidate_id: 'H8WI01156',
+    name: 'STEIL, BRYAN GEORGE',
+    fec_url: 'https://www.fec.gov/data/candidate/H8WI01156/?cycle=2026&election_full=false',
+  },
+  committee: {
+    committee_id: 'C00677286',
+    name: 'STEIL FOR WISCONSIN, INC.',
+    fec_url: 'https://www.fec.gov/data/committee/C00677286/?cycle=2026',
+  },
+  coverage: { start_date: '2025-01-01', end_date: '2026-07-22', last_report_type: 'PRE-PRIMARY', last_report_year: 2026 },
+  totals: { raised: 5467777.07, spent: 1359848.79, cash_on_hand: 6327098.65, debts: 0 },
+  receipts: {
+    individual_small: { amount: 253362.51, pct: 4.63 },
+    individual_large: { amount: 1240060.26, pct: 22.68 },
+    individual: { amount: 1493422.77, pct: 27.31 },
+    pac: { amount: 1633675.16, pct: 29.88 },
+    party: { amount: 1000, pct: 0.02 },
+    self_funding: { amount: 0, pct: 0 },
+    transfers: { amount: 2190887.63, pct: 40.07 },
+    other: { amount: 148791.51, pct: 2.72 },
+  },
+  small_donor_pct: 4.63,
+  small_donor_of_individual_pct: 16.97,
+  sources: [],
+};
+
+/** Cotton: the Senate committee (not the old House one), with debts outstanding. */
+export const COTTON_FUNDRAISING: FundraisingResponse = {
+  ...STEIL_FUNDRAISING,
+  bioguide_id: 'C001095',
+  candidate: {
+    candidate_id: 'S4AR00103',
+    name: 'COTTON, THOMAS',
+    fec_url: 'https://www.fec.gov/data/candidate/S4AR00103/?cycle=2026&election_full=false',
+  },
+  committee: {
+    committee_id: 'C00499988',
+    name: 'COTTON FOR SENATE, INC.',
+    fec_url: 'https://www.fec.gov/data/committee/C00499988/?cycle=2026',
+  },
+  coverage: { start_date: '2025-01-01', end_date: '2026-06-30', last_report_type: 'JULY QUARTERLY', last_report_year: 2026 },
+  totals: { raised: 6233116.56, spent: 3752101.46, cash_on_hand: 9931884.93, debts: 73959 },
+  receipts: {
+    individual_small: { amount: 552196.55, pct: 8.86 },
+    individual_large: { amount: 2621967.92, pct: 42.07 },
+    individual: { amount: 3174164.47, pct: 50.92 },
+    pac: { amount: 1129500, pct: 18.12 },
+    party: { amount: 62000, pct: 0.99 },
+    self_funding: { amount: 0, pct: 0 },
+    transfers: { amount: 1373299.48, pct: 22.03 },
+    other: { amount: 494152.61, pct: 7.93 },
+  },
+  small_donor_pct: 8.86,
+  small_donor_of_individual_pct: 17.4,
+};
+
+export const NO_FILINGS_FUNDRAISING: FundraisingResponse = {
+  ...STEIL_FUNDRAISING,
+  status: 'no_filings',
+  coverage: null,
+  totals: null,
+  receipts: null,
+  small_donor_pct: null,
+  small_donor_of_individual_pct: null,
+};
+
+export const NO_COMMITTEE_FUNDRAISING: FundraisingResponse = {
+  ...NO_FILINGS_FUNDRAISING,
+  status: 'no_committee',
+  committee: null,
+};
+
+export const NO_CANDIDATE_FUNDRAISING: FundraisingResponse = {
+  ...NO_COMMITTEE_FUNDRAISING,
+  status: 'no_candidate',
+  candidate: null,
+};

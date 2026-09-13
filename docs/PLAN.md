@@ -274,6 +274,6 @@ term-tracker/
 | Frontend stack | Decided: A, Next.js + Tailwind, static (§7) | Done |
 | Site name | De Facto, Amicus, Polis, Civic Ledger, Sine Die | Before logo work |
 | Managed Postgres host | Decided: Neon free tier, Postgres 16 (§3) | Done |
-| Industry classification for donations | OpenSecrets bulk / self-built | Before Phase 2 |
+| Industry classification for donations | OpenSecrets bulk / self-built | Still open. Phase 2 v1 shipped the Fundraising panel without contributor categories (ADR 0006); `fec_contribution_agg` and "top industries" wait on this |
 | Map content | USAspending awards (recommended) / events / none | Before Phase 3 |
 | Race rating source | Cook (paywalled) / Sabato / Inside Elections / omit | Before Phase 2 |

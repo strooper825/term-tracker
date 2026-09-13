@@ -18,13 +18,20 @@ from api.schemas.member import (
     BillItem,
     BillsResponse,
     CommitteesResponse,
+    FecCandidateRef,
+    FecCommitteeRef,
     FeedItem,
     FeedResponse,
+    FundraisingCoverage,
+    FundraisingResponse,
+    FundraisingTotals,
     KeyDate,
     KeyDatesResponse,
     LeadershipRole,
     MemberBio,
     MemberDetail,
+    ReceiptBreakdown,
+    ReceiptSource,
     ServiceRecord,
     TermHistoryItem,
     TermSpan,
@@ -112,6 +119,16 @@ BILLS_SQL = text(
       ON b.congress = s.congress AND b.bill_type = s.bill_type AND b.bill_number = s.bill_number
     WHERE s.bioguide_id = :bioguide AND (CAST(:role AS text) IS NULL OR s.role = :role)
     ORDER BY s.date DESC NULLS LAST, b.bill_type, b.bill_number DESC
+    """
+)
+
+FUNDRAISING_SQL = text(
+    """
+    SELECT *
+    FROM mart.member_fundraising
+    WHERE bioguide_id = :bioguide
+    ORDER BY cycle DESC
+    LIMIT 1
     """
 )
 
@@ -391,4 +408,92 @@ def member_key_dates(
         bioguide_id=bioguide,
         items=[KeyDate(**{k: row[k] for k in KeyDate.model_fields}) for row in rows],
         sources=_sources(rows),
+    )
+
+
+RECEIPT_SOURCES = (
+    "individual_small",
+    "individual_large",
+    "individual",
+    "pac",
+    "party",
+    "self_funding",
+    "transfers",
+    "other",
+)
+RECEIPT_AMOUNT_COLUMN = {"individual": "individual_total"}
+
+
+@router.get(
+    "/fundraising",
+    response_model=FundraisingResponse,
+    summary="Principal campaign committee totals for the current cycle",
+)
+def member_fundraising(
+    bioguide: str, session: Annotated[Session, Depends(get_session)]
+) -> FundraisingResponse:
+    _summary(session, bioguide)
+    row = session.execute(FUNDRAISING_SQL, {"bioguide": bioguide}).mappings().first()
+    if row is None:
+        raise HTTPException(
+            status_code=404, detail=f"No fundraising row for bioguide id {bioguide}"
+        )
+    filed = row["status"] == "filed"
+    return FundraisingResponse(
+        bioguide_id=bioguide,
+        cycle=row["cycle"],
+        status=row["status"],
+        candidate=(
+            FecCandidateRef(
+                candidate_id=row["candidate_id"],
+                name=row["candidate_name"],
+                fec_url=row["candidate_fec_url"],
+            )
+            if row["candidate_id"]
+            else None
+        ),
+        committee=(
+            FecCommitteeRef(
+                committee_id=row["committee_id"],
+                name=row["committee_name"],
+                fec_url=row["committee_fec_url"],
+            )
+            if row["committee_id"]
+            else None
+        ),
+        coverage=(
+            FundraisingCoverage(
+                start_date=row["coverage_start_date"],
+                end_date=row["coverage_end_date"],
+                last_report_type=row["last_report_type"],
+                last_report_year=row["last_report_year"],
+            )
+            if filed
+            else None
+        ),
+        totals=(
+            FundraisingTotals(
+                raised=row["raised"],
+                spent=row["spent"],
+                cash_on_hand=row["cash_on_hand"],
+                debts=row["debts"],
+            )
+            if filed
+            else None
+        ),
+        receipts=(
+            ReceiptBreakdown(
+                **{
+                    name: ReceiptSource(
+                        amount=row[RECEIPT_AMOUNT_COLUMN.get(name, name)], pct=row[f"{name}_pct"]
+                    )
+                    for name in RECEIPT_SOURCES
+                }
+            )
+            if filed
+            else None
+        ),
+        small_donor_pct=row["small_donor_pct"],
+        small_donor_of_individual_pct=row["small_donor_of_individual_pct"],
+        sources=_sources([row]),
     )

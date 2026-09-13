@@ -6,6 +6,7 @@ import type {
   CommitteeRow,
   ElectionModel,
   FeedGroup,
+  FundraisingModel,
   KeyDateRow,
   MemberHeaderModel,
   Stat,
@@ -14,6 +15,7 @@ import type {
 } from '@/lib/model';
 import { ActivityFeed } from './ActivityFeed';
 import { ActivityTimeline } from './ActivityTimeline';
+import { FundraisingCard } from './FundraisingCard';
 import { MemberHeader, StatStrip, TermProgress } from './MemberHeader';
 import { CommitteesCard, KeyDatesCard, LockedPanels, NextElectionCard } from './SideCards';
 import { Breadcrumb, SiteFooter, SiteHeader } from './SiteChrome';
@@ -29,15 +31,13 @@ export interface DashboardProps {
   election: ElectionModel | null;
   committees: CommitteeRow[];
   keyDates: KeyDateRow[];
+  fundraising: FundraisingModel;
   lastUpdated: string | null;
 }
 
+/* Panels still to come (plan section 2, panels 8 to 10); Fundraising went live in Phase 2. */
 export function lockedPanels(member: MemberHeaderModel) {
   return [
-    {
-      title: 'Fundraising',
-      desc: 'Receipts, disbursements and top contributor categories from FEC filings.',
-    },
     { title: 'Stock trades', desc: 'Periodic transaction reports filed under the STOCK Act.' },
     {
       title: 'Public statements',
@@ -83,7 +83,7 @@ export function MemberDashboard(props: DashboardProps) {
           </div>
         </main>
 
-        <LockedPanels panels={lockedPanels(member)} />
+        <LockedPanels panels={lockedPanels(member)} live={<FundraisingCard model={props.fundraising} />} />
         <SiteFooter lastUpdated={props.lastUpdated} />
       </div>
     </div>

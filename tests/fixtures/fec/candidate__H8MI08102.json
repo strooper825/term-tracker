@@ -1,0 +1,58 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 1,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "active_through": 2024,
+   "candidate_first_name": "ELISSA",
+   "candidate_id": "H8MI08102",
+   "candidate_inactive": true,
+   "candidate_last_name": "SLOTKIN",
+   "candidate_middle_name": null,
+   "candidate_prefix": null,
+   "candidate_status": "C",
+   "candidate_suffix": null,
+   "cycles": [
+    2018,
+    2020,
+    2022,
+    2024
+   ],
+   "district": "07",
+   "district_number": 7,
+   "election_districts": [
+    "08",
+    "08",
+    "07",
+    "07"
+   ],
+   "election_years": [
+    2018,
+    2020,
+    2022,
+    2024
+   ],
+   "federal_funds_flag": false,
+   "first_file_date": "2017-07-12",
+   "flags": "H8MI08102",
+   "has_raised_funds": true,
+   "incumbent_challenge": "I",
+   "incumbent_challenge_full": "Incumbent",
+   "last_f2_date": "2022-12-01",
+   "last_file_date": "2022-12-01",
+   "load_date": "2023-01-27T21:11:22",
+   "name": "SLOTKIN, ELISSA",
+   "office": "H",
+   "office_full": "House",
+   "party": "DEM",
+   "party_full": "DEMOCRATIC PARTY",
+   "state": "MI"
+  }
+ ]
+}

@@ -238,3 +238,56 @@ models:
         tests: [not_null]
       - name: label
         tests: [not_null]
+
+  - name: fec_committee
+    description: FEC committees linked to tracked members' current-office candidates, per cycle.
+    columns:
+      - name: committee_id
+        tests: [not_null]
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: designation
+        tests:
+          - accepted_values: { arguments: { values: ["P", "A", "J", "D", "U", "B"] } }
+      - name: fec_url
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: fec_summary
+    description: Two-year totals and receipt breakdown per principal campaign committee and cycle.
+    columns:
+      - name: committee_id
+        tests: [not_null]
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: raised
+        tests: [not_null]
+      - name: spent
+        tests: [not_null]
+      - name: coverage_end_date
+        tests: [not_null]
+      - name: fec_url
+        tests: [not_null]
+
+  - name: member_fundraising
+    description: Fundraising panel row per tracked member and cycle, with a status when data is missing.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: cycle
+        tests: [not_null]
+      - name: status
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["filed", "no_filings", "no_committee", "no_candidate"] } }
+      - name: source_url
+        tests: [not_null]
+      - name: fetched_at
+        tests: [not_null]

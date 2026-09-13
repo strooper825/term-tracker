@@ -55,7 +55,7 @@ def teardown_function() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    ["", "/timeline", "/feed", "/votes", "/bills", "/committees", "/key-dates"],
+    ["", "/timeline", "/feed", "/votes", "/bills", "/committees", "/key-dates", "/fundraising"],
 )
 def test_unknown_member_is_404(client: TestClient, path: str) -> None:
     _use_rows([])
@@ -104,6 +104,7 @@ def test_openapi_lists_every_section_6_endpoint(client: TestClient) -> None:
         "/api/v1/members/{bioguide}/bills",
         "/api/v1/members/{bioguide}/committees",
         "/api/v1/members/{bioguide}/key-dates",
+        "/api/v1/members/{bioguide}/fundraising",
         "/api/v1/meta/freshness",
     }
     assert expected <= set(paths)
@@ -264,3 +265,116 @@ def test_member_detail_from_summary_row(client: TestClient) -> None:
 def test_age_on(birthday: tuple, today: tuple, expected: int) -> None:
     assert age_on(datetime(*birthday).date(), datetime(*today).date()) == expected
     assert age_on(None, datetime(*today).date()) is None
+
+
+def _fundraising_row(**overrides) -> dict:
+    row = {
+        "bioguide_id": "S001213",
+        "cycle": 2026,
+        "status": "filed",
+        "candidate_id": "H8WI01156",
+        "candidate_name": "STEIL, BRYAN GEORGE",
+        "candidate_fec_url": "https://www.fec.gov/data/candidate/H8WI01156/?cycle=2026&election_full=false",
+        "committee_id": "C00677286",
+        "committee_name": "STEIL FOR WISCONSIN, INC.",
+        "committee_fec_url": "https://www.fec.gov/data/committee/C00677286/?cycle=2026",
+        "coverage_start_date": datetime(2025, 1, 1).date(),
+        "coverage_end_date": datetime(2026, 7, 22).date(),
+        "last_report_type": "PRE-PRIMARY",
+        "last_report_year": 2026,
+        "raised": 5467777.07,
+        "spent": 1359848.79,
+        "cash_on_hand": 6327098.65,
+        "debts": 0.0,
+        "individual_small": 253362.51,
+        "individual_large": 1240060.26,
+        "individual_total": 1493422.77,
+        "pac": 1633675.16,
+        "party": 1000.0,
+        "self_funding": 0.0,
+        "transfers": 2190887.63,
+        "other": 148791.51,
+        "small_donor_pct": 4.63,
+        "small_donor_of_individual_pct": 16.97,
+        "individual_small_pct": 4.63,
+        "individual_large_pct": 22.68,
+        "individual_pct": 27.31,
+        "pac_pct": 29.88,
+        "party_pct": 0.02,
+        "self_funding_pct": 0.0,
+        "transfers_pct": 40.07,
+        "other_pct": 2.72,
+        "source": "fec",
+        "source_url": "https://api.open.fec.gov/v1/committee/C00677286/totals/?cycle=2026",
+        "fetched_at": datetime(2026, 9, 13, tzinfo=UTC),
+    }
+    row.update(overrides)
+    return row
+
+
+def test_fundraising_filed_row_maps_every_column(client: TestClient) -> None:
+    _use_rows([_summary_row()], {"mart.member_fundraising": [_fundraising_row()]})
+    body = client.get("/api/v1/members/S001213/fundraising").json()
+    assert body["status"] == "filed" and body["cycle"] == 2026
+    assert body["committee"] == {
+        "committee_id": "C00677286",
+        "name": "STEIL FOR WISCONSIN, INC.",
+        "fec_url": "https://www.fec.gov/data/committee/C00677286/?cycle=2026",
+    }
+    assert body["candidate"]["candidate_id"] == "H8WI01156"
+    assert body["coverage"] == {
+        "start_date": "2025-01-01",
+        "end_date": "2026-07-22",
+        "last_report_type": "PRE-PRIMARY",
+        "last_report_year": 2026,
+    }
+    assert body["totals"] == {
+        "raised": 5467777.07,
+        "spent": 1359848.79,
+        "cash_on_hand": 6327098.65,
+        "debts": 0.0,
+    }
+    assert body["receipts"]["individual_small"] == {"amount": 253362.51, "pct": 4.63}
+    assert body["receipts"]["individual"] == {"amount": 1493422.77, "pct": 27.31}
+    assert body["receipts"]["transfers"] == {"amount": 2190887.63, "pct": 40.07}
+    assert body["receipts"]["other"] == {"amount": 148791.51, "pct": 2.72}
+    assert body["small_donor_pct"] == 4.63
+    assert body["sources"] == [
+        {
+            "source": "fec",
+            "source_url": "https://api.open.fec.gov/v1/committee/C00677286/totals/?cycle=2026",
+            "fetched_at": "2026-09-13T00:00:00Z",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("status", "nulls"),
+    [
+        ("no_filings", ["coverage", "totals", "receipts"]),
+        ("no_committee", ["committee", "coverage", "totals", "receipts"]),
+        ("no_candidate", ["candidate", "committee", "coverage", "totals", "receipts"]),
+    ],
+)
+def test_fundraising_missing_data_keeps_the_status_and_no_zeros(
+    client: TestClient, status: str, nulls: list[str]
+) -> None:
+    row = _fundraising_row(status=status)
+    money = [k for k in row if isinstance(row[k], float)] + [
+        "coverage_start_date",
+        "coverage_end_date",
+        "last_report_type",
+        "last_report_year",
+    ]
+    for key in money:
+        row[key] = None
+    if status in ("no_committee", "no_candidate"):
+        row.update(committee_id=None, committee_name=None, committee_fec_url=None)
+    if status == "no_candidate":
+        row.update(candidate_id=None, candidate_name=None, candidate_fec_url=None)
+    _use_rows([_summary_row()], {"mart.member_fundraising": [row]})
+    body = client.get("/api/v1/members/S001213/fundraising").json()
+    assert body["status"] == status
+    for key in nulls:
+        assert body[key] is None, key
+    assert body["small_donor_pct"] is None

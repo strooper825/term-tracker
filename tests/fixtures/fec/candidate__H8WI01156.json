@@ -1,0 +1,61 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 1,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "active_through": 2026,
+   "candidate_first_name": "BRYAN",
+   "candidate_id": "H8WI01156",
+   "candidate_inactive": false,
+   "candidate_last_name": "STEIL",
+   "candidate_middle_name": "GEORGE",
+   "candidate_prefix": null,
+   "candidate_status": "C",
+   "candidate_suffix": null,
+   "cycles": [
+    2018,
+    2020,
+    2022,
+    2024,
+    2026
+   ],
+   "district": "01",
+   "district_number": 1,
+   "election_districts": [
+    "01",
+    "01",
+    "01",
+    "01",
+    "01"
+   ],
+   "election_years": [
+    2018,
+    2020,
+    2022,
+    2024,
+    2026
+   ],
+   "federal_funds_flag": false,
+   "first_file_date": "2018-04-25",
+   "flags": "H8WI01156",
+   "has_raised_funds": true,
+   "incumbent_challenge": "I",
+   "incumbent_challenge_full": "Incumbent",
+   "last_f2_date": "2026-06-17",
+   "last_file_date": "2026-06-17",
+   "load_date": "2026-06-17T20:57:39",
+   "name": "STEIL, BRYAN GEORGE",
+   "office": "H",
+   "office_full": "House",
+   "party": "REP",
+   "party_full": "REPUBLICAN PARTY",
+   "state": "WI"
+  }
+ ]
+}

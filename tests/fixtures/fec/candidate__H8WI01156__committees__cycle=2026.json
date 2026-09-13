@@ -1,0 +1,49 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 1,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "affiliated_committee_name": "STEIL VICTORY FUND",
+   "candidate_ids": [
+    "H8WI01156"
+   ],
+   "committee_id": "C00677286",
+   "committee_type": "H",
+   "committee_type_full": "House",
+   "cycles": [
+    2018,
+    2020,
+    2022,
+    2024,
+    2026
+   ],
+   "designation": "P",
+   "designation_full": "Principal campaign committee",
+   "filing_frequency": "Q",
+   "first_f1_date": "2018-04-25",
+   "first_file_date": "2018-04-25",
+   "form_type": "F1",
+   "last_f1_date": "2026-06-17",
+   "last_file_date": "2026-08-24",
+   "leadership_pac": null,
+   "lobbyist_registrant_pac": null,
+   "name": "STEIL FOR WISCONSIN, INC.",
+   "organization_type": null,
+   "organization_type_full": null,
+   "party": "REP",
+   "party_full": "REPUBLICAN PARTY",
+   "party_type": null,
+   "party_type_full": null,
+   "sponsor_candidate_ids": null,
+   "state": "WI",
+   "state_full": "Wisconsin",
+   "treasurer_name": "RUHLAND, LANE"
+  }
+ ]
+}
