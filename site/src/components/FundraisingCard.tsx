@@ -21,7 +21,8 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
 
       {model.filed ? (
         <>
-          <div className="grid grid-cols-3 gap-x-3 gap-y-2.5">
+          {/* 2x2: three seven-figure amounts do not fit three across at the card width */}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
             {model.stats.map((s) => (
               <div key={s.label} className="flex flex-col gap-0.5 min-w-0" title={s.title}>
                 <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
@@ -37,9 +38,9 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
             </div>
             {model.shares.map((row) => (
               <div key={row.label} className="flex flex-col gap-[3px]">
-                <div className="flex justify-between gap-2 text-meta tnum">
-                  <span className="text-ink2 truncate">{row.label}</span>
-                  <span className="flex-none">
+                <div className="flex justify-between items-baseline gap-2 text-meta tnum">
+                  <span className="text-ink2 min-w-0 leading-snug">{row.label}</span>
+                  <span className="flex-none whitespace-nowrap">
                     <span className="text-ink3">{row.amount}</span>
                     <span className="text-ink4"> · </span>
                     <span className="text-ink">{row.pctLabel}</span>
