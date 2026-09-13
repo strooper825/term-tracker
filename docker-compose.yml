@@ -1,4 +1,4 @@
-# Local development stack: Postgres 16 plus the read-only API.
+# Local development stack: Postgres 16 (matching the managed Neon project) plus the read-only API.
 # `docker compose up` starts the database, applies Alembic migrations, and serves the API on :8000.
 # Credentials below are for local development only.
 

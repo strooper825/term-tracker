@@ -10,5 +10,6 @@ term_tracker:
       user: "{{ env_var('PGUSER', 'term') }}"
       password: "{{ env_var('PGPASSWORD', 'term') }}"
       dbname: "{{ env_var('PGDATABASE', 'term_tracker') }}"
+      sslmode: "{{ env_var('PGSSLMODE', 'prefer') }}"
       schema: public
       threads: 4

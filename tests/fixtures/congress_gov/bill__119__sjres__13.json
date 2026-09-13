@@ -1,0 +1,38 @@
+{
+ "bill": {
+  "congress": 119,
+  "introducedDate": "2025-02-04",
+  "latestAction": {
+   "actionDate": "2025-06-20",
+   "text": "Became Public Law No: 119-19."
+  },
+  "legislationUrl": "https://www.congress.gov/bill/119th-congress/senate-joint-resolution/13",
+  "number": "13",
+  "originChamber": "Senate",
+  "originChamberCode": "S",
+  "policyArea": {
+   "name": "Finance and Financial Sector"
+  },
+  "sponsors": [
+   {
+    "bioguideId": "K000393",
+    "firstName": "John",
+    "fullName": "Sen. Kennedy, John [R-LA]",
+    "isByRequest": "N",
+    "lastName": "Kennedy",
+    "party": "R",
+    "state": "LA",
+    "url": "https://api.congress.gov/v3/member/K000393?format=json"
+   }
+  ],
+  "title": "A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Office of the Comptroller of the Currency of the Department of the Treasury relating to the review of applications under the Bank Merger Act.",
+  "type": "SJRES",
+  "updateDate": "2026-07-27T16:39:53Z",
+  "updateDateIncludingText": "2026-07-27T16:39:53Z"
+ },
+ "request": {
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

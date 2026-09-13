@@ -4,7 +4,7 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 1d. Sources `legislators` (unitedstates/congress-legislators),
+**Status:** Phase 1e. Sources `legislators` (unitedstates/congress-legislators),
 `congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors),
 `congress_gov_house_votes` (Congress.gov `/house-vote`), and `senate_votes` (senate.gov LIS
 XML) load into `raw`; dbt builds the `mart` tables listed in
@@ -16,12 +16,12 @@ from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`
 
 | Layer | Tool |
 |---|---|
-| Database | PostgreSQL 16 (schemas `raw`, `staging`, `mart`, `meta`) |
+| Database | PostgreSQL 16 locally (Docker) and on Neon (schemas `raw`, `staging`, `mart`, `seed`, `meta`) |
 | Ingestion | Python 3.12, `httpx`, `pydantic`, `psycopg` |
 | Transformation | dbt-postgres (`raw` -> `staging` -> `mart`) |
 | API | FastAPI + SQLAlchemy 2.x, read-only |
 | Migrations | Alembic |
-| CI | GitHub Actions (ruff, pytest against Postgres 16) |
+| CI | GitHub Actions (ruff, pytest against Postgres 16); nightly ingest workflow |
 
 ## Quick start (Docker)
 
@@ -66,8 +66,9 @@ python -m ingest.run --source senate_votes
 ```
 
 The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the
-database (run the dbt command below once first). It makes roughly 500 to 1,400 requests for two
-members, throttled to 5,000 per hour; add `--full-refresh` to re-fetch every actions and
+database (run the dbt command below once first). It makes roughly 1,000 to 1,900 requests for two
+members (member legislation plus the bills every roll call references), throttled to 5,000 per
+hour; add `--full-refresh` to re-fetch every actions and
 cosponsors list regardless of Congress.gov `updateDate`.
 
 ```bash
@@ -129,6 +130,19 @@ tests/          api/, ingest/, fixtures/ (recorded payloads; CI never calls live
 docs/           PLAN.md, data-dictionary.md, adr/
 .github/        ci.yml (lint + tests), nightly.yml (ingest -> dbt -> freshness)
 ```
+
+## Nightly job
+
+`.github/workflows/nightly.yml` runs at 06:00 UTC against the managed Neon database named by
+the `DATABASE_URL` repository secret (never in `.env`; local development keeps its own URL):
+migrations, `dbt seed` (so `seed.tracked_members` exists on a fresh database), `python -m
+ingest.run --source all` (votes before bills), `dbt build`, then
+`python -m ingest.freshness`, which fails the run when any source has no success in the last
+26 hours and writes a freshness table plus the database size against the 0.5 GB free tier to
+the step summary. A failure opens an issue labelled `nightly-failure` (or comments on the open
+one); the next success closes it. Run it by hand from the Actions tab (`workflow_dispatch`),
+optionally with `full_refresh`.
+
 
 ## Working agreements
 
