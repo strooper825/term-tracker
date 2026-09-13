@@ -16,7 +16,9 @@ with votes as (
         end
         || coalesce(
             {{ bill_label('r.bill_type', 'r.bill_number') }} || coalesce(': ' || b.title, ''),
-            case when r.document_type = 'PN' then 'nomination ' || r.document_number end,
+            -- senate.gov gives nomination numbers without the PN prefix (document_number 1078,
+            -- document_name PN1078); the public form is PN1078
+            case when r.document_type = 'PN' then 'nomination PN' || r.document_number end,
             'roll call ' || r.roll_number::text
         ) as headline,
         -- question, result, and the tally; for votes without legislation the question is the
