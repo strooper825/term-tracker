@@ -27,7 +27,8 @@ npm run typecheck
 
 ## Deploy
 
-`.github/workflows/deploy.yml` builds the site and deploys the prebuilt output with the Vercel
+`.github/workflows/deploy.yml` re-derives the mart with `dbt build` (no ingest), builds the
+site, and deploys the prebuilt output with the Vercel
 CLI (`vercel build`, `vercel deploy --prebuilt --archive=tgz`) using the `VERCEL_TOKEN`,
 `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` secrets. Vercel's Git integration is not used. The
 nightly ingest calls it after `dbt build`; dispatch it on its own (Actions tab,
@@ -38,3 +39,8 @@ nightly ingest calls it after `dbt build`; dispatch it on its own (Actions tab,
 free tier refuses a deployment of more than 5,000 files. `vercel build` has no archive flag
 and needs none: it only writes `.vercel/output` locally. Plan section 12 records what this
 means for bill search.
+
+The `dbt build` matters because the API the build reads is the same commit's code: a branch
+that adds a mart column and selects it would otherwise render against the mart the last
+nightly left behind and get a 500 on every page that touches it. A page render only sees an
+HTTP status, so the workflow prints the API's log whenever the build fails.

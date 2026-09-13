@@ -62,7 +62,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install "."
+      - run: pip install ".[dbt]"
 
       - name: Check the secrets are set
         env:
@@ -71,6 +71,21 @@ jobs:
           for name in DATABASE_URL VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
             if [ -z "${!name}" ]; then echo "::error::$name secret is not set"; exit 1; fi
           done
+
+      # The API served here is this commit's code, so the mart it reads has to be this
+      # commit's models. Without these two steps a branch that adds a mart column and selects
+      # it renders against whatever the last nightly built, and every request touching the new
+      # column answers 500: that is how policy_area broke the feed endpoint on 2026-09-13.
+      # No ingest happens, so this only re-derives the mart from the raw data already there:
+      # about 23 s against Neon, and idempotent when the nightly has just done it.
+      - name: Export dbt connection settings from DATABASE_URL
+        run: python -m ingest.dbt_env >> "$GITHUB_ENV"
+
+      - name: Migrate
+        run: alembic upgrade head
+
+      - name: dbt build (rebuild the mart from this commit's models)
+        run: dbt build --project-dir dbt --profiles-dir dbt --no-use-colors
 
       - name: Start the API against the managed database
         run: |
@@ -99,6 +114,15 @@ jobs:
         run: |
           npx vercel pull --yes --environment="$TARGET" --token="$VERCEL_TOKEN"
           npx vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      # The site build only ever sees an HTTP status, so without this a failed page render
+      # reports "HTTP 500" and the reason stays in the runner. Print the API's own log.
+      - name: API log (on failure)
+        if: failure()
+        run: |
+          echo "::group::api.log"
+          cat api.log || echo "no api.log"
+          echo "::endgroup::"
 
       - name: Confirm the built site cannot reach the API
         working-directory: site

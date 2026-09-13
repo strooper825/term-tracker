@@ -153,6 +153,12 @@ class FeedItem(BaseModel):
         default=None,
         description="Human bill form when the bill has a detail page on this site, else null",
     )
+    policy_area: str | None = Field(
+        default=None,
+        description="Congress.gov policy area of the bill this event concerns. Null for a "
+        "nomination vote, a procedural roll call, an amendment, and any bill the source has "
+        "not assigned one",
+    )
     url: str | None
     source_url: str
 

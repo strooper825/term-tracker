@@ -13,6 +13,7 @@ import type {
   KeyDatesResponse,
   MemberDetail,
   MembersResponse,
+  SessionsResponse,
   TimelineResponse,
 } from './types';
 
@@ -43,6 +44,7 @@ export const api = {
   fundraising: (bioguide: string) =>
     getJson<FundraisingResponse>(`/api/v1/members/${bioguide}/fundraising`),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
+  sessions: () => getJson<SessionsResponse>('/api/v1/meta/sessions'),
   bills: (limit: number, offset: number) =>
     getJson<BillsResponse>(`/api/v1/bills?limit=${limit}&offset=${offset}`),
   bill: (congress: number, billType: string, billNumber: string) =>

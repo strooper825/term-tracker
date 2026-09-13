@@ -9,12 +9,14 @@ import {
   buildFundraising,
   buildHeader,
   buildIndexRow,
+  buildDateRanges,
   buildKeyDates,
   buildStats,
   buildTerm,
   buildWeeks,
   eventTotals,
   groupFeed,
+  policyAreaTotals,
 } from '@/lib/model';
 import { KeyDatesCard } from '@/components/SideCards';
 import {
@@ -27,6 +29,7 @@ import {
   NO_FILINGS_FUNDRAISING,
   SANDERS,
   SANDERS_LIST,
+  SESSIONS,
   SLOTKIN,
   SLOTKIN_LIST,
   STEIL,
@@ -49,6 +52,8 @@ function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
       feedGroups={groupFeed(FEED)}
       eventTotals={eventTotals(FEED)}
       totalLabel="7"
+      policyAreas={policyAreaTotals(FEED)}
+      dateRanges={buildDateRanges(SESSIONS, detail.term, TODAY)}
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
@@ -163,9 +168,30 @@ describe('key dates card', () => {
   });
 });
 
+function feed(items = FEED) {
+  return (
+    <ActivityFeed
+      groups={groupFeed(items)}
+      totals={eventTotals(items)}
+      totalLabel={String(items.length)}
+      policyAreas={policyAreaTotals(items)}
+      dateRanges={buildDateRanges(SESSIONS, STEIL.term, TODAY)}
+    />
+  );
+}
+
+/** Tick one policy area, opening the dropdown first if it is not already open. */
+function pickArea(name: string) {
+  if (!screen.queryByRole('listbox')) {
+    fireEvent.click(document.querySelector('button[aria-haspopup="listbox"]') as HTMLElement);
+  }
+  const list = screen.getByRole('listbox', { name: 'Policy areas' });
+  fireEvent.click(within(list).getByRole('option', { name: new RegExp(name) }));
+}
+
 describe('activity feed', () => {
   it('renders votes with and without a bill title, filters by type, searches, and empties gracefully', () => {
-    render(<ActivityFeed groups={groupFeed(FEED)} totals={eventTotals(FEED)} totalLabel="7" />);
+    render(feed());
     // The headline is plain text again; the row's one destination is the Details button.
     expect(
       screen.getByText('on H.R. 4795: Protect Economic and Academic Freedom Act of 2026'),
@@ -188,8 +214,107 @@ describe('activity feed', () => {
     expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
   });
 
+  it('policy area: dropdown lists only the areas present, with counts, commonest first', () => {
+    render(feed());
+    const open = screen.getByRole('button', { name: 'All policy areas' });
+    fireEvent.click(open);
+    // scoped to the dropdown: the native date <select> also exposes options
+    const list = screen.getByRole('listbox', { name: 'Policy areas' });
+    const options = within(list).getAllByRole('option').map((o) => o.textContent);
+    // four of the seven fixture rows carry an area; the other three are nominations and
+    // procedural roll calls, which Congress.gov does not classify
+    expect(options).toHaveLength(4);
+    expect(options).toEqual([
+      'Congress1',
+      'Education1',
+      'Finance and Financial Sector1',
+      'Government Operations and Politics1',
+    ]);
+  });
+
+  it('policy area: filtering narrows the feed and says what it hid', () => {
+    render(feed());
+    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
+    pickArea('Education');
+    expect(screen.getByText('1 of 7 events')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Education' })).toBeInTheDocument();
+    // the three rows with no policy area are named, not silently dropped
+    expect(
+      screen.getByText(/3 events have no policy area and are hidden/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('on nomination PN12-1')).not.toBeInTheDocument();
+
+    // a second area is additive
+    pickArea('Congress');
+    expect(screen.getByText('2 of 7 events')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2 policy areas' })).toBeInTheDocument();
+  });
+
+  it('policy area: the notice disappears when no area is selected', () => {
+    render(feed());
+    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
+    pickArea('Education');
+    expect(screen.getByText(/no policy area and/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear policy areas' }));
+    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
+    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
+  });
+
+  it('date range: presets take their bounds from the mart, and the default is all dates', () => {
+    render(feed());
+    const select = screen.getByLabelText('Date range') as HTMLSelectElement;
+    expect(select.value).toBe('all');
+    expect([...select.options].map((o) => o.textContent)).toEqual([
+      'All dates',
+      'Last 30 days',
+      'Last 90 days',
+      'This session (2026)', // mart.congress_session, the current one
+      'Whole term',
+    ]);
+
+    // the fixture feed spans Jan 2025 to Sep 2026; this session starts 2026-01-03
+    fireEvent.change(select, { target: { value: 'session' } });
+    expect(screen.getByText('3 of 7 events')).toBeInTheDocument();
+    expect(screen.queryByText(/Voted Johnson \(LA\)/)).not.toBeInTheDocument(); // Jan 2025
+
+    fireEvent.change(select, { target: { value: 'last30' } });
+    expect(screen.getByText('2 of 7 events')).toBeInTheDocument(); // Sep 2026 rows only
+
+    fireEvent.change(select, { target: { value: 'all' } });
+    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
+  });
+
+  it('filters compose, and Clear resets all four at once', () => {
+    render(feed());
+    fireEvent.change(screen.getByLabelText('Date range'), { target: { value: 'session' } });
+    expect(screen.getByText('3 of 7 events')).toBeInTheDocument();
+
+    pickArea('Education');
+    expect(screen.getByText('1 of 7 events')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Floor vote/ })); // turn votes off
+    expect(screen.getByText('0 of 7 events')).toBeInTheDocument();
+    expect(screen.getByText('No events match the selected filters.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
+    expect((screen.getByLabelText('Date range') as HTMLSelectElement).value).toBe('all');
+    expect(screen.getByRole('button', { name: 'All policy areas' })).toBeInTheDocument();
+    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
+  });
+
+  it('search composes with the other filters and the count reflects all of them', () => {
+    render(feed());
+    fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: 'RESULTS' } });
+    expect(screen.getByText('1 of 7 events')).toBeInTheDocument();
+    // that row is Government Operations, so filtering to Education leaves nothing
+    pickArea('Education');
+    expect(screen.getByText('0 of 7 events')).toBeInTheDocument();
+    expect(screen.getByText(/No events match “RESULTS” in the selected filters/)).toBeInTheDocument();
+  });
+
   it('gives every row exactly one destination, chosen by mart.member_feed.bill_label', () => {
-    render(<ActivityFeed groups={groupFeed(FEED)} totals={eventTotals(FEED)} totalLabel="7" />);
+    render(feed());
     const rows = screen.getAllByText(/^(on |Introduced |Cosponsored |H\.Res\.)/);
     expect(rows.length).toBe(7);
     for (const row of rows) {

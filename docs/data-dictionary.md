@@ -489,6 +489,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
 | `headline`, `detail`, `detail_full` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, `Voted YEA on 48 nominations (en bloc)`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`, and for en bloc votes the question is shortened to `On the Cloture Motion · 48 nominations` with the full nomination list in `detail_full` (null otherwise). Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
+| `policy_area` | Congress.gov's policy area for the bill the event concerns, carried from `mart.bill` so the feed's filter needs no join. Null for a nomination vote, a procedural roll call, an amendment, and any bill the source has not classified. Coverage on 2026-09-13 ranged from 46.0 percent of Cotton's feed to 88.3 percent of Steil's; the filter states how many rows it hides rather than showing a silently shorter list |
 | `source_url` | For a vote, the roll call's public record (`mart.roll_call.source_url`: the House Clerk XML or the senate.gov vote XML), not `mart.member_vote.source_url`, which for the House is the Congress.gov API endpoint the positions were read from and needs a key to open. The site links a feed row here when the row has no bill page |
 | `congress`, `bill_label` | The Congress the event belongs to, and the human bill form (`H.R. 4735`) when the bill is in `mart.bill`. `bill_label` is null when the roll call names legislation with no page, which is how the site decides whether to link the label to `/bills/{congress}/{type}/{number}` rather than guessing |
 
@@ -575,6 +576,23 @@ receipts" breakdown) and on the candidate page in its two-year view
 The pages and the API are the same system (the site renders the API), so any gap is a loader
 or mapping defect, not a tolerance; the one legitimate difference is timing, when a report is
 processed between the ingest and the check.
+
+### `mart.congress_session`
+
+One row per session of a Congress. Natural key `(congress, session)`. The activity feed's
+date filter offers "this session" and takes the boundary from here rather than computing one
+in the browser.
+
+| Column | Description |
+|---|---|
+| `session_year` | Calendar year of the session, from its own roll calls |
+| `start_date` | January 3, the 20th Amendment's convening date |
+| `end_date` | The day before the next session convenes, or the end of the Congress for the last one |
+| `first_roll_call_date`, `last_roll_call_date`, `roll_calls` | What `mart.roll_call` holds for the session |
+| `is_current` | The highest session number in the Congress |
+
+A session with no recorded roll call does not appear, so the model is empty until the first
+vote of a Congress is loaded. `GET /api/v1/meta/sessions` returns it.
 
 ### `mart.member_activity_timeline`
 

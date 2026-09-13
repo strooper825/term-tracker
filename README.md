@@ -11,8 +11,8 @@ XML), and `fec` (OpenFEC: principal campaign committee totals, current cycle) lo
 `raw`; dbt builds the `mart` tables listed in
 [docs/data-dictionary.md](docs/data-dictionary.md); the API serves every Phase 1 endpoint
 from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`, `/bills`,
-`/committees`, `/key-dates`, `/meta/freshness`) plus `/members/{id}/fundraising`, `/bills`
-and `/bills/{congress}/{type}/{number}`, documented at `/docs`. Six members are
+`/committees`, `/key-dates`, `/meta/freshness`) plus `/members/{id}/fundraising`, `/bills`,
+`/bills/{congress}/{type}/{number}`, and `/meta/sessions`, documented at `/docs`. Six members are
 tracked (`dbt/seeds/tracked_members.csv`): Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries.
 `/members/{id}` carries biography (birthday, age, gender, name parts), the full terms
 history with "serving since" and term counts, leadership roles, and external ids
@@ -144,7 +144,7 @@ dbt/            dbt project: models/staging, models/mart, seeds (fips, tracked_m
 migrations/     Alembic environment and versions/
 tests/          api/, ingest/, fixtures/ (recorded payloads; CI never calls live APIs)
 docs/           PLAN.md, data-dictionary.md, verification-notes.md, adr/
-.github/        ci.yml (lint + tests), ingest.yml (ingest -> dbt -> freshness -> deploy), deploy.yml (site build -> Vercel)
+.github/        ci.yml (lint + tests), ingest.yml (ingest -> dbt -> freshness -> deploy), deploy.yml (dbt build -> site build -> Vercel)
 ```
 
 ## Nightly job and deploys
@@ -161,11 +161,16 @@ secret (never in `.env`; local development keeps its own URL):
   `nightly-failure` (or comments on the open one); the next fully successful run closes it.
   Run it by hand from the Actions tab (`workflow_dispatch`), optionally with `full_refresh`,
   `max_age_hours`, or `deploy: false`.
-- `.github/workflows/deploy.yml` starts the API in the runner against the managed database,
-  builds the static site, checks that the output makes no API calls, and deploys the prebuilt
-  output with the Vercel CLI. Dispatch it on its own to publish a frontend change without an
-  ingest; `deploy_target` is `auto` (production from `main`, preview from any other branch),
-  `preview`, or `production`.
+- `.github/workflows/deploy.yml` migrates and runs `dbt build` to re-derive the mart from
+  this commit's models, starts the API in the runner against the managed database, builds the
+  static site, checks that the output makes no API calls, and deploys the prebuilt output with
+  the Vercel CLI. It never ingests, so the rebuild only re-derives the mart from the raw data
+  already there (about 23 s against Neon). That step exists because the API it serves is the
+  branch's code: without it a branch that adds a mart column renders against whatever the last
+  nightly built and every request selecting the new column answers 500. Dispatch it on its own
+  to publish a frontend change without an ingest; `deploy_target` is `auto` (production from
+  `main`, preview from any other branch), `preview`, or `production`. When a page fails to
+  render, the run prints the API's log so the reason is in the run rather than only the status.
 
 
 ## Site

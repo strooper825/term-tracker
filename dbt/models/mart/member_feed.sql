@@ -52,6 +52,7 @@ with votes as (
         r.roll_number,
         r.bill_type,
         r.bill_number,
+        b.policy_area,
         -- null when the roll call names legislation that is not in mart.bill, which is how
         -- the site decides whether to link the label to a bill page
         b.label as bill_label,
@@ -90,6 +91,7 @@ sponsorships as (
         null::int as roll_number,
         s.bill_type,
         s.bill_number,
+        b.policy_area,
         b.label as bill_label,
         b.congress_gov_url as url,
         s.source,
@@ -123,6 +125,7 @@ committee_actions as (
         null::int as roll_number,
         a.bill_type,
         a.bill_number,
+        b.policy_area,
         b.label as bill_label,
         b.congress_gov_url as url,
         a.source,

@@ -25,6 +25,7 @@ import {
 } from './format';
 import type {
   BillAction,
+  CongressSession,
   BillCosponsor,
   BillDetail,
   BillRollCall,
@@ -112,6 +113,11 @@ export interface FeedRow {
   /** The bill page here, set when the event names a bill that has one. A row shows either
    *  this or `source`, never both, so each row has a single destination. */
   detailsHref?: string;
+  /** mart.member_feed.policy_area. Null on nomination votes, procedural roll calls,
+   *  amendments, and bills Congress.gov has not classified. */
+  policyArea: string | null;
+  /** mart.member_feed.event_date, ISO, for the date filter to compare against. */
+  isoDate: string;
 }
 
 export interface FeedGroup {
@@ -375,10 +381,21 @@ export function feedRow(item: FeedItem): FeedRow {
         secondaryFull,
         source,
         detailsHref,
+        policyArea: item.policy_area,
+        isoDate: item.event_date,
       };
     }
   }
-  return { type, headline: item.headline, secondary, secondaryFull, source, detailsHref };
+  return {
+    type,
+    headline: item.headline,
+    secondary,
+    secondaryFull,
+    source,
+    detailsHref,
+    policyArea: item.policy_area,
+    isoDate: item.event_date,
+  };
 }
 
 /** Group feed items by calendar day, newest first (the API already orders by event_at desc). */
@@ -391,6 +408,68 @@ export function groupFeed(items: FeedItem[]): FeedGroup[] {
     else groups.push({ date, items: [feedRow(item)] });
   }
   return groups;
+}
+
+export interface PolicyAreaCount {
+  name: string;
+  count: number;
+}
+
+/** The policy areas present in this member's feed, commonest first, then alphabetically so
+ *  the order is stable between builds. Counting rows the page already holds, the same way
+ *  eventTotals does; the areas themselves are mart.member_feed.policy_area. */
+export function policyAreaTotals(items: FeedItem[]): PolicyAreaCount[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (item.policy_area) counts.set(item.policy_area, (counts.get(item.policy_area) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** How many feed rows carry no policy area. Shown when a policy filter is on, so a shorter
+ *  list is never silent about what it left out. */
+export function rowsWithoutPolicyArea(items: FeedItem[]): number {
+  return items.filter((item) => !item.policy_area).length;
+}
+
+export interface DateRange {
+  key: string;
+  label: string;
+  /** Inclusive ISO bounds; null means unbounded on that side. */
+  from: string | null;
+  to: string | null;
+}
+
+export const ALL_DATES = 'all';
+
+/** The date presets, every boundary from data rather than from the browser clock:
+ *  the session bounds are mart.congress_session, the term bounds mart.member_summary, and the
+ *  rolling windows count back from `asOf`, which callers pass as the latest ingest time. */
+export function buildDateRanges(
+  sessions: CongressSession[],
+  term: { start_date: string; end_date: string },
+  asOf: Date,
+): DateRange[] {
+  const current = sessions.find((s) => s.is_current) ?? sessions[sessions.length - 1];
+  const back = (days: number) => toIsoDate(addDays(asOf, -days));
+  return [
+    { key: ALL_DATES, label: 'All dates', from: null, to: null },
+    { key: 'last30', label: 'Last 30 days', from: back(30), to: null },
+    { key: 'last90', label: 'Last 90 days', from: back(90), to: null },
+    ...(current
+      ? [
+          {
+            key: 'session',
+            label: `This session (${current.year})`,
+            from: current.start_date,
+            to: current.end_date,
+          },
+        ]
+      : []),
+    { key: 'term', label: 'Whole term', from: term.start_date, to: term.end_date },
+  ];
 }
 
 export function eventTotals(items: FeedItem[]): Record<EventKey, number> {

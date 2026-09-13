@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ALL_DATES,
   MIN_TICK_GAP_WEEKS,
   buildCommitteeRows,
+  buildDateRanges,
   buildElection,
   buildFundraising,
   buildHeader,
@@ -14,6 +16,8 @@ import {
   eventTotals,
   feedRow,
   groupFeed,
+  policyAreaTotals,
+  rowsWithoutPolicyArea,
   seatLong,
   serviceLine,
   timelineRange,
@@ -37,6 +41,7 @@ import {
   NO_FILINGS_FUNDRAISING,
   SANDERS,
   SANDERS_LIST,
+  SESSIONS,
   SLOTKIN,
   SLOTKIN_LIST,
   STEIL,
@@ -291,5 +296,66 @@ describe('fundraising: every figure is a mart column, only formatted', () => {
     expect(noCandidate.message).toBe('The FEC has no Senate candidate record for this member, so there are no filings to show.');
     expect(noCandidate.footer).toEqual([]);
     expect(noCandidate.sourceUrl).toBeNull();
+  });
+});
+
+describe('feed filters take their values from mart columns', () => {
+  it('policy areas are counted from the rows and sorted commonest first, then by name', () => {
+    // four of the seven fixture rows carry mart.member_feed.policy_area
+    expect(policyAreaTotals(FEED)).toEqual([
+      { name: 'Congress', count: 1 },
+      { name: 'Education', count: 1 },
+      { name: 'Finance and Financial Sector', count: 1 },
+      { name: 'Government Operations and Politics', count: 1 },
+    ]);
+    expect(rowsWithoutPolicyArea(FEED)).toBe(3);
+
+    // count wins over name, and ties fall back to the name so builds are stable
+    const item = (policy_area: string | null) => ({ ...FEED[0], policy_area });
+    expect(
+      policyAreaTotals([item('Taxation'), item('Health'), item('Taxation'), item(null), item('Health'), item('Taxation')]),
+    ).toEqual([
+      { name: 'Taxation', count: 3 },
+      { name: 'Health', count: 2 },
+    ]);
+  });
+
+  it('date presets read their bounds from mart.congress_session and the term', () => {
+    const ranges = buildDateRanges(SESSIONS, STEIL.term, new Date(Date.UTC(2026, 8, 13)));
+    expect(ranges.map((r) => r.key)).toEqual([ALL_DATES, 'last30', 'last90', 'session', 'term']);
+
+    const byKey = Object.fromEntries(ranges.map((r) => [r.key, r]));
+    expect(byKey[ALL_DATES]).toEqual({ key: 'all', label: 'All dates', from: null, to: null });
+    // the current session, not the first one
+    expect(byKey.session).toEqual({
+      key: 'session',
+      label: 'This session (2026)',
+      from: '2026-01-03',
+      to: '2027-01-03',
+    });
+    expect(byKey.term).toEqual({
+      key: 'term',
+      label: 'Whole term',
+      from: '2025-01-03',
+      to: '2027-01-03',
+    });
+    // rolling windows count back from the anchor the caller passes, not from the wall clock
+    expect(byKey.last30.from).toBe('2026-08-14');
+    expect(byKey.last90.from).toBe('2026-06-15');
+    expect(byKey.last30.to).toBeNull();
+  });
+
+  it('a member whose feed has no sessions yet still gets the other presets', () => {
+    const ranges = buildDateRanges([], STEIL.term, new Date(Date.UTC(2026, 8, 13)));
+    expect(ranges.map((r) => r.key)).toEqual([ALL_DATES, 'last30', 'last90', 'term']);
+  });
+
+  it('feed rows carry the policy area and the ISO date the filters compare', () => {
+    const rows = groupFeed(FEED).flatMap((g) => g.items);
+    const vote = rows.find((r) => r.headline.includes('H.R. 4795'))!;
+    expect(vote.policyArea).toBe('Education');
+    expect(vote.isoDate).toBe('2026-09-03');
+    const nomination = rows.find((r) => r.headline.includes('PN12-1'))!;
+    expect(nomination.policyArea).toBeNull();
   });
 });
