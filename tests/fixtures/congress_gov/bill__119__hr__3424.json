@@ -1,0 +1,40 @@
+{
+ "bill": {
+  "congress": 119,
+  "introducedDate": "2025-05-15",
+  "latestAction": {
+   "actionDate": "2025-09-09",
+   "text": "Received in the Senate and Read twice and referred to the Committee on Environment and Public Works."
+  },
+  "legislationUrl": "https://www.congress.gov/bill/119th-congress/house-bill/3424",
+  "number": "3424",
+  "originChamber": "House",
+  "originChamberCode": "H",
+  "policyArea": {
+   "name": "Government Operations and Politics"
+  },
+  "sponsors": [
+   {
+    "bioguideId": "O000177",
+    "district": 3,
+    "firstName": "Robert",
+    "fullName": "Rep. Onder, Robert F. [R-MO-3]",
+    "isByRequest": "N",
+    "lastName": "Onder",
+    "middleName": "F.",
+    "party": "R",
+    "state": "MO",
+    "url": "https://api.congress.gov/v3/member/O000177?format=json"
+   }
+  ],
+  "title": "SPACE Act of 2025",
+  "type": "HR",
+  "updateDate": "2026-09-08T18:12:22Z",
+  "updateDateIncludingText": "2026-09-08T18:12:22Z"
+ },
+ "request": {
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

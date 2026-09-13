@@ -44,6 +44,8 @@ select
     t.state_rank,
     t.start_date as term_start_date,
     t.end_date as term_end_date,
+    t.end_congress as term_end_congress,
+    {{ var('current_congress') }}::int as tracked_congress,
     s.roll_calls,
     coalesce(s.positions, 0) as positions,
     coalesce(s.votes_cast, 0) as votes_cast,

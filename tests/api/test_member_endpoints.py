@@ -122,6 +122,8 @@ def _summary_row() -> dict:
         "state_rank": None,
         "term_start_date": datetime(2025, 1, 3).date(),
         "term_end_date": datetime(2027, 1, 3).date(),
+        "term_end_congress": 119,
+        "tracked_congress": 119,
         "roll_calls": 5,
         "positions": 5,
         "votes_cast": 4,
@@ -144,6 +146,7 @@ def test_member_detail_from_summary_row(client: TestClient) -> None:
     body = client.get("/api/v1/members/S001213").json()
     assert body["seat"]["label"] == "WI-1"
     assert body["term"]["end_date"] == "2027-01-03"
+    assert body["term"]["congresses"] == [119] and body["term"]["tracked_congress"] == 119
     assert body["term"]["days_remaining"] >= 0
     assert body["votes"]["attendance_pct"] == 80.0
     assert body["activity"] == {"bills_sponsored": 2, "bills_cosponsored": 2, "committees": 6}

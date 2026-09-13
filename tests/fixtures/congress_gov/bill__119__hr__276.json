@@ -1,0 +1,40 @@
+{
+ "bill": {
+  "congress": 119,
+  "introducedDate": "2025-01-09",
+  "latestAction": {
+   "actionDate": "2025-05-12",
+   "text": "Read the second time. Placed on Senate Legislative Calendar under General Orders. Calendar No. 73."
+  },
+  "legislationUrl": "https://www.congress.gov/bill/119th-congress/house-bill/276",
+  "number": "276",
+  "originChamber": "House",
+  "originChamberCode": "H",
+  "policyArea": {
+   "name": "Public Lands and Natural Resources"
+  },
+  "sponsors": [
+   {
+    "bioguideId": "G000596",
+    "district": 14,
+    "firstName": "Marjorie",
+    "fullName": "Rep. Greene, Marjorie Taylor [R-GA-14]",
+    "isByRequest": "N",
+    "lastName": "Greene",
+    "middleName": "Taylor",
+    "party": "R",
+    "state": "GA",
+    "url": "https://api.congress.gov/v3/member/G000596?format=json"
+   }
+  ],
+  "title": "Gulf of America Act",
+  "type": "HR",
+  "updateDate": "2026-07-11T02:23:21Z",
+  "updateDateIncludingText": "2026-07-13T20:10:30Z"
+ },
+ "request": {
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}

@@ -14,9 +14,16 @@ with votes as (
             when v.position = 'Other' then 'Voted ' || v.position_raw || ' on '
             else 'Voted ' || upper(v.position) || ' on '
         end
-        || coalesce({{ bill_label('r.bill_type', 'r.bill_number') }} || ': ', '')
-        || coalesce(r.question, 'roll call ' || r.roll_number::text) as headline,
-        coalesce(b.title, r.result) as detail,
+        || coalesce(
+            {{ bill_label('r.bill_type', 'r.bill_number') }} || coalesce(': ' || b.title, ''),
+            r.question,
+            'roll call ' || r.roll_number::text
+        ) as headline,
+        case
+            when r.bill_type is not null
+                then coalesce(r.question || ' ', '') || coalesce('(' || r.result || ')', '')
+            else r.result
+        end as detail,
         v.position,
         r.chamber,
         r.session,

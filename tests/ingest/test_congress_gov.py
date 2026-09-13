@@ -147,3 +147,9 @@ def test_shape_changes_stop_the_run(path: str, body: dict) -> None:
         else:
             src.fetch_detail(client, key)
     client.close()
+
+
+def test_senate_document_types_map_to_bill_types() -> None:
+    assert src.SENATE_DOCUMENT_TYPES["S.J.Res."] == "sjres"
+    assert src.SENATE_DOCUMENT_TYPES["H.R."] == "hr"
+    assert "PN" not in src.SENATE_DOCUMENT_TYPES  # nominations are not legislation

@@ -32,11 +32,41 @@ from api.db import get_engine
 from api.main import app
 from ingest.db import connect
 from ingest.sources import congress_gov, house_votes, legislators, senate_votes
-from tests.fixtures.congress_gov import CONGRESS, TRACKED, fixture_client
+from tests.fixtures.congress_gov import CONGRESS, TRACKED, fixture_client, roll_call_fixtures_cover
 from tests.fixtures.legislators import fixture_fetch as legislators_fixture_fetch
 from tests.fixtures.votes import house_client, senate_client
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_roll_call_fixture_bills(conn) -> None:
+    """Upsert the detail fixtures of the bills the vote fixtures reference into raw.bill."""
+    from datetime import UTC, datetime
+
+    from psycopg.types.json import Jsonb
+
+    from ingest.congress_gov import LegislationKey
+    from ingest.load import upsert
+    from tests.fixtures.congress_gov import ROLL_CALL_FIXTURE_BILLS, fixture_client
+
+    client = fixture_client()
+    rows = []
+    for bill_type, number in ROLL_CALL_FIXTURE_BILLS:
+        key = LegislationKey("bill", CONGRESS, bill_type, number)
+        detail = congress_gov.fetch_detail(client, key)
+        rows.append(
+            {
+                "congress": CONGRESS,
+                "bill_type": bill_type,
+                "bill_number": number,
+                "kind": "bill",
+                "payload": Jsonb(detail),
+                "source_url": client.url(key.path),
+                "fetched_at": datetime.now(UTC),
+            }
+        )
+    upsert(conn, "raw", "bill", ["congress", "bill_type", "bill_number"], rows)
+    conn.commit()
 
 
 @pytest.fixture
@@ -85,9 +115,17 @@ def built_mart(migrated_engine: Engine) -> None:
 
     with connect() as conn:
         legislators.load(conn, fetch=legislators_fixture_fetch)
-        congress_gov.load(conn, fixture_client(), TRACKED, CONGRESS, full_refresh=True)
         house_votes.load(conn, house_client(), CONGRESS, full_refresh=True)
         senate_votes.load(conn, senate_client(), CONGRESS, full_refresh=True)
+        # Votes first so the bills loader can fetch the bills the fixture roll calls reference.
+        # On a database that also holds live roll calls there are no fixtures for them; the
+        # roll-call phase is then skipped and the four fixture bills are loaded directly.
+        covered = roll_call_fixtures_cover(conn)
+        congress_gov.load(
+            conn, fixture_client(), TRACKED, CONGRESS, full_refresh=True, roll_call_bills=covered
+        )
+        if not covered:
+            load_roll_call_fixture_bills(conn)
 
     result = subprocess.run(
         [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],

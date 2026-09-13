@@ -1,9 +1,12 @@
 -- One row per tracked member-term that overlaps the current Congress (v1 scope).
 -- `congress` is the Congress in session when the term began (119 for a House term starting
--- 2025-01-03; 117 for a Senate term starting 2021-01-03 that runs through the 119th).
+-- 2025-01-03; 117 for a Senate term starting 2021-01-03 that runs through the 119th) and
+-- `end_congress` the one in session on the day before the term ends, so the span is
+-- congress..end_congress ([117, 118, 119] for that Senate term).
 select
     t.bioguide_id,
     {{ congress_number('t.start_date') }} as congress,
+    {{ congress_number('(t.end_date - 1)') }} as end_congress,
     t.chamber,
     t.start_date,
     t.end_date,
