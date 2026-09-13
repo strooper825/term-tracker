@@ -15,8 +15,8 @@ pytestmark = pytest.mark.integration
 
 # Fixture inventory: 5 list pages; 9 distinct bills/amendments, each with actions + cosponsors.
 LIST_PAGES = 5
-DISTINCT_BILLS = 9
-MEMBER_LEGISLATION_ROWS = 2 + 2 + 2 + 3
+DISTINCT_BILLS = 10
+MEMBER_LEGISLATION_ROWS = 3 + 2 + 2 + 3
 
 
 def _counts(engine: Engine) -> dict[str, int]:

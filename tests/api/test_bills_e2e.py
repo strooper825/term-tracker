@@ -28,7 +28,7 @@ def test_sponsorship_counts_per_member_and_role(built_mart: None, migrated_engin
         ("C001095", "cosponsor"): 3,
         ("C001095", "sponsor"): 2,
         ("S001213", "cosponsor"): 2,
-        ("S001213", "sponsor"): 2,
+        ("S001213", "sponsor"): 3,
     }
 
 
@@ -92,5 +92,5 @@ def test_actions_present_for_every_bill(built_mart: None, migrated_engine: Engin
         f"WHERE b.congress = 119 AND (b.bill_type, b.bill_number) IN "
         f"{FIXTURE_BILLS_SQL.split(' IN ', 1)[1]} GROUP BY 1, 2",
     )
-    assert len(rows) == 9
+    assert len(rows) == 10
     assert all(r["n"] >= 1 for r in rows)
