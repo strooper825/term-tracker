@@ -153,6 +153,11 @@ def test_deploy_workflow_shape() -> None:
     )
     deploy = steps[order[-1]]
     assert "--prebuilt" in deploy["run"] and "if" not in deploy  # a deploy failure fails the job
+    # One tarball, not 9,435 separate files: the free tier rejects a deploy of more than 5,000
+    # (code api-upload-free). `vercel build` takes no such flag and uploads nothing.
+    assert "--archive=tgz" in deploy["run"]
+    build = steps[order[2]]  # "Build the site", third in the order tuple above
+    assert "vercel build" in build["run"] and "--archive" not in build["run"]
     assert deploy["env"]["PROD_FLAG"] == "${{ steps.target.outputs.prod_flag }}"
     assert "&& '' ||" not in raw
     assert "Migrate" not in " ".join(s.get("name", "") for s in steps)  # no ingest here
