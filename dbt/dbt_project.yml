@@ -33,3 +33,5 @@ vars:
   # Provenance for seeds/fips.csv (Census state FIPS reference file).
   fips_source_url: "https://www2.census.gov/geo/docs/reference/state.txt"
   fips_fetched_at: "2026-09-12"
+  # Provenance for seeds/key_dates.csv.
+  key_dates_fetched_at: "2026-09-12"

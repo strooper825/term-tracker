@@ -94,10 +94,11 @@ def test_member_legislation_filters_to_congress_and_handles_amendments() -> None
     keys = [key for key, _ in items]
     assert keys == [
         LegislationKey("bill", 119, "hr", "4735"),
+        LegislationKey("bill", 119, "hres", "150"),
         LegislationKey("amendment", 119, "hamdt", "9"),
     ]
     raw_page = json.loads(fixture_fetch(client.url("member/S001213/sponsored-legislation")))
-    assert len(raw_page["sponsoredLegislation"]) == 3  # the 118th Congress item was dropped
+    assert len(raw_page["sponsoredLegislation"]) == 4  # the 118th Congress item was dropped
 
 
 def test_detail_actions_cosponsors_from_fixtures() -> None:

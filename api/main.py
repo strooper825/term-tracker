@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from api.routers import members, meta
+from api.routers import member, members, meta
 
 API_PREFIX = "/api/v1"
 
@@ -18,4 +18,5 @@ app = FastAPI(
 )
 
 app.include_router(members.router, prefix=API_PREFIX)
+app.include_router(member.router, prefix=API_PREFIX)
 app.include_router(meta.router, prefix=API_PREFIX)

@@ -16,6 +16,21 @@
    "url": "https://api.congress.gov/v3/bill/119/hr/4735?format=json"
   },
   {
+   "url": "https://api.congress.gov/v3/bill/119/hres/150?format=json",
+   "type": "HRES",
+   "title": "Providing amounts for the expenses of the Committee on House Administration in the One Hundred Nineteenth Congress.",
+   "number": "150",
+   "congress": 119,
+   "policyArea": {
+    "name": "Congress"
+   },
+   "latestAction": {
+    "text": "Referred to the House Committee on House Administration.",
+    "actionDate": "2025-02-21"
+   },
+   "introducedDate": "2025-02-21"
+  },
+  {
    "amendmentNumber": "9",
    "congress": 119,
    "introducedDate": "2025-03-24",
@@ -44,7 +59,7 @@
   }
  ],
  "pagination": {
-  "count": 3
+  "count": 4
  },
  "request": {
   "contentType": "application/json",

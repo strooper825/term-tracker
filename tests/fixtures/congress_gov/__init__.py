@@ -18,6 +18,7 @@ CONGRESS = 119
 # scoped to these so they hold on a database that also holds live data.
 FIXTURE_BILLS = [
     ("hr", "4735"),
+    ("hres", "150"),
     ("hamdt", "9"),
     ("hr", "5269"),
     ("hr", "1502"),

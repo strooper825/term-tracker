@@ -4,12 +4,13 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 1c. Sources `legislators` (unitedstates/congress-legislators),
+**Status:** Phase 1d. Sources `legislators` (unitedstates/congress-legislators),
 `congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors),
 `congress_gov_house_votes` (Congress.gov `/house-vote`), and `senate_votes` (senate.gov LIS
 XML) load into `raw`; dbt builds the `mart` tables listed in
-[docs/data-dictionary.md](docs/data-dictionary.md); the API serves `/api/v1/members` and
-`/api/v1/meta/freshness` (bill and vote endpoints arrive in Phase 1d).
+[docs/data-dictionary.md](docs/data-dictionary.md); the API serves every Phase 1 endpoint
+from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`, `/bills`,
+`/committees`, `/key-dates`, `/meta/freshness`), documented at `/docs`.
 
 ## Stack
 
