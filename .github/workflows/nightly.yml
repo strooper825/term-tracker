@@ -1,0 +1,121 @@
+name: Deploy site
+
+# Builds the static site from an API started in the runner against the managed database and
+# deploys the prebuilt output with the Vercel CLI (no Git integration, no runtime server).
+# Called by ingest.yml after a successful ingest, and dispatchable on its own so a frontend
+# change can be published in minutes without an ingest cycle.
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Vercel target: auto = production from main, preview from any other branch"
+        type: choice
+        options: [auto, preview, production]
+        default: auto
+  workflow_call:
+    inputs:
+      deploy_target:
+        description: auto, preview, or production (auto = production from main, preview elsewhere)
+        type: string
+        default: auto
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: build site -> static check -> deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      API_BASE_URL: http://127.0.0.1:8000
+    steps:
+      # `auto` follows the branch: main deploys to production, anything else to preview. The
+      # flag is computed in shell here rather than with an expression whose "true" branch is
+      # the empty string (that branch is falsy and the expression always yields the other one).
+      - name: Resolve the deployment target
+        id: target
+        env:
+          REQUESTED: ${{ inputs.deploy_target }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          case "$REQUESTED" in
+            production|preview) target="$REQUESTED" ;;
+            auto|"") if [ "$REF_NAME" = "main" ]; then target=production; else target=preview; fi ;;
+            *) echo "::error::deploy_target must be auto, preview, or production (got '$REQUESTED')"; exit 1 ;;
+          esac
+          prod_flag=""
+          if [ "$target" = production ]; then prod_flag="--prod"; fi
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "prod_flag=$prod_flag" >> "$GITHUB_OUTPUT"
+          echo "Deploying to $target (requested: '${REQUESTED:-auto}', branch: $REF_NAME)"
+
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install "."
+
+      - name: Check the secrets are set
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          for name in DATABASE_URL VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then echo "::error::$name secret is not set"; exit 1; fi
+          done
+
+      - name: Start the API against the managed database
+        run: |
+          nohup uvicorn api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/api/v1/meta/freshness > /dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::API did not start"; cat api.log; exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install site dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: site
+
+      - name: Build the site (Vercel prebuilt output)
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TARGET: ${{ steps.target.outputs.target }}
+          PROD_FLAG: ${{ steps.target.outputs.prod_flag }}
+        run: |
+          npx vercel pull --yes --environment="$TARGET" --token="$VERCEL_TOKEN"
+          npx vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      - name: Confirm the built site cannot reach the API
+        working-directory: site
+        run: node scripts/check-static.mjs .vercel/output/static
+
+      - name: Deploy the prebuilt output to Vercel
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TARGET: ${{ steps.target.outputs.target }}
+          PROD_FLAG: ${{ steps.target.outputs.prod_flag }}
+        run: |
+          url=$(npx vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "deployed: $url"
+          echo "## Site" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed $TARGET from \`${{ github.ref_name }}\`: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop the API
+        if: always()
+        run: pkill -f "uvicorn api.main:app" || true
