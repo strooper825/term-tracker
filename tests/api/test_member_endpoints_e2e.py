@@ -142,9 +142,10 @@ def test_timeline_buckets(built_mart: None, client: TestClient) -> None:
 
     default = client.get(f"{STEIL}/timeline").json()
     assert default["from"] == "2025-01-03"
-    assert any(
-        w["week_start"] == "2025-01-06" for w in default["weeks"]
-    )  # roll call 2 on 2025-01-03 falls in the week of 2024-12-30; roll 122 etc. later
+    # The term started on Friday 2025-01-03; roll call 2 that day lands in the Monday bucket
+    # 2024-12-30, which the default range must include.
+    first_week = next(w for w in default["weeks"] if w["week_start"] == "2024-12-30")
+    assert first_week["vote"] >= 1
 
 
 def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
