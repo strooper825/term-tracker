@@ -101,3 +101,27 @@ models:
         tests: [not_null]
       - name: action_hash
         tests: [not_null]
+
+  - name: roll_call
+    description: Roll-call votes in both chambers with totals computed from member positions.
+    columns:
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: vote_date
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: member_vote
+    description: Positions of tracked members on every roll call.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: position
+        tests:
+          - accepted_values: { arguments: { values: ["Yea", "Nay", "Present", "Not Voting", "Other"] } }
+      - name: position_raw
+        tests: [not_null]

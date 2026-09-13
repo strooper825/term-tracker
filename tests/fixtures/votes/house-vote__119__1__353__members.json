@@ -1,0 +1,75 @@
+{
+ "houseRollCallVoteMemberVotes": {
+  "result": "Failed",
+  "results": [
+   {
+    "lastName": "Steil",
+    "voteCast": "Not Voting",
+    "firstName": "Bryan",
+    "voteParty": "R",
+    "voteState": "WI",
+    "bioguideID": "S001213"
+   },
+   {
+    "lastName": "Aderholt",
+    "voteCast": "Aye",
+    "firstName": "Robert",
+    "voteParty": "R",
+    "voteState": "AL",
+    "bioguideID": "A000055"
+   },
+   {
+    "lastName": "Auchincloss",
+    "voteCast": "No",
+    "firstName": "Jake",
+    "voteParty": "D",
+    "voteState": "MA",
+    "bioguideID": "A000148"
+   },
+   {
+    "lastName": "Amodei",
+    "voteCast": "Aye",
+    "firstName": "Mark",
+    "voteParty": "R",
+    "voteState": "NV",
+    "bioguideID": "A000369"
+   },
+   {
+    "lastName": "Adams",
+    "voteCast": "No",
+    "firstName": "Alma",
+    "voteParty": "D",
+    "voteState": "NC",
+    "bioguideID": "A000370"
+   },
+   {
+    "lastName": "Aguilar",
+    "voteCast": "No",
+    "firstName": "Pete",
+    "voteParty": "D",
+    "voteState": "CA",
+    "bioguideID": "A000371"
+   }
+  ],
+  "congress": 119,
+  "voteType": "Recorded Vote",
+  "startDate": "2025-12-18T14:27:00-05:00",
+  "identifier": 11912025353,
+  "updateDate": "2025-12-19T14:23:12-05:00",
+  "voteQuestion": "On Agreeing to the Amendment",
+  "amendmentType": "HAMDT",
+  "sessionNumber": 1,
+  "sourceDataURL": "https://clerk.house.gov/evs/2025/roll353.xml",
+  "legislationUrl": "https://www.congress.gov/amendment/119/house-amendment/139",
+  "rollCallNumber": 353,
+  "amendmentAuthor": "Roy of Texas Amendment No. 5",
+  "amendmentNumber": "139",
+  "legislationType": "HR",
+  "legislationNumber": "4776"
+ },
+ "request": {
+  "congress": "119",
+  "format": "json",
+  "session": "1"
+ }
+}

@@ -16,7 +16,7 @@ import logging
 import sys
 from collections.abc import Callable, Sequence
 
-from ingest.sources import congress_gov, legislators
+from ingest.sources import congress_gov, house_votes, legislators, senate_votes
 
 log = logging.getLogger("ingest")
 
@@ -24,6 +24,8 @@ log = logging.getLogger("ingest")
 SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
     congress_gov.SOURCE: congress_gov.run,
+    house_votes.SOURCE: house_votes.run,
+    senate_votes.SOURCE: senate_votes.run,
 }
 
 

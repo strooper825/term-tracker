@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><vote_summary>
+	<congress>119</congress>
+	<session>1</session>
+	<congress_year>2025</congress_year>
+	<votes>
+		<vote>
+			<issue>S.J.Res. 13</issue>
+			<title>S.J. Res. 13; A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Office of the Comptroller of the Currency of the Department of the Treasury relating to the review of applications under the Bank Merger Act.</title>
+			<result>Passed</result>
+			<question>On the Joint Resolution</question>
+			<vote_date>07-May</vote_date>
+			<vote_tally>
+				<nays>47</nays>
+				<yeas>52</yeas>
+			</vote_tally>
+			<vote_number>00237</vote_number>
+		</vote>
+		<vote>
+			<issue>S. 5</issue>
+			<title>Motion to Invoke Cloture: Motion to Proceed to S. 5; A bill to require the Secretary of Homeland Security to take into custody aliens who have been charged in the United States with theft, and for other purposes.</title>
+			<result>Agreed to</result>
+			<question>On Cloture on the Motion to Proceed</question>
+			<vote_date>09-Jan</vote_date>
+			<vote_tally>
+				<nays>9</nays>
+				<yeas>84</yeas>
+			</vote_tally>
+			<vote_number>00001</vote_number>
+		</vote>
+	</votes>
+</vote_summary>

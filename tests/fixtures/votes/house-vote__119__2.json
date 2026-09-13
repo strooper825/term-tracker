@@ -1,0 +1,24 @@
+{
+ "houseRollCallVotes": [
+  {
+   "congress": 119,
+   "identifier": 119220261,
+   "result": "Passed",
+   "rollCallNumber": 1,
+   "sessionNumber": 2,
+   "sourceDataURL": "https://clerk.house.gov/evs/2026/roll001.xml",
+   "startDate": "2026-01-06T18:58:00-05:00",
+   "updateDate": "2026-01-07T18:53:12-05:00",
+   "url": "https://api.congress.gov/v3/house-vote/119/2/1",
+   "voteType": "Quorum"
+  }
+ ],
+ "pagination": {
+  "count": 1
+ },
+ "request": {
+  "congress": "119",
+  "format": "json",
+  "session": "2"
+ }
+}

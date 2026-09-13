@@ -29,9 +29,10 @@ from sqlalchemy.exc import OperationalError
 from api.db import get_engine
 from api.main import app
 from ingest.db import connect
-from ingest.sources import congress_gov, legislators
+from ingest.sources import congress_gov, house_votes, legislators, senate_votes
 from tests.fixtures.congress_gov import CONGRESS, TRACKED, fixture_client
 from tests.fixtures.legislators import fixture_fetch as legislators_fixture_fetch
+from tests.fixtures.votes import house_client, senate_client
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -83,6 +84,8 @@ def built_mart(migrated_engine: Engine) -> None:
     with connect() as conn:
         legislators.load(conn, fetch=legislators_fixture_fetch)
         congress_gov.load(conn, fixture_client(), TRACKED, CONGRESS, full_refresh=True)
+        house_votes.load(conn, house_client(), CONGRESS, full_refresh=True)
+        senate_votes.load(conn, senate_client(), CONGRESS, full_refresh=True)
 
     result = subprocess.run(
         [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],

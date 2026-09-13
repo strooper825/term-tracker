@@ -1,0 +1,69 @@
+{
+ "houseRollCallVoteMemberVotes": {
+  "congress": 119,
+  "identifier": 119220261,
+  "result": "Passed",
+  "results": [
+   {
+    "bioguideID": "S001213",
+    "firstName": "Bryan",
+    "lastName": "Steil",
+    "voteCast": "Present",
+    "voteParty": "R",
+    "voteState": "WI"
+   },
+   {
+    "bioguideID": "A000055",
+    "firstName": "Robert",
+    "lastName": "Aderholt",
+    "voteCast": "Present",
+    "voteParty": "R",
+    "voteState": "AL"
+   },
+   {
+    "bioguideID": "A000148",
+    "firstName": "Jake",
+    "lastName": "Auchincloss",
+    "voteCast": "Present",
+    "voteParty": "D",
+    "voteState": "MA"
+   },
+   {
+    "bioguideID": "A000369",
+    "firstName": "Mark",
+    "lastName": "Amodei",
+    "voteCast": "Present",
+    "voteParty": "R",
+    "voteState": "NV"
+   },
+   {
+    "bioguideID": "A000370",
+    "firstName": "Alma",
+    "lastName": "Adams",
+    "voteCast": "Present",
+    "voteParty": "D",
+    "voteState": "NC"
+   },
+   {
+    "bioguideID": "A000371",
+    "firstName": "Pete",
+    "lastName": "Aguilar",
+    "voteCast": "Present",
+    "voteParty": "D",
+    "voteState": "CA"
+   }
+  ],
+  "rollCallNumber": 1,
+  "sessionNumber": 2,
+  "sourceDataURL": "https://clerk.house.gov/evs/2026/roll001.xml",
+  "startDate": "2026-01-06T18:58:00-05:00",
+  "updateDate": "2026-01-07T18:53:12-05:00",
+  "voteQuestion": "Call of the House",
+  "voteType": "Quorum"
+ },
+ "request": {
+  "congress": "119",
+  "format": "json",
+  "session": "2"
+ }
+}
