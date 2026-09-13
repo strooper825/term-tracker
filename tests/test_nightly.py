@@ -5,11 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
 import yaml
+from sqlalchemy import Engine, text
 
 from api.config import Settings
+from ingest.db import connect
 from ingest.dbt_env import dbt_env
-from ingest.freshness import SourceStatus, evaluate, report
+from ingest.freshness import SourceStatus, evaluate, read_sizes, read_statuses, report
 from ingest.run import SOURCES
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -85,3 +88,31 @@ def test_nightly_workflow_shape() -> None:
     assert failure_steps and "gh issue" in failure_steps[0]["run"]
     assert workflow["permissions"]["issues"] == "write"
     assert list(SOURCES)[:2] == ["legislators", "congress_gov_house_votes"]  # votes before bills
+
+
+@pytest.mark.integration
+def test_read_statuses_and_sizes_against_database(migrated_engine: Engine) -> None:
+    with migrated_engine.begin() as conn:
+        before = conn.execute(text("SELECT coalesce(max(id), 0) FROM meta.ingest_run")).scalar_one()
+        conn.execute(
+            text(
+                "INSERT INTO meta.ingest_run "
+                "(source, source_url, status, finished_at, rows_loaded) "
+                "VALUES ('test_fresh', 'https://x.example', 'success', now(), 7), "
+                "('test_fresh', 'https://x.example', 'failed', now(), NULL), "
+                "('test_never', 'https://x.example', 'running', NULL, NULL)"
+            )
+        )
+    try:
+        with connect() as conn:
+            statuses = read_statuses(conn, ["test_fresh", "test_never", "test_absent"])
+            total, schemas = read_sizes(conn)
+    finally:
+        with migrated_engine.begin() as conn:
+            conn.execute(text("DELETE FROM meta.ingest_run WHERE id > :b"), {"b": before})
+    by_source = {s.source: s for s in statuses}
+    assert by_source["test_fresh"].rows_loaded == 7
+    assert by_source["test_fresh"].last_success_at is not None
+    assert by_source["test_never"].last_success_at is None  # running rows do not count
+    assert by_source["test_absent"].last_success_at is None
+    assert total > 0 and {name for name, _ in schemas} >= {"raw", "meta"}
