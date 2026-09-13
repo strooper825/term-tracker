@@ -64,11 +64,13 @@ Cosponsored Legislation and which are kept here for that reason.
 | `raw.bill_actions` | same | full actions list (payload is the JSON array) |
 | `raw.bill_cosponsors` | same | full cosponsors list (payload is the JSON array) |
 
-The detail record is re-fetched every run; actions and cosponsors only when the detail
-`updateDate` changed, they were never fetched, or `--full-refresh` is passed. Bills referenced
-by roll calls in `raw.house_vote` (`legislationType`/`legislationNumber`) and `raw.senate_vote`
-(`document_type`/`document_number`, bill types only) get a detail record too, no actions or
-cosponsors. Run the vote sources before this one (`--source all` does).
+The detail record is re-fetched every run. Its dependent lists -- actions, cosponsors, and
+(bills only) CRS summaries -- are re-fetched when the detail `updateDate` changed, and any list
+that was never stored is fetched on its own; `--full-refresh` re-reads all of them. Bills
+referenced by roll calls in `raw.house_vote` (`legislationType`/`legislationNumber`) and
+`raw.senate_vote` (`document_type`/`document_number`, bill types only) get the same treatment,
+because every row of `mart.bill` has a detail page. Run the vote sources before this one
+(`--source all` does).
 
 Source quirk (verified 2026-09-12): on the cosponsored list the item `introducedDate` is the
 date the member cosponsored, not the introduction date. List-item dates are therefore never
@@ -93,6 +95,19 @@ menu (HTTP 404). House member lists are re-fetched when the list item `updateDat
 Senate roll calls are fetched once (senate.gov publishes no update stamp) unless
 `--full-refresh` is passed. XML becomes JSON via xmltodict with `vote` and `member` always
 lists; nothing else is altered.
+
+## Raw tables: CRS bill summaries (Alembic migration `0006`)
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.bill_summaries` | `congress`, `bill_type`, `bill_number` | bill; payload is the full `summaries` array from `/bill/{c}/{t}/{n}/summaries`, every version, oldest first |
+
+Loaded by the `congress_gov_bills` source alongside actions and cosponsors. Source shape
+(verified 2026-09-13): each item carries `versionCode` (stage code: `00` Introduced, `07`
+Reported, `53` Passed House, `55` Passed Senate, `49` Public Law), `actionDate`, `actionDesc`,
+`updateDate`, and `text` as HTML. A bill with no summary returns an empty list rather than a
+404, and that empty array is stored, which is what keeps the nightly from re-asking. The
+endpoint does not exist for amendments (it answers 404), so amendments never have a row here.
 
 ## Raw tables: OpenFEC (Alembic migration `0005`)
 
@@ -143,6 +158,12 @@ Votes: `stg_house_roll_calls`, `stg_house_member_votes` (every member), `stg_sen
 `H.R.` mapped to `bill_type`, nominations `PN` kept in `document_type`/`document_number`),
 `stg_senate_member_votes` (every senator, `lis_member_id` joined to `stg_legislators.lis_id`
 for `bioguide_id`). Positions are normalised by macro `normalize_position` (ADR 0004).
+
+`stg_bill_summaries` unnests `raw.bill_summaries`: one row per version with `version_code`,
+`seq` (position in the upstream array, which breaks a tie when two versions share a date),
+`action_date`, `action_desc`, `text_html`, `update_date`. `stg_bill_cosponsors` also carries
+the cosponsor's `full_name`, `display_name`, `party`, `state` and `district`, and `stg_bills`
+the sponsor's, because the bill pages name everyone rather than only tracked members.
 
 FEC: `stg_fec_candidates` (one row per candidate id: `office`, `state`, `district`,
 `candidate_status`, `cycles`), `stg_fec_committees` (`designation`, `committee_type`,
@@ -251,6 +272,59 @@ legislation. Natural key `(congress, bill_type, bill_number)`.
 | `congress_gov_url` | text | Public page, from macro `congress_gov_url` |
 
 `status` is deliberately absent: see ADR 0003.
+
+Every row has a detail page at `/bills/{congress}/{type}/{number}`, so the row also carries
+what that page shows: `label` (the human form from the `bill_label` macro), the sponsor's
+`sponsor_name`, `sponsor_full_name`, `sponsor_party`, `sponsor_state`, `sponsor_district` and
+`sponsor_is_tracked`, and the counts `cosponsor_count`, `cosponsors_democratic`,
+`cosponsors_republican`, `cosponsors_other`, `cosponsors_withdrawn`,
+`first_cosponsorship_date`, `last_cosponsorship_date`, `action_count`, `summary_count`,
+`has_summary`, `latest_summary_date`, `roll_call_count`.
+
+A zero count means the source published none, never "not fetched yet": the loader stores an
+empty array for a bill with no cosponsors or no summary, and the dbt test
+`assert_bill_lists_loaded` fails the build if any bill in the mart is missing a list
+altogether.
+
+`action_count` counts the rows in `mart.bill_action`, which is what the page lists, and that
+can be lower than the total Congress.gov reports for the same bill: `stg_bill_actions`
+collapses byte-identical actions (same date, code, text and source system) so the natural key
+holds. 142 of the 1,874 bills loaded on 2026-09-13 have at least one such duplicate; H.R. 5269
+is one, where the House floor referral is published twice and the page shows 3 actions against
+the API's 4. `assert_bill_summary_one_latest` checks the counts against the rows in
+`mart.bill_summary` and `mart.bill_cosponsor`.
+
+### `mart.bill_summary`
+
+One row per CRS summary version of a bill in `mart.bill`. Natural key `(congress, bill_type,
+bill_number, version_code)`. Columns `seq`, `action_date` (the summary's "as of" date),
+`action_desc` (the stage in words), `text_html` (verbatim, HTML), `text_length`, `update_date`,
+and `is_latest`.
+
+`is_latest` marks the most recent version: greatest `action_date`, and where two versions share
+one (a bill introduced and reported the same day) the later position in the upstream array
+wins. Exactly one row per bill carries it (`assert_bill_summary_one_latest`). The page renders
+the latest version and lists the rest as a version history; the site sanitises `text_html`
+through an allowlist of formatting tags at build time.
+
+### `mart.bill_cosponsor`
+
+One row per cosponsor of every bill in `mart.bill`, tracked members and everyone else. Natural
+key `(congress, bill_type, bill_number, bioguide_id)`. Columns `full_name` (the upstream form
+`Rep. Steil, Bryan [R-WI-1]`), `display_name` (the plain `Bryan Steil` the pages show),
+`party`, `state`, `district`, `sponsorship_date`, `is_original_cosponsor`, `withdrawn_date`,
+`is_withdrawn`, `is_tracked_member`.
+
+Grain is one row per (bill, member). A member who cosponsors, withdraws, and cosponsors the
+same bill again appears once, with their most recent stint; `cosponsorships` counts how many
+stints there were, and every stint stays in `staging.stg_bill_cosponsors` and in raw. One case
+in the 119th Congress so far, S. 1383, and no tracked member is involved (ADR 0007).
+
+`mart.bill_sponsorship` stays the tracked-member view the dashboards count; this is the full
+list the bill page shows. Its cosponsor join takes the same latest stint, so a repeat
+cosponsorship cannot double-count a member's `bills_cosponsored`
+(`assert_bill_sponsorship_key_unique`). Party is the letter the cosponsors endpoint reports
+when it was read, not necessarily the party on the day of cosponsorship.
 
 ### `mart.bill_sponsorship`
 
@@ -392,6 +466,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
 | `headline`, `detail`, `detail_full` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, `Voted YEA on 48 nominations (en bloc)`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`, and for en bloc votes the question is shortened to `On the Cloture Motion · 48 nominations` with the full nomination list in `detail_full` (null otherwise). Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
+| `congress`, `bill_label` | The Congress the event belongs to, and the human bill form (`H.R. 4735`) when the bill is in `mart.bill`. `bill_label` is null when the roll call names legislation with no page, which is how the site decides whether to link the label to `/bills/{congress}/{type}/{number}` rather than guessing |
 
 ### `mart.fec_committee`
 
@@ -454,6 +529,16 @@ candidate page), `committee_id`, `committee_name`, `committee_fec_url`, then eve
 `fec_summary` figure and share listed above. `GET /members/{id}/fundraising` returns the row
 as `totals`, `receipts` (amount and `pct` per source), `coverage`, `candidate`, `committee`,
 and `small_donor_pct`; the site formats those and computes nothing.
+
+## Bill pages (done-when)
+
+Every row of `mart.bill` has a page, and the page never shows a blank where the source has
+data. The checks: `assert_bill_lists_loaded` (every bill has its actions, cosponsors and, for
+bills, summaries row), `assert_bill_summary_one_latest` (one current summary per bill, and the
+counts on `mart.bill` equal the rows beside them), `assert_bill_cosponsor_key_unique`, and the
+static build emitting one page per bill. Summary coverage is reported as a share of bills
+rather than required: the Congressional Research Service writes summaries after introduction
+and skips many minor measures, so an absent summary is a fact about the source, not a defect.
 
 ## Fundraising verification (Phase 2 done-when)
 

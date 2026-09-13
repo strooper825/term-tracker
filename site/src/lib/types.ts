@@ -159,6 +159,7 @@ export interface TimelineResponse {
 export interface FeedItem {
   event_key: string;
   event_type: 'vote' | 'bill_sponsored' | 'bill_cosponsored' | 'committee_action';
+  congress: number;
   event_at: string;
   event_date: string;
   headline: string;
@@ -170,6 +171,8 @@ export interface FeedItem {
   roll_number: number | null;
   bill_type: string | null;
   bill_number: string | null;
+  /** Human bill form when the bill has a detail page on this site, else null. */
+  bill_label: string | null;
   url: string | null;
   source_url: string;
 }
@@ -251,5 +254,120 @@ export interface FundraisingResponse {
   } | null;
   small_donor_pct: number | null;
   small_donor_of_individual_pct: number | null;
+  sources: SourceRef[];
+}
+
+export interface BillSponsor {
+  bioguide_id: string | null;
+  name: string;
+  full_name: string | null;
+  party: string | null;
+  state: string | null;
+  district: number | null;
+  is_tracked: boolean;
+}
+
+export interface CosponsorCounts {
+  total: number;
+  democratic: number;
+  republican: number;
+  other: number;
+  withdrawn: number;
+}
+
+export interface BillListItem {
+  congress: number;
+  bill_type: string;
+  bill_number: string;
+  label: string;
+  kind: string;
+  title: string;
+  policy_area: string | null;
+  introduced_date: string;
+  latest_action_date: string | null;
+  latest_action_text: string | null;
+  sponsor: BillSponsor;
+  cosponsors: CosponsorCounts;
+  action_count: number;
+  summary_count: number;
+  has_summary: boolean;
+  roll_call_count: number;
+  congress_gov_url: string;
+}
+
+export interface BillsResponse {
+  items: BillListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  sources: SourceRef[];
+}
+
+export interface BillSummaryVersion {
+  version_code: string;
+  action_date: string;
+  action_desc: string;
+  text_html: string;
+  text_length: number;
+  update_date: string;
+  is_latest: boolean;
+}
+
+export interface BillCosponsor {
+  bioguide_id: string;
+  name: string;
+  full_name: string | null;
+  party: string | null;
+  state: string | null;
+  district: number | null;
+  date: string;
+  is_original_cosponsor: boolean | null;
+  withdrawn_date: string | null;
+  is_withdrawn: boolean;
+  is_tracked_member: boolean;
+}
+
+export interface BillAction {
+  action_date: string;
+  action_time: string | null;
+  action_code: string | null;
+  action_text: string | null;
+  action_type: string | null;
+  source_system: string | null;
+}
+
+export interface TrackedPosition {
+  bioguide_id: string;
+  name: string;
+  party: string | null;
+  position: string;
+}
+
+export interface BillRollCall {
+  chamber: string;
+  session: number;
+  roll_number: number;
+  voted_at: string | null;
+  vote_date: string;
+  question: string | null;
+  result: string | null;
+  yea_total: number;
+  nay_total: number;
+  present_total: number;
+  not_voting_total: number;
+  tracked_positions: TrackedPosition[];
+  source_url: string;
+}
+
+export interface BillDetail extends BillListItem {
+  amended_bill_congress: number | null;
+  amended_bill_type: string | null;
+  amended_bill_number: string | null;
+  update_date: string | null;
+  summary: BillSummaryVersion | null;
+  summary_versions: BillSummaryVersion[];
+  cosponsor_list: BillCosponsor[];
+  actions: BillAction[];
+  roll_calls: BillRollCall[];
   sources: SourceRef[];
 }

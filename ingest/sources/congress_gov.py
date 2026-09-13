@@ -1,25 +1,31 @@
 """Source: Congress.gov API, bills and amendments sponsored or cosponsored by tracked members.
 
 Per tracked member and role the list endpoint is paged in full and filtered to the current
-Congress (the lists mix every Congress the member served in). For each distinct bill or
-amendment the detail record is fetched every run; the actions and cosponsors lists are only
-re-fetched when the detail ``updateDate`` changed, they were never fetched, or
-``--full-refresh`` is given.
+Congress (the lists mix every Congress the member served in). Bills referenced by a roll call
+in ``raw.house_vote`` or ``raw.senate_vote`` are in scope too, so vote headlines carry the
+title. Run the vote sources before this one so the same night picks up new roll calls.
 
-Bills referenced by a roll call in ``raw.house_vote`` or ``raw.senate_vote`` are fetched as
-well (detail record only, no actions or cosponsors) so vote headlines can carry the title.
-Run the vote sources before this one so the same night picks up new roll calls.
+For each distinct bill or amendment the detail record is fetched every run. Its dependent
+lists -- actions, cosponsors, and (bills only) CRS summaries -- are re-fetched when the detail
+``updateDate`` changed, when one of them was never stored, or on ``--full-refresh``. Every
+bill in scope gets all of them, not only the ones a tracked member sponsored, because every
+one has a detail page (``/bills/{congress}/{type}/{number}``).
 
-Request budget for two members in the 119th Congress: about 15 list pages, ~470 detail
-requests for member legislation plus ~470 for roll-call bills, and up to ~940
-actions/cosponsors requests on a full refresh, well under the 5,000 per hour limit enforced
-by :class:`ingest.congress_gov.RateLimiter`.
+An empty list is stored as an empty array, so a bill with no cosponsors or no summary is not
+re-asked every night. Amendments are never asked for summaries: that endpoint answers 404
+(verified 2026-09-13).
+
+Request budget for six members in the 119th Congress: about 40 list pages, ~1,900 detail
+requests, and on a first load ~1,900 actions + ~1,900 cosponsors + ~1,750 summaries requests.
+In the steady state only bills whose ``updateDate`` moved are re-read. All of it is throttled
+to the 5,000 per hour limit by :class:`ingest.congress_gov.RateLimiter`.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -43,6 +49,7 @@ from ingest.models.congress_gov import (
     BillDetail,
     Cosponsor,
     MemberLegislationItem,
+    Summary,
 )
 
 log = logging.getLogger("ingest.congress_gov")
@@ -118,6 +125,26 @@ def fetch_cosponsors(client: CongressGovClient, key: LegislationKey) -> list[dic
     return items
 
 
+def fetch_summaries(client: CongressGovClient, key: LegislationKey) -> list[dict[str, Any]]:
+    """Every CRS summary version of a bill, oldest first as published; [] when there is none.
+
+    Only bills have this endpoint; amendments answer 404 (verified 2026-09-13), so the caller
+    must not ask for one. An empty list is stored so the bill is not re-fetched every night.
+    """
+    if key.kind != "bill":
+        raise ValueError(f"{key.path}: summaries exist for bills only, not {key.kind}s")
+    items = list(client.paginate(f"{key.path}/summaries", "summaries"))
+    for index, item in enumerate(items):
+        _validate(Summary, item, f"{key.path}/summaries[{index}]")
+    codes = [item["versionCode"] for item in items]
+    if len(set(codes)) != len(codes):
+        raise SourceShapeError(
+            f"{key.path}/summaries: repeated versionCode in {codes}; the plan expects one "
+            "summary per version. Not collapsing them; report and decide."
+        )
+    return items
+
+
 def roll_call_legislation_keys(conn: Connection, congress: int) -> set[LegislationKey]:
     """Bills referenced by House and Senate roll calls already loaded into raw."""
     keys: set[LegislationKey] = set()
@@ -145,19 +172,38 @@ def roll_call_legislation_keys(conn: Connection, congress: int) -> set[Legislati
     return keys
 
 
-def _existing_state(conn: Connection) -> dict[tuple[int, str, str], tuple[str | None, bool]]:
-    """(congress, type, number) -> (stored updateDate, actions and cosponsors both present)."""
+@dataclass(frozen=True)
+class StoredBill:
+    """What raw already holds for one bill: the stored updateDate and which lists are present.
+
+    A list counts as present when its row exists, even when the stored array is empty: a bill
+    with no cosponsors and no CRS summary is fully loaded, and re-asking every night would
+    cost a request per bill for nothing.
+    """
+
+    update_date: str | None
+    has_actions: bool
+    has_cosponsors: bool
+    has_summaries: bool
+
+
+MISSING = StoredBill(None, False, False, False)
+
+
+def _existing_state(conn: Connection) -> dict[tuple[int, str, str], StoredBill]:
+    """(congress, type, number) -> what raw already holds for that bill."""
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT b.congress, b.bill_type, b.bill_number, b.payload ->> 'updateDate',
-                   (a.congress IS NOT NULL AND c.congress IS NOT NULL)
+                   a.congress IS NOT NULL, c.congress IS NOT NULL, s.congress IS NOT NULL
             FROM raw.bill AS b
             LEFT JOIN raw.bill_actions AS a USING (congress, bill_type, bill_number)
             LEFT JOIN raw.bill_cosponsors AS c USING (congress, bill_type, bill_number)
+            LEFT JOIN raw.bill_summaries AS s USING (congress, bill_type, bill_number)
             """
         )
-        return {(r[0], r[1], r[2]): (r[3], r[4]) for r in cur.fetchall()}
+        return {(r[0], r[1], r[2]): StoredBill(r[3], r[4], r[5], r[6]) for r in cur.fetchall()}
 
 
 def load(
@@ -169,15 +215,16 @@ def load(
     full_refresh: bool = False,
     roll_call_bills: bool = True,
 ) -> int:
-    """Load lists, details, actions, and cosponsors for ``bioguide_ids``. Returns rows loaded.
+    """Load lists, details, actions, cosponsors, and summaries. Returns rows loaded.
 
-    With ``roll_call_bills`` the detail record of every bill referenced by a loaded roll call
-    is fetched too (no actions or cosponsors for those).
+    Every bill and amendment in scope gets its actions and cosponsors, and every bill its CRS
+    summaries, because each one has a detail page. With ``roll_call_bills`` the bills a loaded
+    roll call references are in scope too.
     """
     with record_run(conn, SOURCE, BASE_URL) as run:
         fetched_at = datetime.now(UTC)
         total = 0
-        # key -> whether actions and cosponsors are wanted (member legislation) or not
+        # key -> whether it came from a member list (False: only from a roll call)
         legislation: dict[LegislationKey, bool] = {}
 
         for bioguide_id in bioguide_ids:
@@ -209,7 +256,7 @@ def load(
 
         existing = _existing_state(conn)
         refreshed = 0
-        for key, wants_actions in legislation.items():
+        for key in legislation:
             detail = fetch_detail(client, key)
             total += upsert(
                 conn,
@@ -226,18 +273,29 @@ def load(
                     }
                 ],
             )
-            stored_update, complete = existing.get(
-                (key.congress, key.bill_type, key.bill_number), (None, False)
-            )
-            if not wants_actions:
-                continue
-            if not full_refresh and complete and stored_update == detail.get("updateDate"):
+            # A changed updateDate (or --full-refresh) re-reads every dependent list; otherwise
+            # only the ones raw has never stored are fetched, so adding a list to an existing
+            # database costs one request per bill rather than one per bill per list.
+            stored = existing.get((key.congress, key.bill_type, key.bill_number), MISSING)
+            stale = full_refresh or stored.update_date != detail.get("updateDate")
+            dependents = [
+                (table, fetcher)
+                for table, fetcher, present in (
+                    ("bill_actions", fetch_actions, stored.has_actions),
+                    ("bill_cosponsors", fetch_cosponsors, stored.has_cosponsors),
+                    # amendments have no summaries endpoint
+                    *(
+                        [("bill_summaries", fetch_summaries, stored.has_summaries)]
+                        if key.kind == "bill"
+                        else []
+                    ),
+                )
+                if stale or not present
+            ]
+            if not dependents:
                 continue
             refreshed += 1
-            for table, fetcher in (
-                ("bill_actions", fetch_actions),
-                ("bill_cosponsors", fetch_cosponsors),
-            ):
+            for table, fetcher in dependents:
                 total += upsert(
                     conn,
                     "raw",
@@ -255,7 +313,7 @@ def load(
 
         log.info(
             "%d distinct bills/amendments (%d from member lists, %d only from roll calls), "
-            "%d refreshed actions+cosponsors, %d API requests",
+            "%d with actions+cosponsors(+summaries) re-fetched, %d API requests",
             len(legislation),
             member_keys,
             roll_call_only,

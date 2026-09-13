@@ -84,10 +84,35 @@ class Action(_Model):
 
 
 class Cosponsor(_Model):
+    """One cosponsor. Identity fields are declared because the bill page lists every
+    cosponsor by name and party, not only the tracked members (verified 2026-09-13)."""
+
     bioguideId: str
+    fullName: str
+    party: str
+    state: str
     sponsorshipDate: str
     isOriginalCosponsor: bool
+    district: int | None = None  # House cosponsors only
+    firstName: str | None = None
+    lastName: str | None = None
     sponsorshipWithdrawnDate: str | None = None
+
+
+class Summary(_Model):
+    """One CRS summary version of a bill (``/bill/{c}/{t}/{n}/summaries``).
+
+    ``versionCode`` identifies the stage ("00" Introduced, "07" Reported, "53" Passed House,
+    "55" Passed Senate, "49" Public Law and so on) and is unique per bill in every response
+    seen. ``text`` is HTML. Bills with no summary return an empty list, not a 404; amendments
+    return 404 and are never requested.
+    """
+
+    versionCode: str
+    actionDate: str
+    actionDesc: str
+    text: str
+    updateDate: str
 
 
 Role = Literal["sponsor", "cosponsor"]

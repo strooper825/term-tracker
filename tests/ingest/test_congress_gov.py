@@ -153,3 +153,61 @@ def test_senate_document_types_map_to_bill_types() -> None:
     assert src.SENATE_DOCUMENT_TYPES["S.J.Res."] == "sjres"
     assert src.SENATE_DOCUMENT_TYPES["H.R."] == "hr"
     assert "PN" not in src.SENATE_DOCUMENT_TYPES  # nominations are not legislation
+
+
+def test_summaries_from_fixtures_including_bills_with_none() -> None:
+    """Zero, one, and two versions, all from recorded responses (see FIXTURE_SUMMARY_COUNTS)."""
+    from tests.fixtures.congress_gov import FIXTURE_SUMMARY_COUNTS
+
+    client = fixture_client()
+    for (bill_type, number), expected in FIXTURE_SUMMARY_COUNTS.items():
+        key = LegislationKey("bill", 119, bill_type, number)
+        summaries = src.fetch_summaries(client, key)
+        assert len(summaries) == expected, key
+        for item in summaries:
+            assert item["versionCode"] and item["actionDate"] and item["text"]
+
+    laken_riley = src.fetch_summaries(client, LegislationKey("bill", 119, "s", "5"))
+    assert [s["actionDesc"] for s in laken_riley] == ["Introduced in Senate", "Public Law"]
+    assert laken_riley[0]["text"].startswith("<p>")
+
+
+def test_summaries_are_never_requested_for_an_amendment() -> None:
+    client = fixture_client()
+    with pytest.raises(ValueError, match="summaries exist for bills only"):
+        src.fetch_summaries(client, LegislationKey("amendment", 119, "hamdt", "9"))
+
+
+def test_repeated_version_code_stops_the_run() -> None:
+    body = {
+        "pagination": {"count": 2},
+        "summaries": [
+            {
+                "versionCode": "00",
+                "actionDate": "2025-01-06",
+                "actionDesc": "Introduced in Senate",
+                "text": "<p>a</p>",
+                "updateDate": "2025-01-13T16:21:37Z",
+            },
+            {
+                "versionCode": "00",
+                "actionDate": "2025-01-07",
+                "actionDesc": "Introduced in Senate",
+                "text": "<p>b</p>",
+                "updateDate": "2025-01-14T16:21:37Z",
+            },
+        ],
+    }
+    client = CongressGovClient("k", fetch=lambda url: json.dumps(body), limiter=RateLimiter(10**6))
+    with pytest.raises(src.SourceShapeError, match="repeated versionCode"):
+        src.fetch_summaries(client, LegislationKey("bill", 119, "s", "5"))
+
+
+def test_a_summary_missing_a_declared_field_stops_the_run() -> None:
+    body = {
+        "pagination": {"count": 1},
+        "summaries": [{"versionCode": "00", "actionDate": "2025-01-06", "text": "<p>a</p>"}],
+    }
+    client = CongressGovClient("k", fetch=lambda url: json.dumps(body), limiter=RateLimiter(10**6))
+    with pytest.raises(src.SourceShapeError, match="shape differs"):
+        src.fetch_summaries(client, LegislationKey("bill", 119, "s", "5"))

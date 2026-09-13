@@ -107,16 +107,60 @@ models:
           - relationships: { arguments: { to: ref('committee'), field: thomas_id } }
 
   - name: bill
-    description: Bills and amendments sponsored or cosponsored by tracked members.
+    description: >
+      Bills and amendments sponsored or cosponsored by tracked members, plus every bill a
+      loaded roll call references. One detail page each; the counts here are what it shows.
     columns:
       - name: kind
         tests:
           - accepted_values: { arguments: { values: ["bill", "amendment"] } }
+      - name: label
+        tests: [not_null]
+      - name: sponsor_name
+        tests: [not_null]
+      - name: cosponsor_count
+        tests: [not_null]
+      - name: action_count
+        tests: [not_null]
+      - name: summary_count
+        tests: [not_null]
+      - name: has_summary
+        tests: [not_null]
+      - name: roll_call_count
+        tests: [not_null]
       - name: title
         tests: [not_null]
       - name: introduced_date
         tests: [not_null]
       - name: congress_gov_url
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: bill_summary
+    description: Every CRS summary version of every bill in mart.bill; is_latest marks the current one.
+    columns:
+      - name: version_code
+        tests: [not_null]
+      - name: action_date
+        tests: [not_null]
+      - name: text_html
+        tests: [not_null]
+      - name: is_latest
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: bill_cosponsor
+    description: Every cosponsor of every bill in mart.bill, tracked members and everyone else.
+    columns:
+      - name: bioguide_id
+        tests: [not_null]
+      - name: display_name
+        tests: [not_null]
+      - name: sponsorship_date
+        tests: [not_null]
+      - name: is_tracked_member
         tests: [not_null]
       - name: source_url
         tests: [not_null]

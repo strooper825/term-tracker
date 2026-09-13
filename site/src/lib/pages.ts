@@ -2,6 +2,7 @@
 import { api } from './api';
 import { formatNumber, ordinal } from './format';
 import {
+  buildBillPage,
   buildCommitteeRows,
   buildElection,
   buildFundraising,
@@ -18,6 +19,7 @@ import {
   type IndexRow,
 } from './model';
 import type { DashboardProps } from '@/components/MemberDashboard';
+import type { BillPageProps } from '@/components/BillPage';
 
 export async function trackedBioguides(): Promise<string[]> {
   const { members } = await api.members();
@@ -67,4 +69,33 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     fundraising: buildFundraising(fundraising, detail.seat.chamber),
     lastUpdated: lastUpdated(freshness),
   };
+}
+
+/** Route params for every bill with a detail page: one per row of mart.bill. */
+export async function billRouteParams(): Promise<
+  { congress: string; type: string; number: string }[]
+> {
+  const bills = await api.billsAll();
+  return bills.map((b) => ({
+    congress: String(b.congress),
+    type: b.bill_type,
+    number: b.bill_number,
+  }));
+}
+
+export async function billPageProps(
+  congress: number,
+  billType: string,
+  billNumber: string,
+): Promise<BillPageProps> {
+  const [detail, freshness] = await Promise.all([
+    api.bill(congress, billType, billNumber),
+    api.freshness(),
+  ]);
+  const bill = buildBillPage(detail);
+  const trail = [{ label: 'Members', href: '/members' }];
+  if (detail.sponsor.is_tracked && detail.sponsor.bioguide_id) {
+    trail.push({ label: bill.sponsorName, href: `/members/${detail.sponsor.bioguide_id}` });
+  }
+  return { bill, trail, lastUpdated: lastUpdated(freshness) };
 }

@@ -166,8 +166,19 @@ describe('key dates card', () => {
 describe('activity feed', () => {
   it('renders votes with and without a bill title, filters by type, searches, and empties gracefully', () => {
     render(<ActivityFeed groups={groupFeed(FEED)} totals={eventTotals(FEED)} totalLabel="7" />);
-    expect(screen.getByText('on H.R. 4795: Protect Economic and Academic Freedom Act of 2026')).toBeInTheDocument();
+    // The bill label is now an internal link, so the headline is split around it.
+    const billLink = screen.getByRole('link', { name: 'H.R. 4795' });
+    expect(billLink).toHaveAttribute('href', '/bills/119/hr/4795');
+    expect(billLink.parentElement).toHaveTextContent(
+      'on H.R. 4795: Protect Economic and Academic Freedom Act of 2026',
+    );
+    // a vote with no legislation has no link
     expect(screen.getByText('on nomination PN12-1')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'PN12-1' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'H.Res. 150' })).toHaveAttribute(
+      'href',
+      '/bills/119/hres/150',
+    );
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toBeInTheDocument();
     expect(screen.getByText('on roll call 353')).toBeInTheDocument();
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');

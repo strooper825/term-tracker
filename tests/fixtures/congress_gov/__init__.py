@@ -28,8 +28,24 @@ FIXTURE_BILLS = [
     ("samdt", "6747"),
     ("s", "5337"),
 ]
-# Bills referenced by the vote fixtures (detail only); fetched by the roll-call phase of the loader.
+# Bills referenced by the vote fixtures; the loader fetches their actions, cosponsors and
+# summaries too, because each one has a bill page.
 ROLL_CALL_FIXTURE_BILLS = [("hr", "3424"), ("hr", "276"), ("s", "5"), ("sjres", "13")]
+# CRS summary versions recorded per fixture bill. Zero is the normal case for a minor measure
+# and drives the empty state on the page; s 5 (Laken Riley Act) has Introduced and Public Law.
+FIXTURE_SUMMARY_COUNTS = {
+    ("hr", "4735"): 0,
+    ("hres", "150"): 0,
+    ("hr", "5269"): 1,
+    ("hr", "1502"): 1,
+    ("s", "2274"): 0,
+    ("sres", "837"): 0,
+    ("s", "5337"): 0,
+    ("hr", "3424"): 1,
+    ("hr", "276"): 1,
+    ("s", "5"): 2,
+    ("sjres", "13"): 2,
+}
 FIXTURE_BILLS_SQL = (
     "(bill_type, bill_number) IN (" + ", ".join(f"('{t}', '{n}')" for t, n in FIXTURE_BILLS) + ")"
 )

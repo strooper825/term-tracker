@@ -1,0 +1,81 @@
+{
+ "pagination": {
+  "count": 6
+ },
+ "cosponsors": [
+  {
+   "bioguideId": "M001211",
+   "district": 15,
+   "firstName": "Mary",
+   "fullName": "Rep. Miller, Mary E. [R-IL-15]",
+   "isOriginalCosponsor": true,
+   "lastName": "Miller",
+   "middleName": "E.",
+   "party": "R",
+   "sponsorshipDate": "2025-01-09",
+   "state": "IL",
+   "url": "https://api.congress.gov/v3/member/M001211?format=json"
+  },
+  {
+   "bioguideId": "M001212",
+   "district": 1,
+   "firstName": "Barry",
+   "fullName": "Rep. Moore, Barry [R-AL-1]",
+   "isOriginalCosponsor": true,
+   "lastName": "Moore",
+   "party": "R",
+   "sponsorshipDate": "2025-01-09",
+   "state": "AL",
+   "url": "https://api.congress.gov/v3/member/M001212?format=json"
+  },
+  {
+   "bioguideId": "T000478",
+   "district": 24,
+   "firstName": "Claudia",
+   "fullName": "Rep. Tenney, Claudia [R-NY-24]",
+   "isOriginalCosponsor": true,
+   "lastName": "Tenney",
+   "party": "R",
+   "sponsorshipDate": "2025-01-09",
+   "state": "NY",
+   "url": "https://api.congress.gov/v3/member/T000478?format=json"
+  },
+  {
+   "bioguideId": "C001129",
+   "district": 10,
+   "firstName": "Mike",
+   "fullName": "Rep. Collins, Mike [R-GA-10]",
+   "isOriginalCosponsor": true,
+   "lastName": "Collins",
+   "party": "R",
+   "sponsorshipDate": "2025-01-09",
+   "state": "GA",
+   "url": "https://api.congress.gov/v3/member/C001129?format=json"
+  },
+  {
+   "bioguideId": "W000814",
+   "district": 14,
+   "firstName": "Randy",
+   "fullName": "Rep. Weber, Randy K. Sr. [R-TX-14]",
+   "isOriginalCosponsor": true,
+   "lastName": "Weber",
+   "middleName": "K.",
+   "party": "R",
+   "sponsorshipDate": "2025-01-09",
+   "state": "TX",
+   "url": "https://api.congress.gov/v3/member/W000814?format=json"
+  },
+  {
+   "bioguideId": "O000175",
+   "district": 5,
+   "firstName": "Andrew",
+   "fullName": "Rep. Ogles, Andrew [R-TN-5]",
+   "isOriginalCosponsor": true,
+   "lastName": "Ogles",
+   "party": "R",
+   "sponsorshipDate": "2025-01-09",
+   "state": "TN",
+   "url": "https://api.congress.gov/v3/member/O000175?format=json"
+  }
+ ]
+}

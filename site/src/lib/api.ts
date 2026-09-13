@@ -2,6 +2,9 @@
  *  the browser. API_BASE_URL must point at a running API (the nightly job starts one against the
  *  managed database). */
 import type {
+  BillDetail,
+  BillListItem,
+  BillsResponse,
   CommitteesResponse,
   FeedItem,
   FeedResponse,
@@ -40,6 +43,20 @@ export const api = {
   fundraising: (bioguide: string) =>
     getJson<FundraisingResponse>(`/api/v1/members/${bioguide}/fundraising`),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
+  bills: (limit: number, offset: number) =>
+    getJson<BillsResponse>(`/api/v1/bills?limit=${limit}&offset=${offset}`),
+  bill: (congress: number, billType: string, billNumber: string) =>
+    getJson<BillDetail>(`/api/v1/bills/${congress}/${billType}/${billNumber}`),
+  /** Every bill with a detail page, paging until the API has returned `total`. */
+  billsAll: async (): Promise<BillListItem[]> => {
+    const page = 500;
+    const items: BillListItem[] = [];
+    for (let offset = 0; ; offset += page) {
+      const body = await getJson<BillsResponse>(`/api/v1/bills?limit=${page}&offset=${offset}`);
+      items.push(...body.items);
+      if (items.length >= body.total || body.items.length === 0) return items;
+    }
+  },
   /** Every feed event, following the cursor until the API says there are no more. */
   feedAll: async (bioguide: string): Promise<FeedItem[]> => {
     const items: FeedItem[] = [];

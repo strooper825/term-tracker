@@ -277,3 +277,19 @@ term-tracker/
 | Industry classification for donations | OpenSecrets bulk / self-built | Still open. Phase 2 v1 shipped the Fundraising panel without contributor categories (ADR 0006); `fec_contribution_agg` and "top industries" wait on this |
 | Map content | USAspending awards (recommended) / events / none | Before Phase 3 |
 | Race rating source | Cook (paywalled) / Sabato / Inside Elections / omit | Before Phase 2 |
+
+### Open items
+
+Work that is wanted but not scheduled. Recorded here so the roadmap lives in the repo.
+
+| Item | What it means |
+|---|---|
+| Bill search across all legislation | Today only bills a tracked member sponsored or cosponsored, plus bills a recorded roll call names, reach `mart.bill` and get a page; searching the whole Congress needs the full bill list ingested and an index. |
+| Bill full text | The text of each bill version (Congress.gov `/text`), which is far larger than the CRS summaries and needs a storage decision before it is loaded. |
+| Itemised FEC contributions | Individual contributions with donor name, employer, occupation, city and state, and the industry categories the Phase 2 panel omits; hundreds of thousands of rows per cycle, so it needs a storage and retention decision (Neon free tier is 0.5 GB) and a contributor-classification source. |
+| FEC independent expenditures | Money spent for or against a member by committees the member does not control; a separate OpenFEC endpoint and a separate panel line. |
+| FEC disbursements | Where the campaign spent its money (vendors, payroll, advertising), the counterpart to the receipt breakdown already shown. |
+| Leadership PAC and joint fundraising figures | Show the committees ADR 0006 excludes beside the principal campaign committee, labelled so the money is not double counted. |
+| Chamber-wide fundraising percentile | Rank a member's small-donor share against every incumbent in their chamber. Needs totals for ~535 principal committees (one OpenFEC request each, or the candidate-totals list endpoint with an incumbent filter), a new raw table, and an ADR; the six-member rank the mart could compute today is too small a denominator to mean anything. |
+| Expanding tracked members in batches | `seed.tracked_members` drives scope, so growth is a seed change, but each batch multiplies Congress.gov requests and mart size; needs a batching plan and a runtime budget before the 535-member step in Phase 4. |
+| Historical legislators YAML | `legislators-historical.yaml` for members who have left office, so a departed member's dashboard and their cosponsorships still resolve to a name. |

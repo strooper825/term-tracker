@@ -1,0 +1,21 @@
+{
+ "pagination": {
+  "count": 2
+ },
+ "summaries": [
+  {
+   "actionDate": "2025-02-04",
+   "actionDesc": "Introduced in Senate",
+   "text": "<p>This joint resolution nullifies the final rule issued by the Department of the Treasury\u2019s Office of the Comptroller of the Currency titled <em>Business Combinations Under the Bank Merger Act</em> and published on September 25, 2024. The rule revises procedures for reviewing applications for proposed bank mergers, such as by removing automatic approvals under an expedited review procedure and by discontinuing streamlined application forms.</p>",
+   "updateDate": "2025-05-06T16:58:09Z",
+   "versionCode": "00"
+  },
+  {
+   "actionDate": "2025-06-20",
+   "actionDesc": "Public Law",
+   "text": "<p>This joint resolution nullifies the final rule issued by the Department of the Treasury\u2019s Office of the Comptroller of the Currency titled <em>Business Combinations Under the Bank Merger Act</em> and published on September 25, 2024. The rule revises procedures for reviewing applications for proposed bank mergers, such as by removing automatic approvals under an expedited review procedure and by discontinuing streamlined application forms.</p>",
+   "updateDate": "2025-08-25T14:32:27Z",
+   "versionCode": "49"
+  }
+ ]
+}
