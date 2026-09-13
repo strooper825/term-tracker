@@ -139,13 +139,34 @@ def test_deploy_workflow_shape() -> None:
         steps,
         (
             "Resolve the deployment target",
+            "Migrate",
+            "dbt build",
             "Start the API",
             "Build the site",
             "Confirm the built site cannot reach the API",
             "Deploy the prebuilt",
         ),
     )
-    assert order == sorted(order), "resolve -> API -> build -> static check -> deploy"
+    assert order == sorted(order), (
+        "resolve -> migrate -> dbt build -> API -> build -> static check -> deploy"
+    )
+
+    # The API here is this commit's code, so the mart must be rebuilt from this commit's
+    # models before it serves anything. Skipping that renders the site against whatever the
+    # last nightly built, and a branch that adds a mart column answers 500 on every request
+    # that selects it (policy_area, 2026-09-13).
+    assert any(
+        "dbt" in step.get("run", "") for step in steps if "pip install" in step.get("run", "")
+    )
+    dbt_build = steps[order[2]]
+    assert "dbt build" in dbt_build["run"] and "--project-dir dbt" in dbt_build["run"]
+    assert any("ingest.dbt_env" in step.get("run", "") for step in steps)
+    assert "Ingest" not in " ".join(s.get("name", "") for s in steps)  # rebuild only, no fetch
+
+    # A page render only ever sees an HTTP status, so the API's own log has to reach the run.
+    log_step = next(s for s in steps if s.get("name", "").startswith("API log"))
+    assert log_step["if"] == "failure()" and "cat api.log" in log_step["run"]
+    assert steps.index(log_step) > order[4], "after the site build, so a 500 there is explained"
     resolve = steps[order[0]]
     assert (
         'if [ "$REF_NAME" = "main" ]; then target=production; else target=preview'
@@ -156,11 +177,12 @@ def test_deploy_workflow_shape() -> None:
     # One tarball, not 9,435 separate files: the free tier rejects a deploy of more than 5,000
     # (code api-upload-free). `vercel build` takes no such flag and uploads nothing.
     assert "--archive=tgz" in deploy["run"]
-    build = steps[order[2]]  # "Build the site", third in the order tuple above
+    build = next(s for s in steps if s.get("name", "").startswith("Build the site"))
     assert "vercel build" in build["run"] and "--archive" not in build["run"]
     assert deploy["env"]["PROD_FLAG"] == "${{ steps.target.outputs.prod_flag }}"
     assert "&& '' ||" not in raw
-    assert "Migrate" not in " ".join(s.get("name", "") for s in steps)  # no ingest here
+    # This job re-derives the mart but never fetches: no source is ingested here.
+    assert "ingest.run" not in raw and "CONGRESS_GOV_API_KEY" not in raw
     assert workflow["permissions"] == {"contents": "read"}
 
 
