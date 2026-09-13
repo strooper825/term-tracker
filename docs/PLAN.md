@@ -1,7 +1,7 @@
 # Congressional Term Tracker — Build Plan for Claude Code
 
 **Owner:** Zach Nohr (reviews all PRs and code; Claude Code implements)
-**Status:** Planning, v0.1 — September 12, 2026
+**Status:** v0.2 — September 12, 2026 (Phases 0–1c merged; frontend and DB host decided)
 **Working name:** TBD (candidates: De Facto, Amicus, Polis, Civic Ledger, Sine Die)
 
 ---
@@ -69,8 +69,10 @@ Phase column indicates when the panel goes live. Claude Code builds the data lay
 - **Database:** PostgreSQL 16
 - **Ingestion:** Python 3.12, `httpx`, `pydantic` models per source, `psycopg` for loads
 - **Transformation:** dbt-postgres (`raw` → `staging` → `mart`)
-- **API:** FastAPI + SQLAlchemy 2.x (read-only; serves the `mart` schema)
-- **Scheduling:** GitHub Actions cron (nightly, 06:00 UTC) for v1; migrate to a host-side scheduler if runtime exceeds ~30 min
+- **API:** FastAPI + SQLAlchemy 2.x (read-only; serves the `mart` schema). In v1 it is the data contract the static site build reads from; public deployment is deferred.
+- **Frontend:** Next.js + Tailwind, statically generated once per night after dbt runs; deployed to Vercel (or Cloudflare Pages). No runtime API server in v1. See §7.
+- **Managed database:** Neon (free tier, Postgres 16) for the nightly job and site build. Local dev stays on Docker Postgres; the two never share a connection string.
+- **Scheduling:** GitHub Actions cron (nightly, 06:00 UTC): ingest → dbt build → site build → deploy. Migrate to a host-side scheduler if runtime exceeds ~30 min
 - **Analysis (later):** R against `mart` for the ideology/alignment work
 - **Secrets:** `CONGRESS_GOV_API_KEY` and `FEC_API_KEY` — in `.env` locally, GitHub Actions repository secrets in CI. Never committed. `.env.example` lists both names with blank values.
 
@@ -126,7 +128,7 @@ Phase 2 adds `fec_committee`, `fec_summary`, `fec_contribution_agg`. Phase 3 add
 
 1. API keys obtained: Congress.gov and OpenFEC (both issued through api.data.gov).
 2. Repo created: `strooper825/term-tracker`. Actions secrets added: `CONGRESS_GOV_API_KEY` (Congress.gov) and `FEC_API_KEY` (OpenFEC).
-3. Provision a Postgres instance (local Docker for dev; a small managed instance — Neon, Supabase, or Railway — for the nightly job to write to).
+3. Create a Neon project (`term-tracker`, Postgres 16); add its connection string as the Actions secret `DATABASE_URL`. Not added to local `.env`.
 
 ---
 
@@ -162,7 +164,11 @@ Two viable paths. Both consume the same FastAPI layer, so the backend build is n
 | Hosting | Vercel free tier | Same host as API |
 | Recommendation | **Default** unless review burden of TypeScript is a blocker | Choose if single-language codebase matters more than design fidelity |
 
-Recommendation: **Option A.** The VoteHub reference is interaction-heavy (hover states on the timeline, filters on the trail, tabbed panels), and Claude Design's export path lands in React. Charts via Recharts or D3.
+**Decided (Sept 12, 2026): Option A, statically generated.** Next.js + Tailwind, but pages are built once per night from the mart rather than rendered live. The nightly job produces static HTML per tracked member; interactivity (timeline hover, filters, tabs) runs client-side on data embedded at build time. No API server is hosted in v1. Charts via Recharts.
+
+**Thin-frontend rule (non-negotiable):** the frontend displays; it does not compute. Every number, percentage, status, and time bucket comes from a dbt mart column. Any `.filter()`, arithmetic, or date logic in a component that changes a displayed value is a defect — move it to the mart. Zach's review of frontend PRs is (a) rendered page vs. `SELECT` from the mart, (b) a skim for computation in components, (c) confirmation that the built site makes no runtime network calls. Claude Code writes component tests of the form "given this mart row, the component renders this text."
+
+Anything that must be live (election-night results) is a Phase 4 exception handled separately.
 
 ---
 
@@ -232,7 +238,7 @@ term-tracker/
 3. **1c Votes** — House votes via Congress.gov `/house-vote`; Senate votes via senate.gov XML. *Done when* `member_vote` row counts equal the chamber's roll-call count for the 119th, and attendance % matches GovTrack's published figure within 0.5 pts.
 4. **1d Mart + API** — dbt models, all Phase 1 endpoints, freshness endpoint. *Done when* every endpoint has a test and OpenAPI docs render.
 5. **1e Nightly job** — GitHub Actions cron running ingest → dbt → freshness check with failure alerting. *Done when* three consecutive nights succeed unattended.
-6. **1f Frontend v1** (after §7 decision) — panels 1, 3, 4, 5, 6 live; others locked.
+6. **1f Frontend v1** — Next.js static site per §7; panels 1, 3, 4, 5, 6 live; others rendered in a locked state. Build step reads the FastAPI layer (run in-process or against the Neon DB during the Actions job). Visual target is the Claude Design mockup (§8). *Done when* the Steil and Cotton pages deploy from the nightly job and every displayed number matches its mart source.
 
 ### Phase 2 — Fundraising
 - OpenFEC committee lookup via `fec_ids`, cycle totals, small-donor %, contribution aggregates by industry (requires a classification source — decide between OpenSecrets bulk data and self-built employer/occupation mapping).
@@ -264,9 +270,10 @@ term-tracker/
 
 | Decision | Options | Needed by |
 |---|---|---|
-| Frontend stack | A: Next.js / B: Django+HTMX (§7) | Before 1f |
+| ~~Frontend stack~~ | Decided: Next.js, statically generated (§7) | — |
 | Site name | De Facto, Amicus, Polis, Civic Ledger, Sine Die | Before logo work |
-| Managed Postgres host | Neon / Supabase / Railway | Before 1e |
+| ~~Managed Postgres host~~ | Decided: Neon free tier; revisit at Phase 4 when storage nears 0.5 GB (options: Neon paid, Railway, homelab Postgres with tunnel) | — |
+| Departed-member positions | Load `legislators-historical.yaml` so Senate positions for members who left mid-Congress get a `bioguide_id` | Phase 4 |
 | Industry classification for donations | OpenSecrets bulk / self-built | Before Phase 2 |
 | Map content | USAspending awards (recommended) / events / none | Before Phase 3 |
 | Race rating source | Cook (paywalled) / Sabato / Inside Elections / omit | Before Phase 2 |
