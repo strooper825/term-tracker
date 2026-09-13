@@ -49,7 +49,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     const strip = screen.getByText('Bills sponsored').parentElement!.parentElement!; // stat grid
     expect(within(strip).getByText('36')).toBeInTheDocument(); // member_summary.bills_sponsored
     expect(within(strip).getByText('118')).toBeInTheDocument(); // member_summary.bills_cosponsored
-    expect(screen.getByText('1 chairmanship')).toBeInTheDocument(); // member_summary.chairmanships
+    expect(screen.getByText('2 full committee chairs')).toBeInTheDocument(); // member_summary.chairmanships
     expect(screen.getByText(/Term progress · 618 of 730 days elapsed/)).toBeInTheDocument();
     expect(screen.getByText('84.7%')).toBeInTheDocument();
     expect(screen.getByText(/Last updated Sep 13, 2026 02:09 UTC/)).toBeInTheDocument();
@@ -68,6 +68,9 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(keyDates).getByText('Nov 3, 2026')).toBeInTheDocument();
     expect(screen.getByText('House Committee on House Administration')).toBeInTheDocument();
     expect(screen.getByText('Subcommittee on Capital Markets')).toBeInTheDocument();
+    const card = screen.getByText('Committees', { selector: 'h2' }).closest('section')!;
+    expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
+    expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
     for (const title of ['Fundraising', 'Stock trades', 'Public statements', 'District map']) {
       expect(screen.getByText(title)).toBeInTheDocument();
@@ -92,6 +95,7 @@ describe('activity feed', () => {
     expect(screen.getByText('on nomination PN12-1')).toBeInTheDocument();
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toBeInTheDocument();
     expect(screen.getByText('on roll call 353')).toBeInTheDocument();
+    expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');
     expect(screen.getByText('Did not vote')).toBeInTheDocument();
     expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
 
@@ -114,6 +118,10 @@ describe('members index', () => {
     expect(screen.getByText('Members of the 119th Congress')).toBeInTheDocument();
     const steil = screen.getByRole('link', { name: /Rep\. Bryan Steil/ });
     expect(steil).toHaveAttribute('href', '/members/S001213');
+    expect(within(steil).getByRole('presentation', { hidden: true })).toHaveAttribute(
+      'src',
+      'https://www.congress.gov/img/member/s001213_200.jpg',
+    ); // member.photo_url on the index card
     expect(within(steil).getByText('99.24%')).toBeInTheDocument();
     expect(within(steil).getByText('36')).toBeInTheDocument();
     expect(within(steil).getByText('98.70%')).toBeInTheDocument();

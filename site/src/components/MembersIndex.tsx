@@ -27,7 +27,17 @@ function MemberCard({ member }: { member: IndexRow }) {
       className="flex flex-col gap-3 border border-rule rounded-card bg-card p-4 text-ink no-underline hover:border-lockInk hover:bg-[#FCFBF9]"
     >
       <div className="flex items-start gap-3">
-        <div className="w-[46px] h-[46px] rounded-full bg-[#DEDCD6] border border-[#D3D0C9] flex-none" />
+        {member.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={member.photoUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="w-[46px] h-[46px] rounded-full object-cover bg-[#DEDCD6] border border-[#D3D0C9] flex-none"
+          />
+        ) : (
+          <div className="w-[46px] h-[46px] rounded-full bg-[#DEDCD6] border border-[#D3D0C9] flex-none" />
+        )}
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px] font-semibold">{member.name}</span>

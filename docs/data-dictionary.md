@@ -229,7 +229,7 @@ roll_number)`.
 | Column | Type | Description |
 |---|---|---|
 | `voted_at`, `vote_date` | timestamptz, date | Vote time (House: Congress.gov `startDate`; Senate: parsed `vote_date`); date in Eastern time |
-| `question`, `result` | text | As published |
+| `question`, `question_short`, `result` | text | As published; `question_short` is the Senate `question` element without the measure or nomination list (House: same as `question`) |
 | `vote_type` | text | House only (`Yea-and-Nay`, `Recorded Vote`, ...) |
 | `majority_requirement` | text | Senate only (`1/2`, `3/5`, `2/3`) |
 | `bill_type`, `bill_number` | text | Legislation voted on, Congress.gov style; null for nominations and procedural votes |
@@ -283,11 +283,12 @@ Congress the dashboard covers), the `member_vote_stats` columns for the current 
 computed by the API.
 
 `chairmanships` counts assignments whose `title` starts with `Chair` (so `Chairman` and
-`Chairwoman` count, `Vice Chair` does not) on **full committees of the member's own chamber**:
-the committee has no `parent_thomas_id` (subcommittees excluded) and its `chamber` equals the
-member's chamber (joint committees excluded). Steil chairs House Administration (counted), the
-Joint Committee on the Library (joint, not counted), and a Financial Services subcommittee
-(not counted), so his figure is 1. The site's Committees stat note shows this column.
+`Chairwoman` count, `Vice Chair` does not) on **full committees**: the committee has no
+`parent_thomas_id`, so subcommittee chairs are excluded and joint committees are included.
+Steil chairs House Administration and the Joint Committee on the Library (both counted) and a
+Financial Services subcommittee (not counted), so his figure is 2; the site's Committees stat
+note reads "2 full committee chairs" and the committees card labels the subcommittee chair
+separately.
 
 The site's Party unity stat shows `member_vote_stats.party_unity_cq_pct`, the CQ-style figure
 comparable to published vote studies, under the label "votes with party majority";
@@ -306,7 +307,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_type` | `vote`, `bill_sponsored`, `bill_cosponsored`, `committee_action` (a Committee-type action on a bill the member sponsors); `floor_speech` arrives in Phase 3 |
 | `event_at`, `event_date` | Vote time, introduction date, cosponsorship date, or action date (Eastern) |
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
-| `headline`, `detail` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`. Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
+| `headline`, `detail`, `detail_full` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, `Voted YEA on 48 nominations (en bloc)`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`, and for en bloc votes the question is shortened to `On the Cloture Motion · 48 nominations` with the full nomination list in `detail_full` (null otherwise). Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
 
 ### `mart.member_activity_timeline`

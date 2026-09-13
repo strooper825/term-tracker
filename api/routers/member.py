@@ -47,7 +47,8 @@ TIMELINE_SQL = text(
 
 FEED_SQL = text(
     """
-    SELECT event_key, event_type, event_at, event_date, headline, detail, position, chamber,
+    SELECT event_key, event_type, event_at, event_date, headline, detail, detail_full,
+           position, chamber,
            session, roll_number, bill_type, bill_number, url, source, source_url, fetched_at
     FROM mart.member_feed
     WHERE bioguide_id = :bioguide

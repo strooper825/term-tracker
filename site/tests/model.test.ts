@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MIN_TICK_GAP_WEEKS,
   buildCommitteeRows,
   buildElection,
   buildHeader,
@@ -14,7 +15,7 @@ import {
   timelineRange,
 } from '@/lib/model';
 import { formatDate, formatLongDate, ordinal } from '@/lib/format';
-import { COTTON, COTTON_LIST, FEED, STEIL, STEIL_COMMITTEES, STEIL_KEY_DATES, STEIL_LIST, WEEKS } from './fixtures';
+import { COTTON, COTTON_LIST, EN_BLOC, FEED, STEIL, STEIL_COMMITTEES, STEIL_KEY_DATES, STEIL_LIST, WEEKS } from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
@@ -54,7 +55,7 @@ describe('stats and term', () => {
       ['Party unity', '98.70%', 'votes with party majority'],
       ['Bills sponsored', '36', '119th Congress'],
       ['Bills cosponsored', '118', '119th Congress'],
-      ['Committees', '6', '1 chairmanship'],
+      ['Committees', '6', '2 full committee chairs'],
     ]);
   });
 
@@ -72,7 +73,8 @@ describe('stats and term', () => {
 describe('committees', () => {
   it('maps titles to roles, prefixes subcommittees, and lists chairs first', () => {
     const rows = buildCommitteeRows(STEIL_COMMITTEES);
-    expect(rows.slice(0, 3).map((r) => r.role)).toEqual(['Chair', 'Chair', 'Chair']);
+    expect(rows.slice(0, 3).map((r) => r.role)).toEqual(['Chair', 'Chair', 'Subcommittee chair']);
+    expect(rows.filter((r) => r.role === 'Chair')).toHaveLength(2); // matches chairmanships = 2
     expect(rows.find((r) => r.name === 'Subcommittee on Capital Markets')?.role).toBe('Member');
     expect(rows.find((r) => r.name === 'Joint Committee on Printing')?.role).toBe('Vice Chair');
   });
@@ -95,6 +97,14 @@ describe('feed', () => {
     expect(rows[4]).toMatchObject({ type: 'sponsor', headline: 'Introduced H.R. 4735: Business of Insurance Regulatory Reform Act of 2025' });
     expect(rows[4].lead).toBeUndefined();
     expect(rows[6]).toMatchObject({ type: 'committee', headline: 'H.Res. 150: Submitted in House' });
+    expect(rows[0].secondaryFull).toBeUndefined();
+  });
+
+  it('en bloc nomination votes show a count and keep the full list for hover', () => {
+    const row = feedRow(EN_BLOC);
+    expect(row.headline).toBe('on 48 nominations (en bloc)');
+    expect(row.secondary).toBe('On the Cloture Motion · 48 nominations · Cloture Motion Rejected 51–48');
+    expect(row.secondaryFull).toContain('PN25-28 and PN12-19');
   });
 
   it('groups by calendar day with a long date label and counts totals per type', () => {
@@ -113,7 +123,14 @@ describe('weeks, key dates, election, index', () => {
     const july = weeks.find((w) => w.label === 'Jul 21, 2025');
     expect(july?.counts).toEqual({ vote: 12, sponsor: 1, cosponsor: 3, committee: 0 });
     expect(weeks.every((w) => Object.values(w.counts).every((n) => n >= 0))).toBe(true);
-    expect(weeks.filter((w) => w.tick).length).toBeGreaterThan(10);
+    const tickIndices = weeks.map((w, i) => (w.tick ? i : -1)).filter((i) => i >= 0);
+    expect(tickIndices.length).toBeGreaterThan(6);
+    for (let i = 1; i < tickIndices.length; i += 1) {
+      expect(tickIndices[i] - tickIndices[i - 1]).toBeGreaterThanOrEqual(MIN_TICK_GAP_WEEKS);
+    }
+    expect(weeks[0].tick).toBe('Jan 2025'); // the week of Dec 30 is mostly January
+    expect(weeks.find((w) => w.tick === 'Jan 2026')).toBeTruthy();
+    expect(weeks.find((w) => w.tick === 'Feb')).toBeUndefined(); // too close to the January label
   });
 
   it('election card picks the next election-kind key date and says the seat is on the ballot', () => {
@@ -139,6 +156,7 @@ describe('weeks, key dates, election, index', () => {
       attendance: 99.24,
       sponsored: 36,
       unity: 98.7,
+      photoUrl: 'https://www.congress.gov/img/member/s001213_200.jpg',
     });
     expect(buildIndexRow(COTTON_LIST, COTTON)).toMatchObject({ name: 'Sen. Tom Cotton', chamber: 'Senate', state: 'Arkansas' });
   });

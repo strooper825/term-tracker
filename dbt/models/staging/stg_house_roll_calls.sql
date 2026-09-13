@@ -8,6 +8,7 @@ select
     (v.payload ->> 'startDate')::timestamptz as voted_at,
     ((v.payload ->> 'startDate')::timestamptz at time zone 'America/New_York')::date as vote_date,
     m.payload ->> 'voteQuestion' as question,
+    m.payload ->> 'voteQuestion' as question_short,
     v.payload ->> 'result' as result,
     v.payload ->> 'voteType' as vote_type,
     null::text as majority_requirement,

@@ -135,7 +135,7 @@ def _summary_row() -> dict:
         "bills_sponsored": 2,
         "bills_cosponsored": 2,
         "committees": 6,
-        "chairmanships": 1,
+        "chairmanships": 2,
         "source": "legislators",
         "source_url": "https://example.test/legislators-current.yaml",
         "fetched_at": datetime(2026, 9, 12, tzinfo=UTC),
@@ -154,6 +154,6 @@ def test_member_detail_from_summary_row(client: TestClient) -> None:
         "bills_sponsored": 2,
         "bills_cosponsored": 2,
         "committees": 6,
-        "chairmanships": 1,
+        "chairmanships": 2,
     }
     assert body["sources"][0]["source"] == "legislators"

@@ -99,6 +99,7 @@ export interface FeedItem {
   event_date: string;
   headline: string;
   detail: string | null;
+  detail_full: string | null;
   position: string | null;
   chamber: string | null;
   session: number | null;

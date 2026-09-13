@@ -24,16 +24,14 @@ committees as (
     group by 1
 ),
 
--- Chairmanships of full committees of the member's own chamber: subcommittees (they have a
--- parent) and joint committees (chamber = joint) are excluded; Vice Chair does not count.
+-- Chairmanships of full committees (no parent), joint committees included; subcommittee
+-- chairs are excluded and Vice Chair does not count.
 chairmanships as (
     select cm.bioguide_id, count(*) as chairmanships
     from {{ ref('committee_membership') }} as cm
     inner join {{ ref('committee') }} as c on c.thomas_id = cm.committee_thomas_id
-    inner join latest_term as t on t.bioguide_id = cm.bioguide_id
     where cm.congress = {{ var('current_congress') }}
         and c.parent_thomas_id is null
-        and c.chamber = t.chamber
         and cm.title ilike 'chair%'
     group by 1
 )

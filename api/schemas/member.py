@@ -43,7 +43,9 @@ class ActivityCounts(BaseModel):
     bills_sponsored: int
     bills_cosponsored: int
     committees: int
-    chairmanships: int = Field(description="Chairs of full committees in the member's own chamber")
+    chairmanships: int = Field(
+        description="Chairs of full committees, joint included; subcommittees excluded"
+    )
 
 
 class MemberDetail(BaseModel):
@@ -85,6 +87,9 @@ class FeedItem(BaseModel):
     event_date: dt.date
     headline: str
     detail: str | None
+    detail_full: str | None = Field(
+        default=None, description="Uncapped text when detail is summarised (en bloc votes)"
+    )
     position: str | None
     chamber: str | None
     session: int | None

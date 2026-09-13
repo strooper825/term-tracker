@@ -87,6 +87,8 @@ export interface FeedRow {
   lead?: string;
   headline: string;
   secondary: string;
+  /** Uncapped text when `secondary` is a summary (en bloc votes); shown on hover. */
+  secondaryFull?: string;
   source: string;
 }
 
@@ -106,6 +108,7 @@ export interface IndexRow {
   attendance: number | null;
   sponsored: number;
   unity: number | null;
+  photoUrl: string | null;
 }
 
 /** mart.term.party uses congress-legislators spelling ("Democrat"); the design uses "Democratic". */
@@ -151,11 +154,18 @@ export function committeeDisplayName(c: CommitteeAssignment): string {
   return c.name;
 }
 
+/** Subcommittee chairs are labelled apart from full-committee chairs so the card agrees with
+ *  the chairmanships stat (which counts full committees only). */
+export function committeeRowRole(c: CommitteeAssignment): string {
+  const role = committeeRole(c.title);
+  return role === 'Chair' && c.parent_thomas_id ? 'Subcommittee chair' : role;
+}
+
 export function buildCommitteeRows(committees: CommitteeAssignment[]): CommitteeRow[] {
   const order = (c: CommitteeAssignment) => (committeeRole(c.title) === 'Chair' ? 0 : 1);
   return [...committees]
     .sort((a, b) => order(a) - order(b) || (a.parent_thomas_id ? 1 : 0) - (b.parent_thomas_id ? 1 : 0))
-    .map((c) => ({ name: committeeDisplayName(c), role: committeeRole(c.title) }));
+    .map((c) => ({ name: committeeDisplayName(c), role: committeeRowRole(c) }));
 }
 
 export function buildHeader(detail: MemberDetail): MemberHeaderModel {
@@ -207,7 +217,10 @@ export function buildStats(detail: MemberDetail): Stat[] {
     {
       label: 'Committees',
       value: formatNumber(detail.activity.committees),
-      note: chairs === 0 ? 'no chairmanships' : `${chairs} ${chairs === 1 ? 'chairmanship' : 'chairmanships'}`,
+      note:
+        chairs === 0
+          ? 'no full committee chairs'
+          : `${chairs} full committee ${chairs === 1 ? 'chair' : 'chairs'}`,
     },
   ];
 }
@@ -231,7 +244,13 @@ export function timelineRange(detail: MemberDetail, today: Date): { from: string
   return { from: toIsoDate(from), to: toIsoDate(today) };
 }
 
-/** One column per week (Monday to Sunday) across the range, zero-filled. */
+/** Minimum columns between two axis labels; at ~8px per week this keeps "Jan 2025" clear of
+ *  the next label. */
+export const MIN_TICK_GAP_WEEKS = 6;
+
+/** One column per week (Monday to Sunday) across the range, zero-filled. Axis labels sit on the
+ *  first week of a month, never closer than MIN_TICK_GAP_WEEKS columns apart, with the year only
+ *  on the first label and on January. */
 export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Week[] {
   const start = parseDate(from);
   const monday = addDays(start, -((start.getUTCDay() + 6) % 7));
@@ -239,16 +258,21 @@ export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Wee
   const byWeek = new Map(buckets.map((b) => [b.week_start, b]));
   const weeks: Week[] = [];
   let lastMonth = -1;
+  let lastTickIndex = -MIN_TICK_GAP_WEEKS;
   for (let d = monday; d <= end; d = addDays(d, 7)) {
     const key = toIsoDate(d);
     const b = byWeek.get(key);
+    const monthDay = d.getUTCDate() <= 7 ? d : addDays(d, 6);
     const firstOfMonthInWeek = d.getUTCDate() <= 7 || d.getUTCMonth() !== addDays(d, 6).getUTCMonth();
-    const month = d.getUTCDate() <= 7 ? d.getUTCMonth() : addDays(d, 6).getUTCMonth();
+    const month = monthDay.getUTCMonth();
     let tick = '';
-    if (weeks.length === 0 || (firstOfMonthInWeek && month !== lastMonth)) {
-      tick = `${monthShort(d.getUTCDate() <= 7 ? d : addDays(d, 6))}${month === 0 || weeks.length === 0 ? ` ${(d.getUTCDate() <= 7 ? d : addDays(d, 6)).getUTCFullYear()}` : ''}`;
-      lastMonth = month;
+    const wantsTick = weeks.length === 0 || (firstOfMonthInWeek && month !== lastMonth);
+    if (wantsTick && weeks.length - lastTickIndex >= MIN_TICK_GAP_WEEKS) {
+      const withYear = weeks.length === 0 || month === 0;
+      tick = `${monthShort(monthDay)}${withYear ? ` ${monthDay.getUTCFullYear()}` : ''}`;
+      lastTickIndex = weeks.length;
     }
+    if (wantsTick) lastMonth = month;
     weeks.push({
       label: formatDate(key),
       counts: {
@@ -270,13 +294,14 @@ export function feedRow(item: FeedItem): FeedRow {
   const type = EVENT_TYPE_FROM_MART[item.event_type] ?? 'vote';
   const source = item.url ?? item.source_url;
   const secondary = item.detail ?? '';
+  const secondaryFull = item.detail_full && item.detail_full !== secondary ? item.detail_full : undefined;
   if (type === 'vote') {
     const m = VOTE_LEAD.exec(item.headline);
     if (m) {
-      return { type, lead: m[1].replace(/ on $/, ' '), headline: `on ${m[2]}`, secondary, source };
+      return { type, lead: m[1].replace(/ on $/, ' '), headline: `on ${m[2]}`, secondary, secondaryFull, source };
     }
   }
-  return { type, headline: item.headline, secondary, source };
+  return { type, headline: item.headline, secondary, secondaryFull, source };
 }
 
 /** Group feed items by calendar day, newest first (the API already orders by event_at desc). */
@@ -339,5 +364,6 @@ export function buildIndexRow(item: MemberListItem, detail: MemberDetail): Index
     attendance: detail.votes.attendance_pct,
     sponsored: detail.activity.bills_sponsored,
     unity: detail.votes.party_unity_cq_pct,
+    photoUrl: item.photo_url ?? detail.photo_url,
   };
 }
