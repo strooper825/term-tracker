@@ -43,7 +43,7 @@ export const STEIL: MemberDetail = {
     party_unity_pct: 98.61,
     party_unity_cq_pct: 98.7,
   },
-  activity: { bills_sponsored: 36, bills_cosponsored: 118, committees: 6 },
+  activity: { bills_sponsored: 36, bills_cosponsored: 118, committees: 6, chairmanships: 1 },
   sources: [],
 };
 
@@ -82,7 +82,7 @@ export const COTTON: MemberDetail = {
     party_unity_pct: 99.77,
     party_unity_cq_pct: 99.75,
   },
-  activity: { bills_sponsored: 111, bills_cosponsored: 206, committees: 10 },
+  activity: { bills_sponsored: 111, bills_cosponsored: 206, committees: 10, chairmanships: 1 },
   sources: [],
 };
 

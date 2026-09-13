@@ -53,7 +53,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
   const total = Object.values(totals).reduce((a, b) => a + b, 0);
   return {
     member: buildHeader(detail),
-    stats: buildStats(detail, committees.items),
+    stats: buildStats(detail),
     term: buildTerm(detail),
     weeks: buildWeeks(timeline.weeks, range.from, range.to),
     feedGroups: groupFeed(feed),

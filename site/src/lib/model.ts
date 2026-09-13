@@ -137,10 +137,6 @@ export function seatLong(seat: MemberDetail['seat']): string {
   return `${state}’s ${ordinal(seat.district)} District`;
 }
 
-function chairmanshipCount(committees: CommitteeAssignment[]): number {
-  return committees.filter((c) => committeeRole(c.title) === 'Chair').length;
-}
-
 export function committeeRole(title: string | null): string {
   if (!title) return 'Member';
   const t = title.toLowerCase();
@@ -185,9 +181,11 @@ export function buildHeader(detail: MemberDetail): MemberHeaderModel {
   };
 }
 
-export function buildStats(detail: MemberDetail, committees: CommitteeAssignment[]): Stat[] {
+/** Party unity shows the CQ-style figure (opposing party majorities), the one comparable to
+ *  published vote studies; chairmanships is the mart column (full committees, own chamber). */
+export function buildStats(detail: MemberDetail): Stat[] {
   const v = detail.votes;
-  const chairs = chairmanshipCount(committees);
+  const chairs = detail.activity.chairmanships;
   const tracked = `${ordinal(detail.term.tracked_congress)} Congress`;
   return [
     {
@@ -197,7 +195,7 @@ export function buildStats(detail: MemberDetail, committees: CommitteeAssignment
     },
     {
       label: 'Party unity',
-      value: formatPercent(v.party_unity_pct),
+      value: formatPercent(v.party_unity_cq_pct),
       note: 'votes with party majority',
     },
     { label: 'Bills sponsored', value: formatNumber(detail.activity.bills_sponsored), note: tracked },
@@ -340,6 +338,6 @@ export function buildIndexRow(item: MemberListItem, detail: MemberDetail): Index
     seatShort: item.seat.label,
     attendance: detail.votes.attendance_pct,
     sponsored: detail.activity.bills_sponsored,
-    unity: detail.votes.party_unity_pct,
+    unity: detail.votes.party_unity_cq_pct,
   };
 }

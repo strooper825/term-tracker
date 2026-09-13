@@ -48,13 +48,13 @@ describe('header: given a mart row, these labels render', () => {
 
 describe('stats and term', () => {
   it('five stats from member_vote_stats, bill_sponsorship counts, and committee assignments', () => {
-    const stats = buildStats(STEIL, STEIL_COMMITTEES);
+    const stats = buildStats(STEIL);
     expect(stats.map((s) => [s.label, s.value, s.note])).toEqual([
       ['Attendance', '99.24%', '652 of 657 roll calls'],
-      ['Party unity', '98.61%', 'votes with party majority'],
+      ['Party unity', '98.70%', 'votes with party majority'],
       ['Bills sponsored', '36', '119th Congress'],
       ['Bills cosponsored', '118', '119th Congress'],
-      ['Committees', '6', '3 chairmanships'],
+      ['Committees', '6', '1 chairmanship'],
     ]);
   });
 
@@ -138,7 +138,7 @@ describe('weeks, key dates, election, index', () => {
       state: 'Wisconsin',
       attendance: 99.24,
       sponsored: 36,
-      unity: 98.61,
+      unity: 98.7,
     });
     expect(buildIndexRow(COTTON_LIST, COTTON)).toMatchObject({ name: 'Sen. Tom Cotton', chamber: 'Senate', state: 'Arkansas' });
   });

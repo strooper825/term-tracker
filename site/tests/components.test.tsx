@@ -23,7 +23,7 @@ function dashboard(detail = STEIL) {
   return (
     <MemberDashboard
       member={buildHeader(detail)}
-      stats={buildStats(detail, STEIL_COMMITTEES)}
+      stats={buildStats(detail)}
       term={buildTerm(detail)}
       weeks={buildWeeks(WEEKS, '2025-01-03', '2026-09-13')}
       feedGroups={groupFeed(FEED)}
@@ -45,11 +45,11 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getAllByText('REPUBLICAN').length).toBeGreaterThan(0);
     expect(screen.getByText('99.24%')).toBeInTheDocument(); // member_vote_stats.attendance_pct
     expect(screen.getByText('652 of 657 roll calls')).toBeInTheDocument();
-    expect(screen.getByText('98.61%')).toBeInTheDocument(); // member_vote_stats.party_unity_pct
+    expect(screen.getByText('98.70%')).toBeInTheDocument(); // member_vote_stats.party_unity_cq_pct
     const strip = screen.getByText('Bills sponsored').parentElement!.parentElement!; // stat grid
     expect(within(strip).getByText('36')).toBeInTheDocument(); // member_summary.bills_sponsored
     expect(within(strip).getByText('118')).toBeInTheDocument(); // member_summary.bills_cosponsored
-    expect(screen.getByText('3 chairmanships')).toBeInTheDocument();
+    expect(screen.getByText('1 chairmanship')).toBeInTheDocument(); // member_summary.chairmanships
     expect(screen.getByText(/Term progress · 618 of 730 days elapsed/)).toBeInTheDocument();
     expect(screen.getByText('84.7%')).toBeInTheDocument();
     expect(screen.getByText(/Last updated Sep 13, 2026 02:09 UTC/)).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('members index', () => {
     expect(steil).toHaveAttribute('href', '/members/S001213');
     expect(within(steil).getByText('99.24%')).toBeInTheDocument();
     expect(within(steil).getByText('36')).toBeInTheDocument();
-    expect(within(steil).getByText('98.61%')).toBeInTheDocument();
+    expect(within(steil).getByText('98.70%')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Sen\. Tom Cotton/ })).toHaveAttribute('href', '/members/C001095');
   });
 

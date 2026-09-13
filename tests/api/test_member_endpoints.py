@@ -135,6 +135,7 @@ def _summary_row() -> dict:
         "bills_sponsored": 2,
         "bills_cosponsored": 2,
         "committees": 6,
+        "chairmanships": 1,
         "source": "legislators",
         "source_url": "https://example.test/legislators-current.yaml",
         "fetched_at": datetime(2026, 9, 12, tzinfo=UTC),
@@ -149,5 +150,10 @@ def test_member_detail_from_summary_row(client: TestClient) -> None:
     assert body["term"]["congresses"] == [119] and body["term"]["tracked_congress"] == 119
     assert body["term"]["days_remaining"] >= 0
     assert body["votes"]["attendance_pct"] == 80.0
-    assert body["activity"] == {"bills_sponsored": 2, "bills_cosponsored": 2, "committees": 6}
+    assert body["activity"] == {
+        "bills_sponsored": 2,
+        "bills_cosponsored": 2,
+        "committees": 6,
+        "chairmanships": 1,
+    }
     assert body["sources"][0]["source"] == "legislators"

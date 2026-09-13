@@ -53,7 +53,12 @@ export interface MemberDetail {
   term: TermSpan;
   photo_url: string | null;
   votes: VoteStats;
-  activity: { bills_sponsored: number; bills_cosponsored: number; committees: number };
+  activity: {
+    bills_sponsored: number;
+    bills_cosponsored: number;
+    committees: number;
+    chairmanships: number;
+  };
   sources: SourceRef[];
 }
 

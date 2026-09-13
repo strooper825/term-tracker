@@ -279,7 +279,19 @@ who switches party is scored against the party they belonged to on each vote.
 One row per tracked member: identity, seat, latest term (`term_start_date`, `term_end_date`,
 `congress`, `term_end_congress`), `tracked_congress` (the dbt var `current_congress`, the
 Congress the dashboard covers), the `member_vote_stats` columns for the current Congress,
-`bills_sponsored`, `bills_cosponsored`, and `committees`. Days remaining are computed by the API.
+`bills_sponsored`, `bills_cosponsored`, `committees`, and `chairmanships`. Days remaining are
+computed by the API.
+
+`chairmanships` counts assignments whose `title` starts with `Chair` (so `Chairman` and
+`Chairwoman` count, `Vice Chair` does not) on **full committees of the member's own chamber**:
+the committee has no `parent_thomas_id` (subcommittees excluded) and its `chamber` equals the
+member's chamber (joint committees excluded). Steil chairs House Administration (counted), the
+Joint Committee on the Library (joint, not counted), and a Financial Services subcommittee
+(not counted), so his figure is 1. The site's Committees stat note shows this column.
+
+The site's Party unity stat shows `member_vote_stats.party_unity_cq_pct`, the CQ-style figure
+comparable to published vote studies, under the label "votes with party majority";
+`party_unity_pct` (the plan definition) stays in the API.
 
 The `term` block of `GET /members/{id}` exposes `congress` (start), `end_congress`,
 `congresses` (the full span, e.g. `[117, 118, 119]`), and `tracked_congress` side by side so a

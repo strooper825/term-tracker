@@ -43,6 +43,7 @@ class ActivityCounts(BaseModel):
     bills_sponsored: int
     bills_cosponsored: int
     committees: int
+    chairmanships: int = Field(description="Chairs of full committees in the member's own chamber")
 
 
 class MemberDetail(BaseModel):
