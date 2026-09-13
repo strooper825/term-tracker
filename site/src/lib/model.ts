@@ -47,6 +47,12 @@ export interface MemberHeaderModel {
   seatShort: string;
   congress: string;
   termLine: string;
+  /** "Age 45 · Serving since 2019 · 4th term", plus "· 1st in the Senate" after a chamber change. */
+  serviceLine: string;
+  /** Current party or chamber leadership title from congress-legislators, if any. */
+  leadershipTitle: string | null;
+  /** "Caucuses with Democrats" for an Independent; null otherwise. */
+  caucusNote: string | null;
   photoUrl: string | null;
 }
 
@@ -168,11 +174,41 @@ export function buildCommitteeRows(committees: CommitteeAssignment[]): Committee
     .map((c) => ({ name: committeeDisplayName(c), role: committeeRowRole(c) }));
 }
 
+const PARTY_MEMBERS: Record<PartyName, string> = {
+  Republican: 'Republicans',
+  Democratic: 'Democrats',
+  Independent: 'Independents',
+};
+
+/** The caucus as a party name when it differs from the member's own party, else null. */
+export function caucusParty(detail: Pick<MemberDetail, 'party' | 'caucus'>): PartyName | null {
+  if (!detail.caucus) return null;
+  const caucus = partyName(detail.caucus);
+  return caucus === partyName(detail.party) ? null : caucus;
+}
+
+/** "Age 45 · Serving since 2019 · 4th term"; members who changed chamber also get
+ *  "· 1st in the Senate" so a first-term senator with House service reads correctly. */
+export function serviceLine(detail: MemberDetail): string {
+  const svc = detail.service;
+  const chamber = chamberName(detail.seat.chamber);
+  const since = parseDate(svc.serving_since).getUTCFullYear();
+  const changedChamber = svc.terms.some((t) => t.chamber !== detail.seat.chamber);
+  const parts = [
+    ...(detail.bio.age === null ? [] : [`Age ${detail.bio.age}`]),
+    `Serving since ${since}`,
+    `${ordinal(svc.term_number)} term`,
+    ...(changedChamber ? [`${ordinal(svc.chamber_term_number)} in the ${chamber}`] : []),
+  ];
+  return parts.join(' · ');
+}
+
 export function buildHeader(detail: MemberDetail): MemberHeaderModel {
   const chamber = chamberName(detail.seat.chamber);
   const tracked = ordinal(detail.term.tracked_congress);
   const multi = detail.term.congresses.length > 1;
   const rollCalls = detail.votes.roll_calls ?? 0;
+  const caucus = caucusParty(detail);
   return {
     bioguideId: detail.bioguide_id,
     name: memberDisplayName(detail.seat.chamber, detail.name.official_full),
@@ -187,16 +223,21 @@ export function buildHeader(detail: MemberDetail): MemberHeaderModel {
     termLine:
       `Term: ${formatDate(detail.term.start_date)} – ${formatDate(detail.term.end_date)} · ` +
       `${formatNumber(rollCalls)} roll calls ${multi ? `in the ${tracked}` : 'to date'}`,
+    serviceLine: serviceLine(detail),
+    leadershipTitle: detail.leadership.find((r) => r.is_current)?.title ?? null,
+    caucusNote: caucus ? `Caucuses with ${PARTY_MEMBERS[caucus]}` : null,
     photoUrl: detail.photo_url,
   };
 }
 
 /** Party unity shows the CQ-style figure (opposing party majorities), the one comparable to
- *  published vote studies; chairmanships is the mart column (full committees, own chamber). */
+ *  published vote studies; for an Independent it is scored against the caucus (ADR 0005) and
+ *  the note says so. Chairmanships is the mart column (full committees, joint included). */
 export function buildStats(detail: MemberDetail): Stat[] {
   const v = detail.votes;
   const chairs = detail.activity.chairmanships;
   const tracked = `${ordinal(detail.term.tracked_congress)} Congress`;
+  const caucus = caucusParty(detail);
   return [
     {
       label: 'Attendance',
@@ -206,7 +247,7 @@ export function buildStats(detail: MemberDetail): Stat[] {
     {
       label: 'Party unity',
       value: formatPercent(v.party_unity_cq_pct),
-      note: 'votes with party majority',
+      note: caucus ? `votes with ${caucus} caucus` : 'votes with party majority',
     },
     { label: 'Bills sponsored', value: formatNumber(detail.activity.bills_sponsored), note: tracked },
     {

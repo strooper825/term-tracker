@@ -17,6 +17,14 @@ models:
         tests: [not_null]
       - name: end_date
         tests: [not_null]
+  - name: stg_legislator_leadership_roles
+    columns:
+      - name: bioguide_id
+        tests: [not_null]
+      - name: title
+        tests: [not_null]
+      - name: start_date
+        tests: [not_null]
   - name: stg_committees
     columns:
       - name: thomas_id

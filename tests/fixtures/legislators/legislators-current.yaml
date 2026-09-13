@@ -1,5 +1,7 @@
 # Trimmed from https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml
-# retrieved 2026-09-12. Contact details and the bio block are removed; nothing else is altered.
+# retrieved 2026-09-13. Seven members (the six tracked ones plus Tammy Baldwin, who is in raw but not
+# tracked); per-term contact details (address, office, phone, fax, contact_form, rss_url) are removed;
+# nothing else is altered.
 - id:
     bioguide: B001230
     thomas: 01558
@@ -23,6 +25,9 @@
     first: Tammy
     last: Baldwin
     official_full: Tammy Baldwin
+  bio:
+    birthday: '1962-02-11'
+    gender: F
   leadership_roles:
   - title: Senate Democratic Conference Secretary
     chamber: senate
@@ -36,6 +41,61 @@
     chamber: senate
     start: '2025-01-03'
   terms:
+  - type: rep
+    start: '1999-01-06'
+    end: '2001-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+  - type: rep
+    start: '2001-01-03'
+    end: '2003-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+  - type: rep
+    start: '2003-01-07'
+    end: '2005-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+    url: http://tammybaldwin.house.gov
+  - type: rep
+    start: '2005-01-04'
+    end: '2007-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+    url: http://tammybaldwin.house.gov
+  - type: rep
+    start: '2007-01-04'
+    end: '2009-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+    url: http://tammybaldwin.house.gov
+  - type: rep
+    start: '2009-01-06'
+    end: '2011-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+    url: http://tammybaldwin.house.gov
+  - type: rep
+    start: '2011-01-05'
+    end: '2013-01-03'
+    state: WI
+    district: 2
+    party: Democrat
+    url: http://tammybaldwin.house.gov
+  - type: sen
+    start: '2013-01-03'
+    end: '2019-01-03'
+    state: WI
+    party: Democrat
+    class: 1
+    url: https://www.baldwin.senate.gov
+    state_rank: junior
   - type: sen
     start: '2019-01-03'
     end: '2025-01-03'
@@ -44,7 +104,6 @@
     party: Democrat
     state_rank: junior
     url: https://www.baldwin.senate.gov
-    rss_url: http://www.baldwin.senate.gov/rss/feeds/?type=all
   - type: sen
     start: '2025-01-03'
     end: '2031-01-03'
@@ -53,7 +112,6 @@
     state_rank: junior
     party: Democrat
     url: https://www.baldwin.senate.gov
-    rss_url: http://www.baldwin.senate.gov/rss/feeds/?type=all
 - id:
     govtrack: 412508
     bioguide: C001095
@@ -76,11 +134,21 @@
     first: Tom
     last: Cotton
     official_full: Tom Cotton
+  bio:
+    gender: M
+    birthday: '1977-05-13'
   leadership_roles:
   - title: Senate Republican Conference Chair
     chamber: senate
     start: '2025-01-03'
   terms:
+  - type: rep
+    start: '2013-01-03'
+    end: '2015-01-03'
+    state: AR
+    party: Republican
+    district: 4
+    url: http://cotton.house.gov
   - type: sen
     start: '2015-01-06'
     end: '2021-01-03'
@@ -98,6 +166,321 @@
     party: Republican
     url: https://www.cotton.senate.gov
 - id:
+    govtrack: 412561
+    bioguide: J000294
+    thomas: 02149
+    cspan: 79612
+    fec:
+    - H2NY10092
+    wikipedia: Hakeem Jeffries
+    votesmart: 55285
+    opensecrets: N00033640
+    ballotpedia: Hakeem Jeffries
+    maplight: 1785
+    icpsr: 21343
+    wikidata: Q5640425
+    google_entity_id: kg:/m/025_74m
+    pictorial: 13176
+  name:
+    first: Hakeem
+    last: Jeffries
+    middle: S.
+    official_full: Hakeem S. Jeffries
+  bio:
+    gender: M
+    birthday: '1970-08-04'
+  leadership_roles:
+  - title: House Democratic Caucus Chair
+    chamber: house
+    start: '2019-01-03'
+    end: '2021-01-03'
+  - title: House Democratic Caucus Chair
+    chamber: house
+    start: '2021-01-03'
+    end: '2023-01-03'
+  - title: House Minority Leader
+    chamber: house
+    start: '2023-01-03'
+    end: '2025-01-03'
+  - title: House Minority Leader
+    chamber: house
+    start: '2025-01-03'
+  terms:
+  - type: rep
+    start: '2013-01-03'
+    end: '2015-01-03'
+    state: NY
+    party: Democrat
+    district: 8
+    url: http://jeffries.house.gov
+  - type: rep
+    start: '2015-01-06'
+    end: '2017-01-03'
+    state: NY
+    party: Democrat
+    district: 8
+    url: http://jeffries.house.gov
+  - type: rep
+    start: '2017-01-03'
+    end: '2019-01-03'
+    state: NY
+    district: 8
+    party: Democrat
+    url: https://jeffries.house.gov
+  - type: rep
+    start: '2019-01-03'
+    end: '2021-01-03'
+    state: NY
+    district: 8
+    party: Democrat
+    url: https://jeffries.house.gov
+  - type: rep
+    start: '2021-01-03'
+    end: '2023-01-03'
+    state: NY
+    district: 8
+    party: Democrat
+    url: https://jeffries.house.gov
+  - type: rep
+    start: '2023-01-03'
+    end: '2025-01-03'
+    state: NY
+    district: 8
+    party: Democrat
+    url: https://jeffries.house.gov
+  - type: rep
+    start: '2025-01-03'
+    end: '2027-01-03'
+    state: NY
+    district: 8
+    party: Democrat
+    url: https://jeffries.house.gov
+- id:
+    bioguide: K000401
+    fec:
+    - H2CA03157
+    govtrack: 456881
+    opensecrets: N00050259
+    wikidata: Q27987136
+    wikipedia: Kevin Kiley (politician)
+    google_entity_id: kg:/g/11c5qpst__
+    votesmart: 169303
+    ballotpedia: Kevin Kiley
+    pictorial: 12917
+  name:
+    first: Kevin
+    middle: Patrick
+    last: Kiley
+    official_full: Kevin Kiley
+  bio:
+    gender: M
+    birthday: '1985-01-30'
+  terms:
+  - type: rep
+    start: '2023-01-03'
+    end: '2025-01-03'
+    state: CA
+    district: 3
+    party: Republican
+    url: https://kiley.house.gov
+  - type: rep
+    start: '2025-01-03'
+    end: '2027-01-03'
+    state: CA
+    district: 3
+    party: Independent
+    caucus: Republican
+    party_affiliations:
+    - start: '2025-01-03'
+      end: '2026-03-08'
+      party: Republican
+    - start: '2026-03-09'
+      end: '2027-01-03'
+      party: Independent
+      caucus: Republican
+    url: https://kiley.house.gov
+- id:
+    bioguide: S000033
+    thomas: '01010'
+    lis: S313
+    govtrack: 400357
+    opensecrets: N00000528
+    votesmart: 27110
+    fec:
+    - H8VT01016
+    - S4VT00033
+    cspan: 994
+    wikipedia: Bernie Sanders
+    ballotpedia: Bernie Sanders
+    maplight: 450
+    icpsr: 29147
+    house_history: 21173
+    wikidata: Q359442
+    google_entity_id: kg:/m/01_gbv
+    pictorial: 13382
+  name:
+    first: Bernard
+    last: Sanders
+    nickname: Bernie
+    official_full: Bernard Sanders
+  bio:
+    birthday: '1941-09-08'
+    gender: M
+  leadership_roles:
+  - title: Senate Democratic Outreach Chair
+    chamber: senate
+    start: '2023-01-03'
+    end: '2025-01-03'
+  - title: Senate Democratic Outreach Chair
+    chamber: senate
+    start: '2025-01-03'
+  terms:
+  - type: rep
+    start: '1991-01-03'
+    end: '1993-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+  - type: rep
+    start: '1993-01-05'
+    end: '1995-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+  - type: rep
+    start: '1995-01-04'
+    end: '1997-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+  - type: rep
+    start: '1997-01-07'
+    end: '1999-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+  - type: rep
+    start: '1999-01-06'
+    end: '2001-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+  - type: rep
+    start: '2001-01-03'
+    end: '2003-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+  - type: rep
+    start: '2003-01-07'
+    end: '2005-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+    url: http://bernie.house.gov
+  - type: rep
+    start: '2005-01-04'
+    end: '2007-01-03'
+    state: VT
+    district: 0
+    party: Independent
+    caucus: Democrat
+    url: http://bernie.house.gov
+  - type: sen
+    start: '2007-01-04'
+    end: '2013-01-03'
+    state: VT
+    class: 1
+    party: Independent
+    caucus: Democrat
+    url: http://sanders.senate.gov/
+  - type: sen
+    start: '2013-01-03'
+    end: '2019-01-03'
+    state: VT
+    party: Independent
+    caucus: Democrat
+    class: 1
+    url: https://www.sanders.senate.gov
+    state_rank: junior
+  - type: sen
+    start: '2019-01-03'
+    end: '2025-01-03'
+    state: VT
+    class: 1
+    party: Independent
+    caucus: Democrat
+    state_rank: senior
+    url: https://www.sanders.senate.gov
+  - type: sen
+    start: '2025-01-03'
+    end: '2031-01-03'
+    state: VT
+    class: 1
+    state_rank: senior
+    party: Independent
+    caucus: Democrat
+    url: https://www.sanders.senate.gov
+- id:
+    bioguide: S001208
+    lis: S436
+    fec:
+    - H8MI08102
+    - S4MI00470
+    govtrack: 412784
+    wikipedia: Elissa Slotkin
+    wikidata: Q30323721
+    opensecrets: N00041357
+    votesmart: 181080
+    ballotpedia: Elissa Slotkin
+    icpsr: 21965
+    google_entity_id: kg:/g/11dfr3z7r1
+    pictorial: 13100
+  name:
+    first: Elissa
+    last: Slotkin
+    official_full: Elissa Slotkin
+  bio:
+    gender: F
+    birthday: '1976-07-10'
+  terms:
+  - type: rep
+    start: '2019-01-03'
+    end: '2021-01-03'
+    state: MI
+    district: 8
+    party: Democrat
+    url: https://slotkin.house.gov
+  - type: rep
+    start: '2021-01-03'
+    end: '2023-01-03'
+    state: MI
+    district: 8
+    party: Democrat
+    url: https://slotkin.house.gov
+  - type: rep
+    start: '2023-01-03'
+    end: '2025-01-03'
+    state: MI
+    district: 7
+    party: Democrat
+    url: https://slotkin.house.gov
+  - type: sen
+    start: '2025-01-03'
+    end: '2031-01-03'
+    state: MI
+    class: 1
+    state_rank: junior
+    party: Democrat
+    url: https://www.slotkin.senate.gov
+- id:
     bioguide: S001213
     fec:
     - H8WI01156
@@ -114,7 +497,24 @@
     first: Bryan
     last: Steil
     official_full: Bryan Steil
+  bio:
+    gender: M
+    birthday: '1981-03-30'
   terms:
+  - type: rep
+    start: '2019-01-03'
+    end: '2021-01-03'
+    state: WI
+    district: 1
+    party: Republican
+    url: https://steil.house.gov
+  - type: rep
+    start: '2021-01-03'
+    end: '2023-01-03'
+    state: WI
+    district: 1
+    party: Republican
+    url: https://steil.house.gov
   - type: rep
     start: '2023-01-03'
     end: '2025-01-03'

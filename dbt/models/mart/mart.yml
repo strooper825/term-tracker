@@ -16,12 +16,17 @@ models:
         tests: [not_null]
 
   - name: member
-    description: One row per tracked member.
+    description: One row per tracked member with biography and external ids.
     columns:
       - name: bioguide_id
         tests: [unique, not_null]
       - name: official_full_name
         tests: [not_null]
+      - name: birthday
+        tests: [not_null]
+      - name: gender
+        tests:
+          - accepted_values: { arguments: { values: ["M", "F"] } }
       - name: source_url
         tests: [not_null]
       - name: fetched_at
@@ -45,6 +50,39 @@ models:
       - name: congress
         tests: [not_null]
       - name: end_congress
+        tests: [not_null]
+
+  - name: term_history
+    description: Every term a tracked member has served, in source order.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: term_index
+        tests: [not_null]
+      - name: chamber
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: start_date
+        tests: [not_null]
+      - name: end_date
+        tests: [not_null]
+
+  - name: leadership_role
+    description: Party and chamber leadership roles of tracked members, one row per role and Congress.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: title
+        tests: [not_null]
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: start_date
         tests: [not_null]
 
   - name: committee
@@ -154,6 +192,17 @@ models:
         tests: [not_null]
       - name: chairmanships
         tests: [not_null]
+      - name: term_count
+        tests: [not_null]
+      - name: serving_since_date
+        tests: [not_null]
+      - name: chamber_term_count
+        tests: [not_null]
+      - name: chamber_since_date
+        tests: [not_null]
+      - name: scoring_party
+        tests:
+          - accepted_values: { arguments: { values: ["R", "D", "I"] } }
 
   - name: member_feed
     description: Chronological activity events per tracked member.

@@ -12,7 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_session
-from api.routers.members import COMMITTEES_SQL, seat_label
+from api.routers.members import COMMITTEES_SQL, member_ids, seat_label
 from api.schemas.member import (
     ActivityCounts,
     BillItem,
@@ -22,7 +22,11 @@ from api.schemas.member import (
     FeedResponse,
     KeyDate,
     KeyDatesResponse,
+    LeadershipRole,
+    MemberBio,
     MemberDetail,
+    ServiceRecord,
+    TermHistoryItem,
     TermSpan,
     TimelineResponse,
     VoteItem,
@@ -30,11 +34,30 @@ from api.schemas.member import (
     VoteStats,
     WeekBucket,
 )
-from api.schemas.members import CommitteeAssignment, MemberIds, MemberName, Seat, SourceRef
+from api.schemas.members import CommitteeAssignment, MemberName, Seat, SourceRef
 
 router = APIRouter(prefix="/members/{bioguide}", tags=["member"])
 
 SUMMARY_SQL = text("SELECT * FROM mart.member_summary WHERE bioguide_id = :bioguide")
+
+TERM_HISTORY_SQL = text(
+    """
+    SELECT term_index, chamber, congress, end_congress, start_date, end_date, state_abbr,
+           district, senate_class, party, caucus, how, end_type, source, source_url, fetched_at
+    FROM mart.term_history
+    WHERE bioguide_id = :bioguide
+    ORDER BY term_index
+    """
+)
+
+LEADERSHIP_SQL = text(
+    """
+    SELECT title, chamber, start_date, end_date, is_current, source, source_url, fetched_at
+    FROM mart.leadership_role
+    WHERE bioguide_id = :bioguide
+    ORDER BY start_date DESC, role_index DESC
+    """
+)
 
 TIMELINE_SQL = text(
     """
@@ -126,6 +149,14 @@ def _summary(session: Session, bioguide: str) -> Any:
     return row
 
 
+def age_on(birthday: date | None, today: date) -> int | None:
+    """Whole years between birthday and today, or None when the birthday is unknown."""
+    if birthday is None:
+        return None
+    before_birthday = (today.month, today.day) < (birthday.month, birthday.day)
+    return today.year - birthday.year - int(before_birthday)
+
+
 def encode_cursor(event_at: datetime, event_key: str) -> str:
     raw = f"{event_at.isoformat()}|{event_key}".encode()
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
@@ -144,12 +175,20 @@ def decode_cursor(cursor: str) -> tuple[datetime, str]:
 def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session)]) -> MemberDetail:
     row = _summary(session, bioguide)
     today = datetime.now(UTC).date()
+    terms = session.execute(TERM_HISTORY_SQL, {"bioguide": bioguide}).mappings().all()
+    roles = session.execute(LEADERSHIP_SQL, {"bioguide": bioguide}).mappings().all()
     return MemberDetail(
         bioguide_id=row["bioguide_id"],
         name=MemberName(
-            first=row["first_name"], last=row["last_name"], official_full=row["official_full_name"]
+            first=row["first_name"],
+            middle=row["middle_name"],
+            last=row["last_name"],
+            nickname=row["nickname"],
+            suffix=row["suffix"],
+            official_full=row["official_full_name"],
         ),
         party=row["party"],
+        caucus=row["caucus"],
         seat=Seat(
             chamber=row["chamber"],
             state=row["state_abbr"],
@@ -170,10 +209,25 @@ def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session
             days_remaining=max((row["term_end_date"] - today).days, 0),
             days_elapsed=max((today - row["term_start_date"]).days, 0),
         ),
-        photo_url=row["photo_url"],
-        ids=MemberIds(
-            govtrack=row["govtrack_id"], icpsr=row["icpsr_id"], fec=list(row["fec_ids"] or [])
+        bio=MemberBio(
+            birthday=row["birthday"], age=age_on(row["birthday"], today), gender=row["gender"]
         ),
+        service=ServiceRecord(
+            first_term_start=row["first_term_start_date"],
+            serving_since=row["serving_since_date"],
+            term_number=row["term_count"],
+            chamber_since=row["chamber_since_date"],
+            chamber_term_number=row["chamber_term_count"],
+            terms=[
+                TermHistoryItem(state=t["state_abbr"], **{k: t[k] for k in _TERM_KEYS})
+                for t in terms
+            ],
+        ),
+        leadership=[
+            LeadershipRole(**{k: r[k] for k in LeadershipRole.model_fields}) for r in roles
+        ],
+        photo_url=row["photo_url"],
+        ids=member_ids(row),
         votes=VoteStats(
             roll_calls=row["roll_calls"],
             positions=row["positions"],
@@ -181,6 +235,7 @@ def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session
             not_voting=row["not_voting"],
             attendance_pct=row["attendance_pct"],
             missed_vote_pct=row["missed_vote_pct"],
+            scoring_party=row["scoring_party"],
             party_unity_pct=row["party_unity_pct"],
             party_unity_cq_pct=row["party_unity_cq_pct"],
         ),
@@ -190,8 +245,11 @@ def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session
             committees=row["committees"],
             chairmanships=row["chairmanships"],
         ),
-        sources=_sources([row]),
+        sources=_sources([row, *terms, *roles]),
     )
+
+
+_TERM_KEYS = [k for k in TermHistoryItem.model_fields if k != "state"]
 
 
 @router.get("/timeline", response_model=TimelineResponse, summary="Weekly buckets of typed events")

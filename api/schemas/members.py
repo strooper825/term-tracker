@@ -15,7 +15,10 @@ class SourceRef(BaseModel):
 
 class MemberName(BaseModel):
     first: str
+    middle: str | None = None
     last: str
+    nickname: str | None = None
+    suffix: str | None = None
     official_full: str
 
 
@@ -38,9 +41,18 @@ class TermInfo(BaseModel):
 
 
 class MemberIds(BaseModel):
+    """External identifiers from congress-legislators (all optional upstream except bioguide)."""
+
     govtrack: int | None
     icpsr: int | None
     fec: list[str]
+    lis: str | None = Field(default=None, description="Senate LIS id, e.g. S374")
+    opensecrets: str | None = Field(default=None, description="OpenSecrets candidate id")
+    wikipedia: str | None = Field(default=None, description="Wikipedia article title")
+    ballotpedia: str | None = Field(default=None, description="Ballotpedia page title")
+    cspan: int | None = Field(default=None, description="C-SPAN person id")
+    votesmart: int | None = Field(default=None, description="Vote Smart id")
+    wikidata: str | None = Field(default=None, description="Wikidata item, e.g. Q3090307")
 
 
 class CommitteeAssignment(BaseModel):
@@ -57,6 +69,9 @@ class MemberSummary(BaseModel):
     bioguide_id: str
     name: MemberName
     party: str | None
+    caucus: str | None = Field(
+        default=None, description="For Independents, the party they caucus with"
+    )
     seat: Seat
     term: TermInfo
     photo_url: str | None

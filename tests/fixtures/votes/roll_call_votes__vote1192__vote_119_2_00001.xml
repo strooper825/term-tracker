@@ -84,5 +84,14 @@
       <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S317</lis_member_id>
     </member>
+  	<member>
+  		<member_full>Sanders (I-VT)</member_full>
+  		<last_name>Sanders</last_name>
+  		<first_name>Bernard</first_name>
+  		<party>I</party>
+  		<state>VT</state>
+  		<vote_cast>Nay</vote_cast>
+  		<lis_member_id>S313</lis_member_id>
+  	</member>
   </members>
 </roll_call_vote>

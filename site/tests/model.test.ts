@@ -5,17 +5,34 @@ import {
   buildElection,
   buildHeader,
   buildIndexRow,
+  buildKeyDates,
   buildStats,
   buildTerm,
   buildWeeks,
+  caucusParty,
   eventTotals,
   feedRow,
   groupFeed,
   seatLong,
+  serviceLine,
   timelineRange,
 } from '@/lib/model';
 import { formatDate, formatLongDate, ordinal } from '@/lib/format';
-import { COTTON, COTTON_LIST, EN_BLOC, FEED, STEIL, STEIL_COMMITTEES, STEIL_KEY_DATES, STEIL_LIST, WEEKS } from './fixtures';
+import {
+  COTTON,
+  COTTON_LIST,
+  EN_BLOC,
+  FEED,
+  SANDERS,
+  SANDERS_LIST,
+  SLOTKIN,
+  SLOTKIN_LIST,
+  STEIL,
+  STEIL_COMMITTEES,
+  STEIL_KEY_DATES,
+  STEIL_LIST,
+  WEEKS,
+} from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
@@ -45,6 +62,26 @@ describe('header: given a mart row, these labels render', () => {
     expect(ordinal(1)).toBe('1st');
     expect(ordinal(112)).toBe('112th');
   });
+
+  it('service line: age from bio.birthday, serving since and Nth term from term_history', () => {
+    expect(serviceLine(STEIL)).toBe('Age 45 · Serving since 2019 · 4th term');
+    // House then Senate: the chamber count is added so a first-term senator reads correctly
+    expect(serviceLine(COTTON)).toBe('Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate');
+    expect(serviceLine(SLOTKIN)).toBe('Age 50 · Serving since 2019 · 4th term · 1st in the Senate');
+    expect(serviceLine(SANDERS)).toBe('Age 85 · Serving since 1991 · 12th term · 4th in the Senate');
+    expect(serviceLine({ ...STEIL, bio: { ...STEIL.bio, age: null } })).toBe('Serving since 2019 · 4th term');
+  });
+
+  it('leadership title and caucus note come from leadership_role and term.caucus', () => {
+    expect(buildHeader(STEIL)).toMatchObject({ leadershipTitle: null, caucusNote: null });
+    expect(buildHeader(COTTON).leadershipTitle).toBe('Senate Republican Conference Chair');
+    const sanders = buildHeader(SANDERS);
+    expect(sanders.party).toBe('Independent');
+    expect(sanders.caucusNote).toBe('Caucuses with Democrats');
+    expect(sanders.leadershipTitle).toBe('Senate Democratic Outreach Chair'); // the current role, not the ended one
+    expect(buildHeader({ ...STEIL, party: 'Independent', caucus: 'Republican' }).caucusNote).toBe('Caucuses with Republicans');
+    expect(caucusParty({ party: 'Democrat', caucus: 'Democrat' })).toBeNull();
+  });
 });
 
 describe('stats and term', () => {
@@ -57,6 +94,13 @@ describe('stats and term', () => {
       ['Bills cosponsored', '118', '119th Congress'],
       ['Committees', '6', '2 full committee chairs'],
     ]);
+  });
+
+  it('an Independent is scored against the caucus and the note says so (ADR 0005)', () => {
+    const unity = buildStats(SANDERS).find((s) => s.label === 'Party unity');
+    expect(unity).toEqual({ label: 'Party unity', value: '99.87%', note: 'votes with Democratic caucus' });
+    expect(buildStats(SLOTKIN).find((s) => s.label === 'Party unity')?.note).toBe('votes with party majority');
+    expect(buildStats(SANDERS).find((s) => s.label === 'Committees')?.note).toBe('no full committee chairs');
   });
 
   it('term progress uses days_elapsed over the term length', () => {
@@ -159,5 +203,19 @@ describe('weeks, key dates, election, index', () => {
       photoUrl: 'https://www.congress.gov/img/member/s001213_200.jpg',
     });
     expect(buildIndexRow(COTTON_LIST, COTTON)).toMatchObject({ name: 'Sen. Tom Cotton', chamber: 'Senate', state: 'Arkansas' });
+    expect(buildIndexRow(SANDERS_LIST, SANDERS)).toMatchObject({ party: 'Independent', unity: 99.87, seatShort: 'Vermont (Class 1)' });
+    expect(buildIndexRow(SLOTKIN_LIST, SLOTKIN)).toMatchObject({ party: 'Democratic', chamber: 'Senate', state: 'Michigan' });
+  });
+
+  it('key dates and election degrade when a state has no rows: congress-wide rows still apply', () => {
+    const congressOnly = STEIL_KEY_DATES.filter((d) => d.scope === 'congress');
+    expect(buildKeyDates(congressOnly).map((d) => d.label)).toEqual([
+      '119th Congress convenes',
+      'General election day',
+      '119th Congress ends; House and Class 2 Senate terms expire at noon',
+    ]);
+    // a Class 1 senator whose term runs to 2031 is not on the 2026 ballot
+    expect(buildElection(congressOnly, SANDERS, TODAY)).toMatchObject({ date: 'Nov 3, 2026', onBallot: false });
+    expect(buildKeyDates([])).toEqual([]);
   });
 });
