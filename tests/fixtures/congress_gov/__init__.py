@@ -28,6 +28,8 @@ FIXTURE_BILLS = [
     ("samdt", "6747"),
     ("s", "5337"),
 ]
+# Bills referenced by the vote fixtures (detail only); fetched by the roll-call phase of the loader.
+ROLL_CALL_FIXTURE_BILLS = [("hr", "3424"), ("hr", "276"), ("s", "5"), ("sjres", "13")]
 FIXTURE_BILLS_SQL = (
     "(bill_type, bill_number) IN (" + ", ".join(f"('{t}', '{n}')" for t, n in FIXTURE_BILLS) + ")"
 )
@@ -49,3 +51,18 @@ def fixture_fetch(url: str) -> str:
 
 def fixture_client() -> CongressGovClient:
     return CongressGovClient("test-key-not-real", fetch=fixture_fetch, limiter=RateLimiter(10**6))
+
+
+def roll_call_fixtures_cover(conn) -> bool:
+    """True when every roll-call bill in the database has a detail fixture.
+
+    On a fixture-only database (CI) this holds; on a database that also holds live roll calls
+    it does not, and the roll-call phase must be skipped to keep the loader off the network.
+    """
+    from ingest.sources.congress_gov import roll_call_legislation_keys
+
+    keys = roll_call_legislation_keys(conn, CONGRESS)
+    return all(
+        (FIXTURE_DIR / f"bill__{k.congress}__{k.bill_type}__{k.bill_number}.json").exists()
+        for k in keys
+    )

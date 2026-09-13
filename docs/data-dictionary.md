@@ -65,7 +65,10 @@ Cosponsored Legislation and which are kept here for that reason.
 | `raw.bill_cosponsors` | same | full cosponsors list (payload is the JSON array) |
 
 The detail record is re-fetched every run; actions and cosponsors only when the detail
-`updateDate` changed, they were never fetched, or `--full-refresh` is passed.
+`updateDate` changed, they were never fetched, or `--full-refresh` is passed. Bills referenced
+by roll calls in `raw.house_vote` (`legislationType`/`legislationNumber`) and `raw.senate_vote`
+(`document_type`/`document_number`, bill types only) get a detail record too, no actions or
+cosponsors. Run the vote sources before this one (`--source all` does).
 
 Source quirk (verified 2026-09-12): on the cosponsored list the item `introducedDate` is the
 date the member cosponsored, not the introduction date. List-item dates are therefore never
@@ -151,6 +154,7 @@ Tracked member-terms overlapping the current Congress. Natural key
 | Column | Type | Description |
 |---|---|---|
 | `congress` | int | Congress in session when the term began (macro `congress_number`) |
+| `end_congress` | int | Congress in session on the day before the term ends; the term spans `congress` through `end_congress` (a six-year Senate term from 2021-01-03 gives 117 through 119) |
 | `chamber` | text | `house` / `senate` |
 | `start_date`, `end_date` | date | From the source term |
 | `state_abbr`, `fips_state`, `state_name` | text | Joined to the FIPS seed |
@@ -171,8 +175,10 @@ Columns `rank`, `title` (e.g. `Chair`, `Ranking Member`), `party`. `congress` is
 
 ### `mart.bill`
 
-One row per bill or amendment a tracked member sponsored or cosponsored. Natural key
-`(congress, bill_type, bill_number)`.
+One row per bill or amendment a tracked member sponsored or cosponsored, plus every bill a
+loaded roll call references (so vote headlines carry titles). For those roll-call bills only
+the detail record is fetched; `bill_action` and cosponsor data exist only for member
+legislation. Natural key `(congress, bill_type, bill_number)`.
 
 | Column | Type | Description |
 |---|---|---|
@@ -270,9 +276,14 @@ who switches party is scored against the party they belonged to on each vote.
 
 ### `mart.member_summary`
 
-One row per tracked member: identity, seat, latest term (`term_start_date`, `term_end_date`),
-the `member_vote_stats` columns for the current Congress, `bills_sponsored`,
-`bills_cosponsored`, and `committees`. Days remaining are computed by the API.
+One row per tracked member: identity, seat, latest term (`term_start_date`, `term_end_date`,
+`congress`, `term_end_congress`), `tracked_congress` (the dbt var `current_congress`, the
+Congress the dashboard covers), the `member_vote_stats` columns for the current Congress,
+`bills_sponsored`, `bills_cosponsored`, and `committees`. Days remaining are computed by the API.
+
+The `term` block of `GET /members/{id}` exposes `congress` (start), `end_congress`,
+`congresses` (the full span, e.g. `[117, 118, 119]`), and `tracked_congress` side by side so a
+six-year Senate term is never confused with the Congress being tracked.
 
 ### `mart.member_feed`
 
@@ -283,7 +294,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_type` | `vote`, `bill_sponsored`, `bill_cosponsored`, `committee_action` (a Committee-type action on a bill the member sponsors); `floor_speech` arrives in Phase 3 |
 | `event_at`, `event_date` | Vote time, introduction date, cosponsorship date, or action date (Eastern) |
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
-| `headline`, `detail` | e.g. `Voted YEA on H.R. 3424: On Motion to Suspend the Rules and Pass`; the bill title or result |
+| `headline`, `detail` | e.g. `Voted YEA on H.R. 3424: <bill title>` with the question and result in `detail`; for votes without legislation the question is the headline |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
 
 ### `mart.member_activity_timeline`

@@ -23,6 +23,9 @@ def test_member_detail(built_mart: None, client: TestClient) -> None:
     assert body["seat"]["label"] == "WI-1"
     assert body["term"] == {
         "congress": 119,
+        "end_congress": 119,
+        "congresses": [119],
+        "tracked_congress": 119,
         "start_date": "2025-01-03",
         "end_date": "2027-01-03",
         "days_remaining": body["term"]["days_remaining"],
@@ -39,6 +42,9 @@ def test_member_detail(built_mart: None, client: TestClient) -> None:
 
     cotton = client.get(COTTON).json()
     assert cotton["seat"]["label"] == "Arkansas (Class 2)"
+    assert cotton["term"]["congresses"] == [117, 118, 119]  # 2021-01-03 to 2027-01-03
+    assert (cotton["term"]["congress"], cotton["term"]["end_congress"]) == (117, 119)
+    assert cotton["term"]["tracked_congress"] == 119
     assert cotton["votes"]["not_voting"] >= 1
 
 
@@ -56,6 +62,7 @@ def test_votes_recent_with_position(built_mart: None, client: TestClient) -> Non
     if ("house", 1, 240) in items:
         hr3424 = items[("house", 1, 240)]
         assert (hr3424["bill_type"], hr3424["bill_number"]) == ("hr", "3424")
+        assert hr3424["bill_title"]  # detail fetched because a roll call references it
         assert hr3424["yea_total"] + hr3424["nay_total"] + hr3424["not_voting_total"] <= 6
     assert body["items"]
     assert body["items"] == sorted(body["items"], key=lambda i: i["voted_at"], reverse=True)
@@ -117,6 +124,8 @@ def test_feed_pagination_and_events(built_mart: None, client: TestClient) -> Non
     by_key = {i["event_key"]: i for i in everything}
     assert by_key["vote:house:1:2"]["headline"].startswith("Voted Johnson (LA) on")
     assert by_key["vote:house:1:353"]["headline"].startswith("Did not vote on")
+    assert by_key["vote:house:1:240"]["headline"].startswith("Voted YEA on H.R. 3424: ")
+    assert len(by_key["vote:house:1:240"]["headline"]) > len("Voted YEA on H.R. 3424: ")
     assert by_key["bill_sponsor:119:hr:4735"]["headline"].startswith("Introduced H.R. 4735: ")
     assert by_key["bill_cosponsor:119:hr:5269"]["event_date"] == "2026-09-04"
     assert not any(

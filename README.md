@@ -66,8 +66,9 @@ python -m ingest.run --source senate_votes
 ```
 
 The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the
-database (run the dbt command below once first). It makes roughly 500 to 1,400 requests for two
-members, throttled to 5,000 per hour; add `--full-refresh` to re-fetch every actions and
+database (run the dbt command below once first). It makes roughly 1,000 to 1,900 requests for two
+members (member legislation plus the bills every roll call references), throttled to 5,000 per
+hour; add `--full-refresh` to re-fetch every actions and
 cosponsors list regardless of Congress.gov `updateDate`.
 
 ```bash

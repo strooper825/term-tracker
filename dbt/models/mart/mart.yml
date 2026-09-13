@@ -44,6 +44,8 @@ models:
           - relationships: { arguments: { to: ref('fips'), field: fips_state } }
       - name: congress
         tests: [not_null]
+      - name: end_congress
+        tests: [not_null]
 
   - name: committee
     description: All committees and subcommittees; subcommittees point at parent_thomas_id.
@@ -145,6 +147,10 @@ models:
         tests:
           - accepted_values: { arguments: { values: ["house", "senate"] } }
       - name: term_end_date
+        tests: [not_null]
+      - name: term_end_congress
+        tests: [not_null]
+      - name: tracked_congress
         tests: [not_null]
 
   - name: member_feed
