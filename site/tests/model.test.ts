@@ -253,16 +253,23 @@ describe('fundraising: every figure is a mart column, only formatted', () => {
       ['Raised', '$5,467,777', undefined],
       ['Spent', '$1,359,849', undefined],
       ['Cash on hand', '$6,327,099', 'no debts'],
-      ['Small-donor share', '4.6%', 'of total raised'],
     ]);
     expect(m.shares.map((r) => [r.label, r.pct, r.pctLabel, r.amount])).toEqual([
-      ['Individuals, $200 and under', 4.63, '4.6%', '$253,363'],
+      ['Small donors: individuals, $200 and under', 4.63, '4.6%', '$253,363'],
       ['Individuals, over $200', 22.68, '22.7%', '$1,240,060'],
       ['PACs', 29.88, '29.9%', '$1,633,675'],
       ['Party committees', 0.02, '0.0%', '$1,000'],
       ['Transfers from authorized committees', 40.07, '40.1%', '$2,190,888'],
       ['Other receipts', 2.72, '2.7%', '$148,792'],
     ]);
+    expect(m.shares.find((r) => r.label.startsWith('Transfers'))?.note).toMatch(/joint fundraising committee/);
+    expect(m.shares.filter((r) => r.note).map((r) => r.label)).toEqual(['Transfers from authorized committees']);
+    // a $15 source keeps its row and shows the dollar amount beside a 0.0% share
+    const tiny = buildFundraising(
+      { ...STEIL_FUNDRAISING, receipts: { ...STEIL_FUNDRAISING.receipts!, self_funding: { amount: 15, pct: 0 } } },
+      'house',
+    );
+    expect(tiny.shares.find((r) => r.label === 'Self-funding')).toMatchObject({ amount: '$15', pctLabel: '0.0%', pct: 0 });
     expect(m.footer).toEqual([
       'Through Jul 22, 2026 · Pre-Primary report',
       'Steil for Wisconsin, Inc. · principal campaign committee',

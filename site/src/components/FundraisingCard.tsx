@@ -21,7 +21,7 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
 
       {model.filed ? (
         <>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+          <div className="grid grid-cols-3 gap-x-3 gap-y-2.5">
             {model.stats.map((s) => (
               <div key={s.label} className="flex flex-col gap-0.5 min-w-0" title={s.title}>
                 <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
@@ -32,18 +32,23 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
           </div>
 
           <div className="flex flex-col gap-[7px]">
-            <div className="text-label uppercase text-ink3 leading-tight">Where the money came from</div>
+            <div className="text-label uppercase text-ink3 leading-tight">
+              Where the money came from · share of total raised
+            </div>
             {model.shares.map((row) => (
               <div key={row.label} className="flex flex-col gap-[3px]">
                 <div className="flex justify-between gap-2 text-meta tnum">
-                  <span className="text-ink2 truncate" title={row.amount}>
-                    {row.label}
+                  <span className="text-ink2 truncate">{row.label}</span>
+                  <span className="flex-none">
+                    <span className="text-ink3">{row.amount}</span>
+                    <span className="text-ink4"> · </span>
+                    <span className="text-ink">{row.pctLabel}</span>
                   </span>
-                  <span className="text-ink flex-none">{row.pctLabel}</span>
                 </div>
                 <div className="h-1.5 bg-[#EDEBE6] rounded-[3px] overflow-hidden">
                   <div className="h-full bg-ink2" style={{ width: `${row.pct}%` }} />
                 </div>
+                {row.note && <div className="text-micro text-ink4 leading-snug">{row.note}</div>}
               </div>
             ))}
           </div>
