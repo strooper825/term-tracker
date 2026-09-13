@@ -245,7 +245,7 @@ describe('members index', () => {
 describe('fundraising card: given a mart.member_fundraising row, this text renders', () => {
   const card = () => screen.getByRole('region', { name: 'Fundraising' });
 
-  it('four figures, the receipt-share bars, coverage, committee, and the FEC source link', () => {
+  it('three figures, the receipt-share bars with amounts, coverage, committee, and the FEC source link', () => {
     render(dashboard());
     const c = card();
     expect(within(c).getByText('2025–26 cycle')).toBeInTheDocument();
@@ -253,12 +253,16 @@ describe('fundraising card: given a mart.member_fundraising row, this text rende
     expect(within(c).getByText('$1,359,849')).toBeInTheDocument(); // spent
     expect(within(c).getByText('$6,327,099')).toBeInTheDocument(); // cash_on_hand
     expect(within(c).getByText('no debts')).toBeInTheDocument(); // debts = 0
-    expect(within(c).getAllByText('4.6%')).toHaveLength(2); // small_donor_pct stat and its bar row
-    expect(within(c).getByText('of total raised')).toBeInTheDocument();
-    expect(within(c).getByText('Individuals, $200 and under')).toBeInTheDocument();
+    // small_donor_pct appears once, as the first breakdown row, never as a second headline stat
+    expect(within(c).getAllByText('4.6%')).toHaveLength(1);
+    expect(within(c).queryByText('Small-donor share')).not.toBeInTheDocument();
+    expect(within(c).getByText('Small donors: individuals, $200 and under')).toBeInTheDocument();
+    expect(within(c).getByText('$253,363')).toBeInTheDocument(); // the amount sits beside the share
     expect(within(c).getByText('40.1%')).toBeInTheDocument(); // transfers_pct
     expect(within(c).getByText('29.9%')).toBeInTheDocument(); // pac_pct
+    expect(within(c).getByText('$1,000')).toBeInTheDocument(); // party: $1,000 beside "0.0%"
     expect(within(c).queryByText('Self-funding')).not.toBeInTheDocument(); // amount 0 is left out
+    expect(within(c).getByText(/Money moved in from a joint fundraising committee/)).toBeInTheDocument();
     expect(within(c).getByText('Through Jul 22, 2026 · Pre-Primary report')).toBeInTheDocument();
     expect(within(c).getByText('Steil for Wisconsin, Inc. · principal campaign committee')).toBeInTheDocument();
     expect(within(c).getByRole('link', { name: /source/ })).toHaveAttribute(

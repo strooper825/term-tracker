@@ -428,6 +428,8 @@ export interface ShareRow {
   /** Bar width: the mart share, clamped to 0..100 for rendering only. */
   pct: number;
   pctLabel: string;
+  /** One-line explanation under the row, for sources readers may not recognise. */
+  note?: string;
 }
 
 export interface FundraisingModel {
@@ -443,13 +445,24 @@ export interface FundraisingModel {
   sourceUrl: string | null;
 }
 
-const SHARE_ROWS: { key: keyof NonNullable<FundraisingResponse['receipts']>; label: string }[] = [
-  { key: 'individual_small', label: 'Individuals, $200 and under' },
+/** Receipt sources in display order. The first row is the small-donor share (it is the
+ *  same mart column, small_donor_pct = individual_small_pct), so it is not repeated as a
+ *  headline stat. */
+const SHARE_ROWS: {
+  key: keyof NonNullable<FundraisingResponse['receipts']>;
+  label: string;
+  note?: string;
+}[] = [
+  { key: 'individual_small', label: 'Small donors: individuals, $200 and under' },
   { key: 'individual_large', label: 'Individuals, over $200' },
   { key: 'pac', label: 'PACs' },
   { key: 'party', label: 'Party committees' },
   { key: 'self_funding', label: 'Self-funding' },
-  { key: 'transfers', label: 'Transfers from authorized committees' },
+  {
+    key: 'transfers',
+    label: 'Transfers from authorized committees',
+    note: 'Money moved in from a joint fundraising committee or a prior campaign account of the same candidate.',
+  },
   { key: 'other', label: 'Other receipts' },
 ];
 
@@ -493,13 +506,9 @@ export function buildFundraising(
       note: t.debts > 0 ? `${formatMoney(t.debts)} in debts` : 'no debts',
       title: 'At the end of the latest report',
     },
-    {
-      label: 'Small-donor share',
-      value: formatShare(f.small_donor_pct),
-      note: 'of total raised',
-      title: 'Individual contributions of $200 or less, as a share of total receipts',
-    },
   ];
+  // Every source with any money in it, dollar amount alongside the share so a small source
+  // ($15 of self-funding) reads as $15, not as 0.0%. Only exactly-zero rows are left out.
   const shares: ShareRow[] = SHARE_ROWS.filter((r) => f.receipts![r.key].amount > 0).map((r) => {
     const src = f.receipts![r.key];
     return {
@@ -507,6 +516,7 @@ export function buildFundraising(
       amount: formatMoney(src.amount),
       pct: Math.min(100, Math.max(0, src.pct ?? 0)),
       pctLabel: formatShare(src.pct),
+      note: r.note,
     };
   });
   const report = f.coverage.last_report_type ? ` · ${titleCase(f.coverage.last_report_type)} report` : '';
