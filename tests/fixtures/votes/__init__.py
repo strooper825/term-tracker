@@ -18,6 +18,23 @@ from tests.fixtures.congress_gov import fixture_name as congress_gov_fixture_nam
 
 FIXTURE_DIR = Path(__file__).resolve().parent
 CONGRESS = 119
+# (chamber, session, roll_number) of every roll call in the fixtures; e2e assertions are scoped
+# to these so they hold on a database that also holds live data.
+FIXTURE_ROLL_CALLS = [
+    ("house", 1, 2),
+    ("house", 1, 122),
+    ("house", 1, 240),
+    ("house", 1, 353),
+    ("house", 2, 1),
+    ("senate", 1, 1),
+    ("senate", 1, 237),
+    ("senate", 2, 1),
+]
+FIXTURE_ROLL_CALLS_SQL = (
+    "(chamber, session, roll_number) IN ("
+    + ", ".join(f"('{c}', {s}, {r})" for c, s, r in FIXTURE_ROLL_CALLS)
+    + ")"
+)
 
 
 def house_fixture_fetch(url: str) -> str:

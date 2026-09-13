@@ -7,7 +7,9 @@ Three kinds of tests live here:
   migrations first. Locally they are skipped when the database is unreachable; in CI
   (``CI`` env var set) an unreachable database is a failure, never a silent skip.
 * ``dbt`` tests that additionally need the dbt CLI on PATH; ``built_mart`` loads every
-  source's fixtures into raw and runs ``dbt build`` once per session.
+  source's fixtures into raw and runs ``dbt build`` once per session. Fixture rows overwrite
+  live rows with the same keys, and assertions are scoped to fixture keys so they hold on a
+  database that also holds live data.
 """
 
 from __future__ import annotations

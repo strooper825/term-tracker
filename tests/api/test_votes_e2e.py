@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import Engine, text
 
+from tests.fixtures.votes import FIXTURE_ROLL_CALLS_SQL
+
 pytestmark = [pytest.mark.integration, pytest.mark.dbt]
 
 
@@ -18,7 +20,7 @@ def test_roll_calls_from_both_chambers(built_mart: None, migrated_engine: Engine
         migrated_engine,
         "SELECT chamber, session, roll_number, vote_date, question, bill_type, bill_number, "
         "member_total FROM mart.roll_call WHERE congress = 119 "
-        "ORDER BY chamber, session, roll_number",
+        f"AND {FIXTURE_ROLL_CALLS_SQL} ORDER BY chamber, session, roll_number",
     )
     keys = [(r["chamber"], r["session"], r["roll_number"]) for r in rows]
     assert ("house", 1, 2) in keys and ("house", 1, 240) in keys and ("house", 2, 1) in keys
@@ -43,7 +45,8 @@ def test_member_votes_are_tracked_members_with_normalised_positions(
     rows = _rows(
         migrated_engine,
         "SELECT bioguide_id, chamber, session, roll_number, position, position_raw, voted "
-        "FROM mart.member_vote WHERE congress = 119 ORDER BY 1, 2, 3, 4",
+        f"FROM mart.member_vote WHERE congress = 119 AND {FIXTURE_ROLL_CALLS_SQL} "
+        "ORDER BY 1, 2, 3, 4",
     )
     by_member: dict[str, list[dict]] = {}
     for r in rows:
@@ -69,13 +72,13 @@ def test_member_votes_are_tracked_members_with_normalised_positions(
 def test_attendance_query_shape(built_mart: None, migrated_engine: Engine) -> None:
     rows = _rows(
         migrated_engine,
-        """
+        f"""
         SELECT v.bioguide_id,
                count(*) AS positions,
                count(*) FILTER (WHERE v.voted) AS votes_cast,
                count(*) FILTER (WHERE NOT v.voted) AS not_voting
         FROM mart.member_vote AS v
-        WHERE v.congress = 119
+        WHERE v.congress = 119 AND {FIXTURE_ROLL_CALLS_SQL}
         GROUP BY 1 ORDER BY 1
         """,
     )
