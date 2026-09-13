@@ -599,11 +599,11 @@ export function sanitizeSummaryHtml(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '')
-    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(\/?)>/g, (match, rawTag: string, selfClose: string) => {
+    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (match, rawTag: string) => {
       const tag = rawTag.toLowerCase();
       if (!ALLOWED_SUMMARY_TAGS.has(tag)) return '';
-      if (match.startsWith('</')) return `</${tag}>`;
-      return selfClose || tag === 'br' ? `<${tag}>` : `<${tag}>`;
+      // rebuilt from the tag name alone, so no attribute survives and <BR/> becomes <br>
+      return match.startsWith('</') ? `</${tag}>` : `<${tag}>`;
     });
 }
 
