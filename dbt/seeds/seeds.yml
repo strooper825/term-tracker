@@ -26,3 +26,29 @@ seeds:
     columns:
       - name: bioguide_id
         tests: [unique, not_null]
+
+  - name: key_dates
+    description: >
+      Hand-maintained calendar (plan section 4, key_date): elections, session boundaries,
+      filing deadlines. scope is congress, chamber, state, or member; scope_value is the chamber
+      name, state abbreviation, or bioguide id. Provenance per row in source_url; retrieval date
+      is the dbt var key_dates_fetched_at. Recesses are not seeded yet.
+    config:
+      column_types:
+        date: date
+        label: text
+        kind: text
+        scope: text
+        scope_value: text
+        note: text
+        source_url: text
+    columns:
+      - name: date
+        tests: [not_null]
+      - name: label
+        tests: [not_null]
+      - name: scope
+        tests:
+          - accepted_values: { arguments: { values: ["congress", "chamber", "state", "member"] } }
+      - name: source_url
+        tests: [not_null]

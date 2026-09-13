@@ -21,3 +21,15 @@ against the stages Congress.gov shows.
 
 Panels that need a stage must wait for that mapping. Nothing is lost: all actions are stored,
 so the column can be computed retroactively.
+
+## Update 2026-09-12 (Phase 1d)
+
+Re-assessed with the 119th Congress data loaded. The `actions[].type` values Congress.gov
+emits (`IntroReferral`, `Committee`, `Calendars`, `Floor`, `ResolvingDifferences`,
+`President`, `BecameLaw`, `Veto`, `Discharge`) identify the late stages reliably, but the
+stages the dashboard needs most, Passed House and Passed Senate, are only recognisable from
+action codes and free text that differ between the House Clerk, the Senate, and the Library
+of Congress feeds, and Congress.gov publishes no reference mapping and no stage field to
+validate a derivation against. A derived stage therefore cannot be checked for
+correctness on a whole-Congress basis. Still deferred; the recorded roll calls in
+`mart.roll_call` give a partial check for passage votes when this is revisited.

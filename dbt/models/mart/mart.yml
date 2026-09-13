@@ -125,3 +125,59 @@ models:
           - accepted_values: { arguments: { values: ["Yea", "Nay", "Present", "Not Voting", "Other"] } }
       - name: position_raw
         tests: [not_null]
+
+  - name: member_vote_stats
+    description: Attendance and party unity per tracked member and Congress.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: positions
+        tests: [not_null]
+
+  - name: member_summary
+    description: Header panel per tracked member for the current Congress.
+    columns:
+      - name: bioguide_id
+        tests: [unique, not_null]
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: term_end_date
+        tests: [not_null]
+
+  - name: member_feed
+    description: Chronological activity events per tracked member.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: event_type
+        tests:
+          - accepted_values: { arguments: { values: ["vote", "bill_sponsored", "bill_cosponsored", "committee_action"] } }
+      - name: event_at
+        tests: [not_null]
+      - name: event_key
+        tests: [not_null]
+      - name: headline
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: member_activity_timeline
+    description: Weekly event counts per tracked member and event type.
+    columns:
+      - name: week_start
+        tests: [not_null]
+      - name: events
+        tests: [not_null]
+
+  - name: key_date
+    description: Calendar events from the key_dates seed.
+    columns:
+      - name: date
+        tests: [not_null]
+      - name: label
+        tests: [not_null]

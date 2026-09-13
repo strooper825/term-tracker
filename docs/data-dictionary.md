@@ -96,6 +96,7 @@ lists; nothing else is altered.
 |---|---|---|
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. |
+| `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. Recesses not seeded yet. |
 
 ## Staging views (`staging` schema, dbt)
 
@@ -245,3 +246,46 @@ served the whole Congress); `votes_cast` = positions with `voted`; `not_voting` 
 attendance percent = `100 * votes_cast / positions`. GovTrack reports the complement (missed
 votes percent) per quarter on the member page; summing its 2025 and 2026 rows gives the
 119th-Congress figure to compare against, within 0.5 points (plan section 10, 1c).
+
+### `mart.key_date`
+
+The `key_dates` seed with `source`, `source_url`, `fetched_at`. `/members/{id}/key-dates`
+returns rows scoped to `congress`, the member's chamber, the member's state, or the member.
+
+### `mart.member_vote_stats`
+
+One row per tracked member and Congress.
+
+| Column | Description |
+|---|---|
+| `roll_calls` | Roll calls in the chamber this Congress |
+| `positions`, `votes_cast`, `not_voting` | Member rows in `member_vote`; cast = anything but Not Voting |
+| `attendance_pct`, `missed_vote_pct` | 100 x votes_cast / positions and its complement |
+| `party_votes`, `party_agreements`, `party_unity_pct` | Plan definition: of the member's Yea/Nay votes on roll calls where the member's party had a Yea/Nay majority (ties excluded), the share that matched that majority |
+| `cq_party_votes`, `cq_party_agreements`, `party_unity_cq_pct` | Same, restricted to roll calls where the Republican and Democratic majorities opposed each other (the CQ "party unity vote" definition used by most published figures) |
+
+Party is taken from the vote record itself (House `voteParty`, Senate `party`), so a member
+who switches party is scored against the party they belonged to on each vote.
+
+### `mart.member_summary`
+
+One row per tracked member: identity, seat, latest term (`term_start_date`, `term_end_date`),
+the `member_vote_stats` columns for the current Congress, `bills_sponsored`,
+`bills_cosponsored`, and `committees`. Days remaining are computed by the API.
+
+### `mart.member_feed`
+
+One row per event per tracked member, current Congress. Natural key `(bioguide_id, event_key)`.
+
+| Column | Description |
+|---|---|
+| `event_type` | `vote`, `bill_sponsored`, `bill_cosponsored`, `committee_action` (a Committee-type action on a bill the member sponsors); `floor_speech` arrives in Phase 3 |
+| `event_at`, `event_date` | Vote time, introduction date, cosponsorship date, or action date (Eastern) |
+| `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
+| `headline`, `detail` | e.g. `Voted YEA on H.R. 3424: On Motion to Suspend the Rules and Pass`; the bill title or result |
+| `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
+
+### `mart.member_activity_timeline`
+
+Weekly buckets (`week_start`, Monday) per member and `event_type`, built from `member_feed`:
+`events`, `first_event_date`, `last_event_date`.
