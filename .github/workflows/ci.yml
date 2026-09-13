@@ -54,3 +54,34 @@ jobs:
         run: dbt build --project-dir dbt --profiles-dir dbt
       - name: Run tests (integration and dbt tests must not skip in CI)
         run: pytest -q
+
+      # ---- Site: unit tests, then a real static build against the API serving the fixture mart
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: site
+      - run: npm run typecheck
+        working-directory: site
+      - run: npm test
+        working-directory: site
+      - name: Start the API against the fixture mart
+        run: |
+          nohup uvicorn api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/api/v1/meta/freshness > /dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::API did not start"; cat api.log; exit 1
+      - name: Build the static site
+        run: npm run build
+        working-directory: site
+        env:
+          API_BASE_URL: http://127.0.0.1:8000
+      - name: Confirm the built site cannot reach the API
+        run: node scripts/check-static.mjs out
+        working-directory: site
+        env:
+          API_BASE_URL: http://127.0.0.1:8000

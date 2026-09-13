@@ -294,7 +294,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_type` | `vote`, `bill_sponsored`, `bill_cosponsored`, `committee_action` (a Committee-type action on a bill the member sponsors); `floor_speech` arrives in Phase 3 |
 | `event_at`, `event_date` | Vote time, introduction date, cosponsorship date, or action date (Eastern) |
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
-| `headline`, `detail` | e.g. `Voted YEA on H.R. 3424: <bill title>` with the question and result in `detail`; for votes without legislation the question is the headline |
+| `headline`, `detail` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`. Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
 
 ### `mart.member_activity_timeline`

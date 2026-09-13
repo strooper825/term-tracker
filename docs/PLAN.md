@@ -1,7 +1,7 @@
 # Congressional Term Tracker — Build Plan for Claude Code
 
 **Owner:** Zach Nohr (reviews all PRs and code; Claude Code implements)
-**Status:** Planning, v0.1 — September 12, 2026
+**Status:** v0.2 — September 12, 2026 (Phases 0–1e merged; frontend and DB host decided)
 **Working name:** TBD (candidates: De Facto, Amicus, Polis, Civic Ledger, Sine Die)
 
 ---
@@ -69,8 +69,10 @@ Phase column indicates when the panel goes live. Claude Code builds the data lay
 - **Database:** PostgreSQL 16
 - **Ingestion:** Python 3.12, `httpx`, `pydantic` models per source, `psycopg` for loads
 - **Transformation:** dbt-postgres (`raw` → `staging` → `mart`)
-- **API:** FastAPI + SQLAlchemy 2.x (read-only; serves the `mart` schema)
-- **Scheduling:** GitHub Actions cron (nightly, 06:00 UTC) for v1; migrate to a host-side scheduler if runtime exceeds ~30 min
+- **API:** FastAPI + SQLAlchemy 2.x (read-only; serves the `mart` schema). In v1 it is the data contract the static site build reads from; public deployment is deferred.
+- **Frontend:** Next.js + Tailwind, statically generated once per night after dbt runs; deployed to Vercel from the workflow (prebuilt output, no Git integration). No runtime API server in v1. See §7.
+- **Managed database:** Neon (free tier, Postgres 16) for the nightly job and site build. Local dev stays on Docker Postgres; the two never share a connection string.
+- **Scheduling:** GitHub Actions cron (nightly, 06:00 UTC): migrate → seed → ingest → dbt build → site build → deploy → freshness check. Migrate to a host-side scheduler if runtime exceeds ~30 min
 - **Analysis (later):** R against `mart` for the ideology/alignment work
 - **Secrets:** `CONGRESS_GOV_API_KEY` and `FEC_API_KEY` — in `.env` locally, GitHub Actions repository secrets in CI. Never committed. `.env.example` lists both names with blank values.
 
@@ -150,7 +152,11 @@ OpenAPI docs auto-generated at `/docs`. Every response includes `sources[]` with
 
 ---
 
-## 7. Frontend — decision required
+## 7. Frontend — decided (v0.2): Option A, thin
+
+**Decision.** Next.js + Tailwind. The site is statically generated at build time from the Phase 1d API and deployed as prebuilt output; there is no runtime API server and no client-side data fetching. The frontend renders what the API returns and computes nothing about members itself: every number on a page is a mart column (via the API), and only formatting, filtering, sorting, and layout happen in the browser. Claude Design output under `design/` is the visual target.
+
+The original comparison is kept below for the record.
 
 Two viable paths. Both consume the same FastAPI layer, so the backend build is not blocked by this choice.
 
@@ -264,9 +270,9 @@ term-tracker/
 
 | Decision | Options | Needed by |
 |---|---|---|
-| Frontend stack | A: Next.js / B: Django+HTMX (§7) | Before 1f |
+| Frontend stack | Decided: A, Next.js + Tailwind, static (§7) | Done |
 | Site name | De Facto, Amicus, Polis, Civic Ledger, Sine Die | Before logo work |
-| Managed Postgres host | Neon / Supabase / Railway | Before 1e |
+| Managed Postgres host | Decided: Neon free tier, Postgres 16 (§3) | Done |
 | Industry classification for donations | OpenSecrets bulk / self-built | Before Phase 2 |
 | Map content | USAspending awards (recommended) / events / none | Before Phase 3 |
 | Race rating source | Cook (paywalled) / Sabato / Inside Elections / omit | Before Phase 2 |

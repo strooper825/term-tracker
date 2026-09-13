@@ -4,7 +4,7 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 1e. Sources `legislators` (unitedstates/congress-legislators),
+**Status:** Phase 1f. Sources `legislators` (unitedstates/congress-legislators),
 `congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors),
 `congress_gov_house_votes` (Congress.gov `/house-vote`), and `senate_votes` (senate.gov LIS
 XML) load into `raw`; dbt builds the `mart` tables listed in
@@ -22,6 +22,7 @@ from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`
 | API | FastAPI + SQLAlchemy 2.x, read-only |
 | Migrations | Alembic |
 | CI | GitHub Actions (ruff, pytest against Postgres 16); nightly ingest workflow |
+| Frontend | Next.js + Tailwind under `site/`, statically generated from the API in the nightly job and deployed to Vercel as prebuilt output; design target under `design/` |
 
 ## Quick start (Docker)
 
@@ -143,6 +144,15 @@ the step summary. A failure opens an issue labelled `nightly-failure` (or commen
 one); the next success closes it. Run it by hand from the Actions tab (`workflow_dispatch`),
 optionally with `full_refresh`.
 
+
+## Site
+
+`site/` is the Next.js frontend (see `site/README.md`). It is built once per night by the
+workflow after `dbt build`, from an API started in the runner against the managed database,
+and deployed with the Vercel CLI as prebuilt output (`VERCEL_TOKEN`, `VERCEL_ORG_ID`,
+`VERCEL_PROJECT_ID` secrets). No runtime server; the built pages make no API calls. To build
+locally: start the API (`uvicorn api.main:app`), then in `site/` run
+`API_BASE_URL=http://127.0.0.1:8000 npm run build`.
 
 ## Working agreements
 

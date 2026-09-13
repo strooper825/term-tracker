@@ -16,14 +16,16 @@ with votes as (
         end
         || coalesce(
             {{ bill_label('r.bill_type', 'r.bill_number') }} || coalesce(': ' || b.title, ''),
-            r.question,
+            case when r.document_type = 'PN' then 'nomination ' || r.document_number end,
             'roll call ' || r.roll_number::text
         ) as headline,
-        case
-            when r.bill_type is not null
-                then coalesce(r.question || ' ', '') || coalesce('(' || r.result || ')', '')
-            else r.result
-        end as detail,
+        -- question, result, and the tally; for votes without legislation the question is the
+        -- only description, so it always leads
+        concat_ws(
+            ' · ',
+            r.question,
+            concat_ws(' ', r.result, r.yea_total::text || '–' || r.nay_total::text)
+        ) as detail,
         v.position,
         r.chamber,
         r.session,
