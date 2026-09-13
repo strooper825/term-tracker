@@ -135,7 +135,8 @@ docs/           PLAN.md, data-dictionary.md, adr/
 
 `.github/workflows/nightly.yml` runs at 06:00 UTC against the managed Neon database named by
 the `DATABASE_URL` repository secret (never in `.env`; local development keeps its own URL):
-migrations, `python -m ingest.run --source all` (votes before bills), `dbt build`, then
+migrations, `dbt seed` (so `seed.tracked_members` exists on a fresh database), `python -m
+ingest.run --source all` (votes before bills), `dbt build`, then
 `python -m ingest.freshness`, which fails the run when any source has no success in the last
 26 hours and writes a freshness table plus the database size against the 0.5 GB free tier to
 the step summary. A failure opens an issue labelled `nightly-failure` (or comments on the open

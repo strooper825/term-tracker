@@ -81,9 +81,9 @@ def test_nightly_workflow_shape() -> None:
     names = [step.get("name", step.get("run", "")) for step in job["steps"]]
     order = [
         next(i for i, n in enumerate(names) if n.startswith(prefix))
-        for prefix in ("Migrate", "Ingest", "dbt build", "Freshness check")
+        for prefix in ("Migrate", "dbt seed", "Ingest", "dbt build", "Freshness check")
     ]
-    assert order == sorted(order), "must run migrate -> ingest -> dbt build -> freshness"
+    assert order == sorted(order), "must run migrate -> seed -> ingest -> dbt build -> freshness"
     failure_steps = [s for s in job["steps"] if s.get("if") == "failure()"]
     assert failure_steps and "gh issue" in failure_steps[0]["run"]
     assert workflow["permissions"]["issues"] == "write"

@@ -1,7 +1,7 @@
 name: Nightly ingest
 
 # Runs against the managed Postgres (Neon) named by the DATABASE_URL repository secret:
-# migrations -> ingest (all sources) -> dbt build -> freshness check and size report.
+# migrations -> dbt seed -> ingest (all sources) -> dbt build -> freshness check and size report.
 # On failure an issue labelled nightly-failure is opened (or the open one is commented on);
 # on success any open nightly-failure issue is closed.
 on:
@@ -30,7 +30,7 @@ jobs:
   nightly:
     name: ingest -> dbt build -> freshness check
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
@@ -54,6 +54,11 @@ jobs:
 
       - name: Migrate
         run: alembic upgrade head
+
+      # Seeds first: the bills source reads seed.tracked_members, which does not exist on a fresh
+      # database until dbt has created it. dbt seed is idempotent (truncate and reload).
+      - name: dbt seed
+        run: dbt seed --project-dir dbt --profiles-dir dbt --no-use-colors
 
       - name: Ingest (all sources, votes before bills)
         run: python -m ingest.run --source all ${{ inputs.full_refresh == true && '--full-refresh' || '' }}
