@@ -1,4 +1,5 @@
--- One row per bill or amendment that a tracked member sponsored or cosponsored.
+-- One row per bill or amendment that a tracked member sponsored or cosponsored, plus every
+-- bill a loaded roll call references (detail only; see ingest/sources/congress_gov.py).
 select
     b.congress,
     b.bill_type,

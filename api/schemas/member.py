@@ -14,7 +14,10 @@ Role = Literal["sponsor", "cosponsor"]
 
 
 class TermSpan(BaseModel):
-    congress: int
+    congress: int = Field(description="Congress in session when the term began")
+    end_congress: int = Field(description="Congress in session on the day before the term ends")
+    congresses: list[int] = Field(description="Every Congress the term spans, e.g. [117, 118, 119]")
+    tracked_congress: int = Field(description="The Congress this dashboard covers (plan section 1)")
     start_date: dt.date
     end_date: dt.date
     days_remaining: int = Field(description="Whole days from today to end_date; 0 once past")

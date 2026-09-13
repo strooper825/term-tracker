@@ -9,7 +9,15 @@ from sqlalchemy import Engine, text
 
 from ingest.db import connect
 from ingest.sources import congress_gov as src
-from tests.fixtures.congress_gov import CONGRESS, TRACKED, fixture_client
+from ingest.sources import house_votes, senate_votes
+from tests.fixtures.congress_gov import (
+    CONGRESS,
+    ROLL_CALL_FIXTURE_BILLS,
+    TRACKED,
+    fixture_client,
+    roll_call_fixtures_cover,
+)
+from tests.fixtures.votes import house_client, senate_client
 
 pytestmark = pytest.mark.integration
 
@@ -43,7 +51,7 @@ def test_full_load_then_incremental_skips_unchanged(
 ) -> None:
     client = fixture_client()
     with connect() as conn:
-        rows = src.load(conn, client, TRACKED, CONGRESS, full_refresh=True)
+        rows = src.load(conn, client, TRACKED, CONGRESS, full_refresh=True, roll_call_bills=False)
     assert rows == MEMBER_LEGISLATION_ROWS + DISTINCT_BILLS * 3
     assert client.requests_made == LIST_PAGES + DISTINCT_BILLS * 3
     counts = _counts(migrated_engine)
@@ -53,7 +61,7 @@ def test_full_load_then_incremental_skips_unchanged(
     # Second run: details are re-fetched, actions/cosponsors are not (updateDate unchanged).
     client = fixture_client()
     with connect() as conn:
-        src.load(conn, client, TRACKED, CONGRESS)
+        src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False)
     assert client.requests_made == LIST_PAGES + DISTINCT_BILLS
     assert _counts(migrated_engine) == counts
 
@@ -68,7 +76,7 @@ def test_full_load_then_incremental_skips_unchanged(
         )
     client = fixture_client()
     with connect() as conn:
-        src.load(conn, client, TRACKED, CONGRESS)
+        src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False)
     assert client.requests_made == LIST_PAGES + DISTINCT_BILLS + 2
 
     with migrated_engine.connect() as conn:
@@ -89,7 +97,7 @@ def test_member_legislation_rows_are_current_congress_only(
     migrated_engine: Engine, clean_runs: None
 ) -> None:
     with connect() as conn:
-        src.load(conn, fixture_client(), TRACKED, CONGRESS)
+        src.load(conn, fixture_client(), TRACKED, CONGRESS, roll_call_bills=False)
     with migrated_engine.connect() as conn:
         congresses = (
             conn.execute(text("SELECT DISTINCT congress FROM raw.member_legislation"))
@@ -113,3 +121,39 @@ def test_missing_api_key_is_a_clear_error(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(src, "get_settings", config.get_settings)
     with pytest.raises(RuntimeError, match="CONGRESS_GOV_API_KEY"):
         src.run()
+
+
+def test_roll_call_bills_are_fetched_detail_only(migrated_engine: Engine, clean_runs: None) -> None:
+    """Bills referenced by loaded roll calls get a detail record, without actions or cosponsors."""
+    with connect() as conn:
+        house_votes.load(conn, house_client(), CONGRESS, full_refresh=True)
+        senate_votes.load(conn, senate_client(), CONGRESS, full_refresh=True)
+        if not roll_call_fixtures_cover(conn):
+            pytest.skip("database holds live roll calls without detail fixtures")
+        keys = src.roll_call_legislation_keys(conn, CONGRESS)
+    assert {(k.bill_type, k.bill_number) for k in keys} == set(ROLL_CALL_FIXTURE_BILLS)
+    assert all(k.kind == "bill" for k in keys)  # nominations (PN) are not legislation
+
+    client = fixture_client()
+    with connect() as conn:
+        src.load(conn, client, TRACKED, CONGRESS, full_refresh=True)
+    # member legislation as before, plus one detail request per roll-call bill
+    assert client.requests_made == LIST_PAGES + DISTINCT_BILLS * 3 + len(ROLL_CALL_FIXTURE_BILLS)
+    with migrated_engine.connect() as conn:
+        for bill_type, number in ROLL_CALL_FIXTURE_BILLS:
+            title = conn.execute(
+                text(
+                    "SELECT payload ->> 'title' FROM raw.bill "
+                    "WHERE congress = 119 AND bill_type = :t AND bill_number = :n"
+                ),
+                {"t": bill_type, "n": number},
+            ).scalar_one()
+            assert title
+            has_actions = conn.execute(
+                text(
+                    "SELECT count(*) FROM raw.bill_actions "
+                    "WHERE congress = 119 AND bill_type = :t AND bill_number = :n"
+                ),
+                {"t": bill_type, "n": number},
+            ).scalar_one()
+            assert has_actions == 0

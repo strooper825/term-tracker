@@ -6,9 +6,14 @@ amendment the detail record is fetched every run; the actions and cosponsors lis
 re-fetched when the detail ``updateDate`` changed, they were never fetched, or
 ``--full-refresh`` is given.
 
+Bills referenced by a roll call in ``raw.house_vote`` or ``raw.senate_vote`` are fetched as
+well (detail record only, no actions or cosponsors) so vote headlines can carry the title.
+Run the vote sources before this one so the same night picks up new roll calls.
+
 Request budget for two members in the 119th Congress: about 15 list pages, ~470 detail
-requests, and up to ~940 actions/cosponsors requests on a full refresh, well under the
-5,000 per hour limit enforced by :class:`ingest.congress_gov.RateLimiter`.
+requests for member legislation plus ~470 for roll-call bills, and up to ~940
+actions/cosponsors requests on a full refresh, well under the 5,000 per hour limit enforced
+by :class:`ingest.congress_gov.RateLimiter`.
 """
 
 from __future__ import annotations
@@ -46,6 +51,17 @@ SOURCE = "congress_gov_bills"
 ROLE_PATHS = {"sponsor": "sponsored-legislation", "cosponsor": "cosponsored-legislation"}
 ROLE_ITEMS_KEY = {"sponsor": "sponsoredLegislation", "cosponsor": "cosponsoredLegislation"}
 KEY_COLUMNS = ["congress", "bill_type", "bill_number"]
+# senate.gov document types -> Congress.gov bill types (nominations and treaties have none)
+SENATE_DOCUMENT_TYPES = {
+    "S.": "s",
+    "H.R.": "hr",
+    "S.Res.": "sres",
+    "H.Res.": "hres",
+    "S.J.Res.": "sjres",
+    "H.J.Res.": "hjres",
+    "S.Con.Res.": "sconres",
+    "H.Con.Res.": "hconres",
+}
 
 
 class SourceShapeError(RuntimeError):
@@ -102,6 +118,33 @@ def fetch_cosponsors(client: CongressGovClient, key: LegislationKey) -> list[dic
     return items
 
 
+def roll_call_legislation_keys(conn: Connection, congress: int) -> set[LegislationKey]:
+    """Bills referenced by House and Senate roll calls already loaded into raw."""
+    keys: set[LegislationKey] = set()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT lower(payload ->> 'legislationType'), payload ->> 'legislationNumber' "
+            "FROM raw.house_vote WHERE congress = %s "
+            "AND payload ->> 'legislationType' IS NOT NULL "
+            "AND payload ->> 'legislationNumber' IS NOT NULL",
+            (congress,),
+        )
+        for bill_type, number in cur.fetchall():
+            keys.add(LegislationKey("bill", congress, bill_type, number))
+        cur.execute(
+            "SELECT DISTINCT payload -> 'document' ->> 'document_type', "
+            "payload -> 'document' ->> 'document_number' "
+            "FROM raw.senate_vote WHERE congress = %s "
+            "AND jsonb_typeof(payload -> 'document') = 'object'",
+            (congress,),
+        )
+        for document_type, number in cur.fetchall():
+            bill_type = SENATE_DOCUMENT_TYPES.get(document_type or "")
+            if bill_type and number:
+                keys.add(LegislationKey("bill", congress, bill_type, number))
+    return keys
+
+
 def _existing_state(conn: Connection) -> dict[tuple[int, str, str], tuple[str | None, bool]]:
     """(congress, type, number) -> (stored updateDate, actions and cosponsors both present)."""
     with conn.cursor() as cur:
@@ -124,12 +167,18 @@ def load(
     congress: int,
     *,
     full_refresh: bool = False,
+    roll_call_bills: bool = True,
 ) -> int:
-    """Load lists, details, actions, and cosponsors for ``bioguide_ids``. Returns rows loaded."""
+    """Load lists, details, actions, and cosponsors for ``bioguide_ids``. Returns rows loaded.
+
+    With ``roll_call_bills`` the detail record of every bill referenced by a loaded roll call
+    is fetched too (no actions or cosponsors for those).
+    """
     with record_run(conn, SOURCE, BASE_URL) as run:
         fetched_at = datetime.now(UTC)
         total = 0
-        legislation: dict[LegislationKey, None] = {}
+        # key -> whether actions and cosponsors are wanted (member legislation) or not
+        legislation: dict[LegislationKey, bool] = {}
 
         for bioguide_id in bioguide_ids:
             for role in ROLE_PATHS:
@@ -150,11 +199,17 @@ def load(
                 )
                 log.info("%s %s: %d items in Congress %d", bioguide_id, role, len(rows), congress)
                 for key, _ in items:
-                    legislation.setdefault(key)
+                    legislation[key] = True
+
+        member_keys = len(legislation)
+        if roll_call_bills:
+            for key in roll_call_legislation_keys(conn, congress):
+                legislation.setdefault(key, False)
+        roll_call_only = len(legislation) - member_keys
 
         existing = _existing_state(conn)
         refreshed = 0
-        for key in legislation:
+        for key, wants_actions in legislation.items():
             detail = fetch_detail(client, key)
             total += upsert(
                 conn,
@@ -174,6 +229,8 @@ def load(
             stored_update, complete = existing.get(
                 (key.congress, key.bill_type, key.bill_number), (None, False)
             )
+            if not wants_actions:
+                continue
             if not full_refresh and complete and stored_update == detail.get("updateDate"):
                 continue
             refreshed += 1
@@ -197,8 +254,11 @@ def load(
                 )
 
         log.info(
-            "%d distinct bills/amendments, %d refreshed actions+cosponsors, %d API requests",
+            "%d distinct bills/amendments (%d from member lists, %d only from roll calls), "
+            "%d refreshed actions+cosponsors, %d API requests",
             len(legislation),
+            member_keys,
+            roll_call_only,
             refreshed,
             client.requests_made,
         )

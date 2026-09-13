@@ -161,6 +161,9 @@ def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session
         ),
         term=TermSpan(
             congress=row["congress"],
+            end_congress=row["term_end_congress"],
+            congresses=list(range(row["congress"], row["term_end_congress"] + 1)),
+            tracked_congress=row["tracked_congress"],
             start_date=row["term_start_date"],
             end_date=row["term_end_date"],
             days_remaining=max((row["term_end_date"] - today).days, 0),

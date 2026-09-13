@@ -1,0 +1,38 @@
+{
+ "bill": {
+  "congress": 119,
+  "introducedDate": "2025-01-06",
+  "latestAction": {
+   "actionDate": "2025-01-29",
+   "text": "Became Public Law No: 119-1."
+  },
+  "legislationUrl": "https://www.congress.gov/bill/119th-congress/senate-bill/5",
+  "number": "5",
+  "originChamber": "Senate",
+  "originChamberCode": "S",
+  "policyArea": {
+   "name": "Immigration"
+  },
+  "sponsors": [
+   {
+    "bioguideId": "B001319",
+    "firstName": "Katie",
+    "fullName": "Sen. Britt, Katie Boyd [R-AL]",
+    "isByRequest": "N",
+    "lastName": "Britt",
+    "party": "R",
+    "state": "AL",
+    "url": "https://api.congress.gov/v3/member/B001319?format=json"
+   }
+  ],
+  "title": "Laken Riley Act",
+  "type": "S",
+  "updateDate": "2026-07-30T16:27:39Z",
+  "updateDateIncludingText": "2026-07-30T16:27:39Z"
+ },
+ "request": {
+  "congress": "119",
+  "contentType": "application/json",
+  "format": "json"
+ }
+}
