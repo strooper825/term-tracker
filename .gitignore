@@ -26,3 +26,11 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Site (Next.js)
+site/node_modules/
+site/.next/
+site/out/
+site/.vercel/
+site/next-env.d.ts
+site/tsconfig.tsbuildinfo

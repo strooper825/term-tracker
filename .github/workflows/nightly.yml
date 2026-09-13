@@ -1,7 +1,8 @@
 name: Nightly ingest
 
 # Runs against the managed Postgres (Neon) named by the DATABASE_URL repository secret:
-# migrations -> dbt seed -> ingest (all sources) -> dbt build -> freshness check and size report.
+# migrations -> dbt seed -> ingest (all sources) -> dbt build -> site build -> Vercel deploy ->
+# freshness check and size report. A deploy failure fails the job, so the alerting below covers it.
 # On failure an issue labelled nightly-failure is opened (or the open one is commented on);
 # on success any open nightly-failure issue is closed.
 on:
@@ -17,6 +18,11 @@ on:
         description: Freshness threshold for the check step
         type: number
         default: 26
+      deploy_target:
+        description: Vercel deployment target (schedule always deploys production)
+        type: choice
+        options: [production, preview]
+        default: production
 
 concurrency:
   group: nightly-ingest
@@ -35,6 +41,9 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
       FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      API_BASE_URL: http://127.0.0.1:8000
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
@@ -65,6 +74,64 @@ jobs:
 
       - name: dbt build (seeds, models, tests)
         run: dbt build --project-dir dbt --profiles-dir dbt --no-use-colors
+
+      # ---- Site: generated from the API (served locally against the managed database) and
+      # deployed as prebuilt output with the Vercel CLI. No Git integration, no runtime server.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install site dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: site
+      - name: Start the API against the managed database
+        run: |
+          nohup uvicorn api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/api/v1/meta/freshness > /dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::API did not start"; cat api.log; exit 1
+      - name: Vercel diagnostics (identity, teams, projects; ids shown by shape only)
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          echo "VERCEL_ORG_ID: ${#VERCEL_ORG_ID} chars, starts with '${VERCEL_ORG_ID:0:5}'"
+          echo "VERCEL_PROJECT_ID: ${#VERCEL_PROJECT_ID} chars, starts with '${VERCEL_PROJECT_ID:0:4}'"
+          npx vercel whoami --token="$VERCEL_TOKEN" || true
+          npx vercel teams ls --token="$VERCEL_TOKEN" || true
+          npx vercel project ls --token="$VERCEL_TOKEN" || true
+          npx vercel project ls --scope "$VERCEL_ORG_ID" --token="$VERCEL_TOKEN" || true
+      - name: Build the site (Vercel prebuilt output)
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # inputs.deploy_target is empty on the schedule, so anything but 'preview' is production
+          PROD_FLAG: ${{ inputs.deploy_target != 'preview' && '--prod' || '' }}
+        run: |
+          npx vercel pull --yes --environment=${{ inputs.deploy_target == 'preview' && 'preview' || 'production' }} --token="$VERCEL_TOKEN"
+          npx vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+      - name: Confirm the built site cannot reach the API
+        working-directory: site
+        run: |
+          node scripts/check-static.mjs .vercel/output/static
+          echo '--- output listing'; ls -la .vercel/output/static | head -20
+          echo '--- routes'; node -e "const c=require('./.vercel/output/config.json');console.log(JSON.stringify(c.routes||[],null,1).slice(0,3000))"
+      - name: Deploy the prebuilt output to Vercel
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROD_FLAG: ${{ inputs.deploy_target != 'preview' && '--prod' || '' }}
+        run: |
+          url=$(npx vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "deployed: $url"
+          echo "## Site" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed ${{ inputs.deploy_target == 'preview' && 'preview' || 'production' }}: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Stop the API
+        if: always()
+        run: pkill -f "uvicorn api.main:app" || true
 
       - name: Freshness check and size report
         run: python -m ingest.freshness --max-age-hours ${{ inputs.max_age_hours || 26 }}

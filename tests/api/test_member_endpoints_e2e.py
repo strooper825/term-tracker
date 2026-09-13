@@ -38,6 +38,8 @@ def test_member_detail(built_mart: None, client: TestClient) -> None:
     assert votes["party_unity_pct"] is None or 0 <= votes["party_unity_pct"] <= 100
     assert body["activity"]["bills_sponsored"] >= 2
     assert body["activity"]["committees"] == 6
+    # HSHA chair counts; the Joint Library chair (joint) and the HSBA21 chair (subcommittee) do not
+    assert body["activity"]["chairmanships"] == 1
     assert body["sources"]
 
     cotton = client.get(COTTON).json()

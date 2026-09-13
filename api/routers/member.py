@@ -187,6 +187,7 @@ def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session
             bills_sponsored=row["bills_sponsored"],
             bills_cosponsored=row["bills_cosponsored"],
             committees=row["committees"],
+            chairmanships=row["chairmanships"],
         ),
         sources=_sources([row]),
     )

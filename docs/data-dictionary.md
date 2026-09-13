@@ -279,7 +279,19 @@ who switches party is scored against the party they belonged to on each vote.
 One row per tracked member: identity, seat, latest term (`term_start_date`, `term_end_date`,
 `congress`, `term_end_congress`), `tracked_congress` (the dbt var `current_congress`, the
 Congress the dashboard covers), the `member_vote_stats` columns for the current Congress,
-`bills_sponsored`, `bills_cosponsored`, and `committees`. Days remaining are computed by the API.
+`bills_sponsored`, `bills_cosponsored`, `committees`, and `chairmanships`. Days remaining are
+computed by the API.
+
+`chairmanships` counts assignments whose `title` starts with `Chair` (so `Chairman` and
+`Chairwoman` count, `Vice Chair` does not) on **full committees of the member's own chamber**:
+the committee has no `parent_thomas_id` (subcommittees excluded) and its `chamber` equals the
+member's chamber (joint committees excluded). Steil chairs House Administration (counted), the
+Joint Committee on the Library (joint, not counted), and a Financial Services subcommittee
+(not counted), so his figure is 1. The site's Committees stat note shows this column.
+
+The site's Party unity stat shows `member_vote_stats.party_unity_cq_pct`, the CQ-style figure
+comparable to published vote studies, under the label "votes with party majority";
+`party_unity_pct` (the plan definition) stays in the API.
 
 The `term` block of `GET /members/{id}` exposes `congress` (start), `end_congress`,
 `congresses` (the full span, e.g. `[117, 118, 119]`), and `tracked_congress` side by side so a
@@ -294,7 +306,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_type` | `vote`, `bill_sponsored`, `bill_cosponsored`, `committee_action` (a Committee-type action on a bill the member sponsors); `floor_speech` arrives in Phase 3 |
 | `event_at`, `event_date` | Vote time, introduction date, cosponsorship date, or action date (Eastern) |
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
-| `headline`, `detail` | e.g. `Voted YEA on H.R. 3424: <bill title>` with the question and result in `detail`; for votes without legislation the question is the headline |
+| `headline`, `detail` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`. Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
 
 ### `mart.member_activity_timeline`

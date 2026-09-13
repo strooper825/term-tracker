@@ -77,13 +77,34 @@ def test_nightly_workflow_shape() -> None:
     assert triggers["schedule"] == [{"cron": "0 6 * * *"}]
     assert "workflow_dispatch" in triggers
     job = workflow["jobs"]["nightly"]
-    assert set(job["env"]) == {"DATABASE_URL", "CONGRESS_GOV_API_KEY", "FEC_API_KEY"}
+    assert {
+        "DATABASE_URL",
+        "CONGRESS_GOV_API_KEY",
+        "FEC_API_KEY",
+        "VERCEL_ORG_ID",
+        "VERCEL_PROJECT_ID",
+    } <= set(job["env"])
     names = [step.get("name", step.get("run", "")) for step in job["steps"]]
     order = [
         next(i for i, n in enumerate(names) if n.startswith(prefix))
-        for prefix in ("Migrate", "dbt seed", "Ingest", "dbt build", "Freshness check")
+        for prefix in (
+            "Migrate",
+            "dbt seed",
+            "Ingest",
+            "dbt build",
+            "Build the site",
+            "Deploy the prebuilt",
+            "Freshness check",
+        )
     ]
-    assert order == sorted(order), "must run migrate -> seed -> ingest -> dbt build -> freshness"
+    assert order == sorted(order), (
+        "migrate -> seed -> ingest -> dbt build -> site -> deploy -> freshness"
+    )
+    deploy = next(s for s in job["steps"] if s.get("name", "").startswith("Deploy the prebuilt"))
+    assert "--prebuilt" in deploy["run"] and "if" not in deploy  # a deploy failure fails the job
+    # the empty-string branch of `cond && '' || x` is falsy and always yields x; never use it
+    assert "&& '' ||" not in (ROOT / ".github/workflows/nightly.yml").read_text(encoding="utf-8")
+    assert "!= 'preview' && '--prod' || ''" in deploy["env"]["PROD_FLAG"]
     failure_steps = [s for s in job["steps"] if s.get("if") == "failure()"]
     assert failure_steps and "gh issue" in failure_steps[0]["run"]
     assert workflow["permissions"]["issues"] == "write"

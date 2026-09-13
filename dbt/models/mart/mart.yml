@@ -152,6 +152,8 @@ models:
         tests: [not_null]
       - name: tracked_congress
         tests: [not_null]
+      - name: chairmanships
+        tests: [not_null]
 
   - name: member_feed
     description: Chronological activity events per tracked member.

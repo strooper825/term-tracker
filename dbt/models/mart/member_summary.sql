@@ -22,6 +22,20 @@ committees as (
     from {{ ref('committee_membership') }}
     where congress = {{ var('current_congress') }}
     group by 1
+),
+
+-- Chairmanships of full committees of the member's own chamber: subcommittees (they have a
+-- parent) and joint committees (chamber = joint) are excluded; Vice Chair does not count.
+chairmanships as (
+    select cm.bioguide_id, count(*) as chairmanships
+    from {{ ref('committee_membership') }} as cm
+    inner join {{ ref('committee') }} as c on c.thomas_id = cm.committee_thomas_id
+    inner join latest_term as t on t.bioguide_id = cm.bioguide_id
+    where cm.congress = {{ var('current_congress') }}
+        and c.parent_thomas_id is null
+        and c.chamber = t.chamber
+        and cm.title ilike 'chair%'
+    group by 1
 )
 
 select
@@ -57,6 +71,7 @@ select
     coalesce(b.bills_sponsored, 0) as bills_sponsored,
     coalesce(b.bills_cosponsored, 0) as bills_cosponsored,
     coalesce(c.committees, 0) as committees,
+    coalesce(ch.chairmanships, 0) as chairmanships,
     m.source,
     m.source_url,
     m.fetched_at
@@ -66,3 +81,4 @@ left join {{ ref('member_vote_stats') }} as s
     on s.bioguide_id = m.bioguide_id and s.congress = {{ var('current_congress') }}
 left join bills as b on b.bioguide_id = m.bioguide_id
 left join committees as c on c.bioguide_id = m.bioguide_id
+left join chairmanships as ch on ch.bioguide_id = m.bioguide_id
