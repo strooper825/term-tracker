@@ -19,3 +19,11 @@ sources:
         description: Actions list per bill or amendment; payload is a JSON array.
       - name: bill_cosponsors
         description: Cosponsors list per bill or amendment; payload is a JSON array.
+      - name: house_vote
+        description: Item of /house-vote/{congress}/{session} (Congress.gov), one row per roll call.
+      - name: house_vote_members
+        description: All member positions for one House roll call (results[] under the payload).
+      - name: senate_vote_menu
+        description: senate.gov session vote menu as JSON, one row per session.
+      - name: senate_vote
+        description: senate.gov roll-call vote XML as JSON, one row per roll call, all senator positions.

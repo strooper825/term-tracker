@@ -70,6 +70,26 @@ Source quirk (verified 2026-09-12): on the cosponsored list the item `introduced
 date the member cosponsored, not the introduction date. List-item dates are therefore never
 used downstream.
 
+## Raw tables: roll-call votes (Alembic migration `0004`)
+
+Loaded by `python -m ingest.run --source congress_gov_house_votes` and
+`--source senate_votes` for the current Congress. Every member position is stored, not only
+the tracked members, because party-unity statistics need the whole chamber. All rows share
+`payload jsonb`, `source_url text`, `fetched_at timestamptz`.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.house_vote` | `congress`, `session`, `roll_number` | item of Congress.gov `/house-vote/{congress}/{session}` |
+| `raw.house_vote_members` | same | `/house-vote/{congress}/{session}/{roll}/members` object; positions under `results[]` (`bioguideID`, `voteCast`) |
+| `raw.senate_vote_menu` | `congress`, `session` | senate.gov `vote_menu_{c}_{s}.xml` as JSON |
+| `raw.senate_vote` | `congress`, `session`, `vote_number` | senate.gov `vote_{c}_{s}_{n}.xml` as JSON; positions under `members.member[]` (`lis_member_id`, `vote_cast`) |
+
+Sessions are walked from 1 until Congress.gov returns an empty list or senate.gov has no
+menu (HTTP 404). House member lists are re-fetched when the list item `updateDate` changes;
+Senate roll calls are fetched once (senate.gov publishes no update stamp) unless
+`--full-refresh` is passed. XML becomes JSON via xmltodict with `vote` and `member` always
+lists; nothing else is altered.
+
 ## Seeds (`seed` schema, dbt)
 
 | Table | Key | Description |
@@ -87,6 +107,12 @@ Bills: `stg_member_legislation` (list items), `stg_bills` (detail records; amend
 composed from description, purpose, or the amended bill), `stg_bill_actions` (one row per
 action with `action_hash` = md5 of date, code, text, source-system code; identical duplicates
 collapsed), `stg_bill_cosponsors` (one row per cosponsor).
+
+Votes: `stg_house_roll_calls`, `stg_house_member_votes` (every member), `stg_senate_roll_calls`
+(dates parsed from "January 9, 2025, 02:54 PM" Eastern; Senate document types such as `S.` and
+`H.R.` mapped to `bill_type`, nominations `PN` kept in `document_type`/`document_number`),
+`stg_senate_member_votes` (every senator, `lis_member_id` joined to `stg_legislators.lis_id`
+for `bioguide_id`). Positions are normalised by macro `normalize_position` (ADR 0004).
 
 ## Mart tables (`mart` schema, dbt)
 
@@ -186,3 +212,36 @@ day, so bills introduced or cosponsored since the last run are missing until the
 withdrawn cosponsorships may also be counted differently. Why it is small: the member page and
 the API are the same system, so a larger gap indicates a loader defect (pagination, Congress
 filtering, or type mapping) and fails the check. Amendments are included on both sides.
+
+### `mart.roll_call`
+
+One row per roll-call vote in either chamber. Natural key `(congress, chamber, session,
+roll_number)`.
+
+| Column | Type | Description |
+|---|---|---|
+| `voted_at`, `vote_date` | timestamptz, date | Vote time (House: Congress.gov `startDate`; Senate: parsed `vote_date`); date in Eastern time |
+| `question`, `result` | text | As published |
+| `vote_type` | text | House only (`Yea-and-Nay`, `Recorded Vote`, ...) |
+| `majority_requirement` | text | Senate only (`1/2`, `3/5`, `2/3`) |
+| `bill_type`, `bill_number` | text | Legislation voted on, Congress.gov style; null for nominations and procedural votes |
+| `document_type`, `document_number`, `document_count` | text, text, int | Senate document as published (`PN` for nominations); en bloc votes list many documents, in which case the first type is kept, the number is null, and the count says how many |
+| `yea_total`, `nay_total`, `present_total`, `not_voting_total`, `other_total`, `member_total` | int | Computed from member positions |
+
+`source` is `congress_gov` (House; `source_url` is the House Clerk XML Congress.gov cites) or
+`senate_gov` (Senate; `source_url` is the vote XML).
+
+### `mart.member_vote`
+
+One row per (tracked member, roll call). Natural key `(bioguide_id, congress, chamber,
+session, roll_number)`. `position` is `Yea`, `Nay`, `Present`, `Not Voting`, or `Other`;
+`position_raw` is the upstream string; `voted` is `position <> 'Not Voting'`.
+
+## Attendance (Phase 1c done-when)
+
+For a tracked member and Congress: `roll_calls` = rows in `mart.roll_call` for the member's
+chamber; `positions` = rows in `mart.member_vote` (must equal `roll_calls` for a member who
+served the whole Congress); `votes_cast` = positions with `voted`; `not_voting` = the rest;
+attendance percent = `100 * votes_cast / positions`. GovTrack reports the complement (missed
+votes percent) per quarter on the member page; summing its 2025 and 2026 rows gives the
+119th-Congress figure to compare against, within 0.5 points (plan section 10, 1c).

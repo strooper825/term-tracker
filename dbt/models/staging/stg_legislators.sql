@@ -6,6 +6,7 @@ select
     payload -> 'name' ->> 'official_full' as official_full_name,
     (payload -> 'id' ->> 'govtrack')::int as govtrack_id,
     (payload -> 'id' ->> 'icpsr')::int as icpsr_id,
+    payload -> 'id' ->> 'lis' as lis_id,
     coalesce(payload -> 'id' -> 'fec', '[]'::jsonb) as fec_ids,
     'legislators' as source,
     source_url,

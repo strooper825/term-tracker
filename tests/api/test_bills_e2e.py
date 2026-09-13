@@ -8,6 +8,8 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import Engine, text
 
+from tests.fixtures.congress_gov import FIXTURE_BILLS_SQL
+
 pytestmark = [pytest.mark.integration, pytest.mark.dbt]
 
 
@@ -20,7 +22,7 @@ def test_sponsorship_counts_per_member_and_role(built_mart: None, migrated_engin
     rows = _rows(
         migrated_engine,
         "SELECT bioguide_id, role, count(*) AS n FROM mart.bill_sponsorship "
-        "WHERE congress = 119 GROUP BY 1, 2 ORDER BY 1, 2",
+        f"WHERE congress = 119 AND {FIXTURE_BILLS_SQL} GROUP BY 1, 2 ORDER BY 1, 2",
     )
     assert {(r["bioguide_id"], r["role"]): r["n"] for r in rows} == {
         ("C001095", "cosponsor"): 3,
@@ -87,7 +89,8 @@ def test_actions_present_for_every_bill(built_mart: None, migrated_engine: Engin
         migrated_engine,
         "SELECT b.bill_type, b.bill_number, count(a.action_hash) AS n FROM mart.bill AS b "
         "LEFT JOIN mart.bill_action AS a USING (congress, bill_type, bill_number) "
-        "WHERE b.congress = 119 GROUP BY 1, 2",
+        f"WHERE b.congress = 119 AND (b.bill_type, b.bill_number) IN "
+        f"{FIXTURE_BILLS_SQL.split(' IN ', 1)[1]} GROUP BY 1, 2",
     )
     assert len(rows) == 9
     assert all(r["n"] >= 1 for r in rows)

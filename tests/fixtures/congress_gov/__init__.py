@@ -14,6 +14,22 @@ from ingest.congress_gov import BASE_URL, CongressGovClient, RateLimiter
 FIXTURE_DIR = Path(__file__).resolve().parent
 TRACKED = ["S001213", "C001095"]
 CONGRESS = 119
+# (bill_type, bill_number) of every bill or amendment in the fixtures; e2e assertions are
+# scoped to these so they hold on a database that also holds live data.
+FIXTURE_BILLS = [
+    ("hr", "4735"),
+    ("hamdt", "9"),
+    ("hr", "5269"),
+    ("hr", "1502"),
+    ("s", "2274"),
+    ("samdt", "6683"),
+    ("sres", "837"),
+    ("samdt", "6747"),
+    ("s", "5337"),
+]
+FIXTURE_BILLS_SQL = (
+    "(bill_type, bill_number) IN (" + ", ".join(f"('{t}', '{n}')" for t, n in FIXTURE_BILLS) + ")"
+)
 
 
 def fixture_name(url: str) -> str:

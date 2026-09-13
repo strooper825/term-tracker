@@ -4,11 +4,12 @@ A public site that gives each member of Congress a term dashboard: votes, bills,
 key dates, fundraising, and more, sourced and refreshed nightly. The full plan, phases, and
 working agreements are in [docs/PLAN.md](docs/PLAN.md).
 
-**Status:** Phase 1b. Sources `legislators` (unitedstates/congress-legislators) and
-`congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors for tracked
-members) are loaded nightly-style into `raw`; dbt builds the `mart` tables listed in
+**Status:** Phase 1c. Sources `legislators` (unitedstates/congress-legislators),
+`congress_gov_bills` (Congress.gov API: bills, amendments, actions, cosponsors),
+`congress_gov_house_votes` (Congress.gov `/house-vote`), and `senate_votes` (senate.gov LIS
+XML) load into `raw`; dbt builds the `mart` tables listed in
 [docs/data-dictionary.md](docs/data-dictionary.md); the API serves `/api/v1/members` and
-`/api/v1/meta/freshness` (bill endpoints arrive in Phase 1d).
+`/api/v1/meta/freshness` (bill and vote endpoints arrive in Phase 1d).
 
 ## Stack
 
@@ -53,6 +54,14 @@ python -m ingest.run --source legislators
 
 ```bash
 python -m ingest.run --source congress_gov_bills
+```
+
+```bash
+python -m ingest.run --source congress_gov_house_votes
+```
+
+```bash
+python -m ingest.run --source senate_votes
 ```
 
 The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the

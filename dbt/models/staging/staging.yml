@@ -58,3 +58,29 @@ models:
         tests: [not_null]
       - name: sponsorship_date
         tests: [not_null]
+  - name: stg_house_roll_calls
+    columns:
+      - name: roll_number
+        tests: [not_null]
+      - name: vote_date
+        tests: [not_null]
+  - name: stg_house_member_votes
+    columns:
+      - name: bioguide_id
+        tests: [not_null]
+      - name: position
+        tests:
+          - accepted_values: { arguments: { values: ["Yea", "Nay", "Present", "Not Voting", "Other"] } }
+  - name: stg_senate_roll_calls
+    columns:
+      - name: roll_number
+        tests: [not_null]
+      - name: vote_date
+        tests: [not_null]
+  - name: stg_senate_member_votes
+    columns:
+      - name: lis_member_id
+        tests: [not_null]
+      - name: position
+        tests:
+          - accepted_values: { arguments: { values: ["Yea", "Nay", "Present", "Not Voting", "Other"] } }

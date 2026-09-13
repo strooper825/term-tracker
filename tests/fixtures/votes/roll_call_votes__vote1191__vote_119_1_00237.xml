@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><roll_call_vote>
+	<count>
+		<nays>47</nays>
+		<yeas>52</yeas>
+		<absent>1</absent>
+		<present></present>
+	</count>
+	<members>
+		<member>
+			<party>R</party>
+			<state>AR</state>
+			<last_name>Cotton</last_name>
+			<vote_cast>Not Voting</vote_cast>
+			<first_name>Tom</first_name>
+			<member_full>Cotton (R-AR)</member_full>
+			<lis_member_id>S374</lis_member_id>
+		</member>
+		<member>
+			<party>D</party>
+			<state>MD</state>
+			<last_name>Alsobrooks</last_name>
+			<vote_cast>Nay</vote_cast>
+			<first_name>Angela</first_name>
+			<member_full>Alsobrooks (D-MD)</member_full>
+			<lis_member_id>S428</lis_member_id>
+		</member>
+		<member>
+			<party>D</party>
+			<state>WI</state>
+			<last_name>Baldwin</last_name>
+			<vote_cast>Nay</vote_cast>
+			<first_name>Tammy</first_name>
+			<member_full>Baldwin (D-WI)</member_full>
+			<lis_member_id>S354</lis_member_id>
+		</member>
+		<member>
+			<party>R</party>
+			<state>IN</state>
+			<last_name>Banks</last_name>
+			<vote_cast>Yea</vote_cast>
+			<first_name>Jim</first_name>
+			<member_full>Banks (R-IN)</member_full>
+			<lis_member_id>S429</lis_member_id>
+		</member>
+		<member>
+			<party>R</party>
+			<state>WY</state>
+			<last_name>Barrasso</last_name>
+			<vote_cast>Yea</vote_cast>
+			<first_name>John</first_name>
+			<member_full>Barrasso (R-WY)</member_full>
+			<lis_member_id>S317</lis_member_id>
+		</member>
+	</members>
+	<session>1</session>
+	<congress>119</congress>
+	<document>
+		<document_name>S.J.Res. 13</document_name>
+		<document_type>S.J.Res.</document_type>
+		<document_title>A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Office of the Comptroller of the Currency of the Department of the Treasury relating to the review of applications under the Bank Merger Act.</document_title>
+		<document_number>13</document_number>
+		<document_congress>119</document_congress>
+		<document_short_title></document_short_title>
+	</document>
+	<question>On the Joint Resolution</question>
+	<amendment>
+		<amendment_number></amendment_number>
+		<amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
+		<amendment_to_document_number></amendment_to_document_number>
+		<amendment_to_amendment_number></amendment_to_amendment_number>
+		<amendment_to_document_short_title></amendment_to_document_short_title>
+		<amendment_to_amendment_to_amendment_number></amendment_to_amendment_to_amendment_number>
+	</amendment>
+	<vote_date>May 7, 2025,  05:30 PM</vote_date>
+	<vote_title>S.J. Res. 13</vote_title>
+	<modify_date>May 7, 2025,  06:27 PM</modify_date>
+	<tie_breaker>
+		<by_whom></by_whom>
+		<tie_breaker_vote></tie_breaker_vote>
+	</tie_breaker>
+	<vote_number>237</vote_number>
+	<vote_result>Joint Resolution Passed</vote_result>
+	<congress_year>2025</congress_year>
+	<vote_result_text>Joint Resolution Passed (52-47)</vote_result_text>
+	<vote_document_text>A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Office of the Comptroller of the Currency of the Department of the Treasury relating to the review of applications under the Bank Merger Act.</vote_document_text>
+	<vote_question_text>On the Joint Resolution S.J.Res. 13</vote_question_text>
+	<majority_requirement>1/2</majority_requirement>
+</roll_call_vote>

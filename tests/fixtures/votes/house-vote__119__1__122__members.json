@@ -1,0 +1,72 @@
+{
+ "houseRollCallVoteMemberVotes": {
+  "congress": 119,
+  "identifier": 11912025122,
+  "legislationNumber": "276",
+  "legislationType": "HR",
+  "legislationUrl": "https://www.congress.gov/bill/119/house-bill/276",
+  "result": "Passed",
+  "results": [
+   {
+    "bioguideID": "S001213",
+    "firstName": "Bryan",
+    "lastName": "Steil",
+    "voteCast": "Aye",
+    "voteParty": "R",
+    "voteState": "WI"
+   },
+   {
+    "bioguideID": "A000055",
+    "firstName": "Robert",
+    "lastName": "Aderholt",
+    "voteCast": "Aye",
+    "voteParty": "R",
+    "voteState": "AL"
+   },
+   {
+    "bioguideID": "A000148",
+    "firstName": "Jake",
+    "lastName": "Auchincloss",
+    "voteCast": "No",
+    "voteParty": "D",
+    "voteState": "MA"
+   },
+   {
+    "bioguideID": "A000369",
+    "firstName": "Mark",
+    "lastName": "Amodei",
+    "voteCast": "Aye",
+    "voteParty": "R",
+    "voteState": "NV"
+   },
+   {
+    "bioguideID": "A000370",
+    "firstName": "Alma",
+    "lastName": "Adams",
+    "voteCast": "No",
+    "voteParty": "D",
+    "voteState": "NC"
+   },
+   {
+    "bioguideID": "A000371",
+    "firstName": "Pete",
+    "lastName": "Aguilar",
+    "voteCast": "No",
+    "voteParty": "D",
+    "voteState": "CA"
+   }
+  ],
+  "rollCallNumber": 122,
+  "sessionNumber": 1,
+  "sourceDataURL": "https://clerk.house.gov/evs/2025/roll122.xml",
+  "startDate": "2025-05-08T10:42:00-04:00",
+  "updateDate": "2025-06-24T08:37:50-04:00",
+  "voteQuestion": "On Passage",
+  "voteType": "Recorded Vote"
+ },
+ "request": {
+  "congress": "119",
+  "format": "json",
+  "session": "1"
+ }
+}
