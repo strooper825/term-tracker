@@ -17,8 +17,9 @@ Alembic's own `alembic_version` table lives in `public`.
 
 ## `meta.ingest_run`
 
-One row per ingestion run of one source. Backs `GET /api/v1/meta/freshness`, which reports the
-latest `status = 'success'` row per `source`.
+One row per ingestion run of one source. Backs `GET /api/v1/meta/freshness` and the nightly
+freshness check (`python -m ingest.freshness`), both of which read the latest
+`status = 'success'` row per `source`.
 
 | Column | Type | Null | Description |
 |---|---|---|---|

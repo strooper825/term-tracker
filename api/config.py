@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,15 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql+psycopg://term:term@localhost:5433/term_tracker"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_driver(cls, value: str) -> str:
+        """Accept the plain URL a managed host hands out (postgresql:// or postgres://)."""
+        for prefix in ("postgresql://", "postgres://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+        return value
 
     # Ingestion (Congress.gov). The key is issued via api.data.gov; see .env.example.
     congress_gov_api_key: str | None = None
