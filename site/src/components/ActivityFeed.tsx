@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { EVENT_COLOR, EVENT_TYPES, type EventKey } from '@/data/eventTypes';
 import type { FeedGroup } from '@/lib/model';
 import { FilterChip } from './FilterChip';
-import { SourceLink } from './SiteChrome';
+import { DetailsLink, SourceLink } from './SiteChrome';
 
 const PAGE = 4; // date groups per "Load more"
 
@@ -115,20 +115,7 @@ export function ActivityFeed({
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                   <p className="text-base leading-snug m-0">
                     {it.lead && <strong className="font-semibold text-ink">{it.lead}</strong>}
-                    {it.link ? (
-                      <>
-                        {it.link.before}
-                        <a
-                          href={it.link.href}
-                          className="underline decoration-rule underline-offset-2 hover:decoration-ink3"
-                        >
-                          {it.link.label}
-                        </a>
-                        {it.link.after}
-                      </>
-                    ) : (
-                      it.headline
-                    )}
+                    {it.headline}
                   </p>
                   {it.secondary && (
                     <p
@@ -139,7 +126,13 @@ export function ActivityFeed({
                     </p>
                   )}
                 </div>
-                <SourceLink href={it.source} />
+                {/* One destination per row: the bill page when the mart says there is one,
+                    otherwise the record on congress.gov or senate.gov. */}
+                {it.detailsHref ? (
+                  <DetailsLink href={it.detailsHref} />
+                ) : (
+                  <SourceLink href={it.source} />
+                )}
               </div>
             ))}
           </div>

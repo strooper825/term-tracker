@@ -150,8 +150,7 @@ committee member).
 
 Bills: `stg_member_legislation` (list items), `stg_bills` (detail records; amendment titles are
 composed from description, purpose, or the amended bill), `stg_bill_actions` (one row per
-action with `action_hash` = md5 of date, code, text, source-system code; identical duplicates
-collapsed), `stg_bill_cosponsors` (one row per cosponsor).
+(bill, date, action text), see below), `stg_bill_cosponsors` (one row per cosponsor).
 
 Votes: `stg_house_roll_calls`, `stg_house_member_votes` (every member), `stg_senate_roll_calls`
 (dates parsed from "January 9, 2025, 02:54 PM" Eastern; Senate document types such as `S.` and
@@ -287,12 +286,36 @@ empty array for a bill with no cosponsors or no summary, and the dbt test
 altogether.
 
 `action_count` counts the rows in `mart.bill_action`, which is what the page lists, and that
-can be lower than the total Congress.gov reports for the same bill: `stg_bill_actions`
-collapses byte-identical actions (same date, code, text and source system) so the natural key
-holds. 142 of the 1,874 bills loaded on 2026-09-13 have at least one such duplicate; H.R. 5269
-is one, where the House floor referral is published twice and the page shows 3 actions against
-the API's 4. `assert_bill_summary_one_latest` checks the counts against the rows in
+is lower than the total Congress.gov reports for the same bill wherever the source publishes
+one action more than once. See `stg_bill_actions`: the grain is one row per (bill, date,
+action text). 773 of the 1,874 bills loaded on 2026-09-13 have at least one repeat, and
+collapsing them removes 1,213 of 12,896 action rows. `assert_bill_summary_one_latest` checks the counts against the rows in
 `mart.bill_summary` and `mart.bill_cosponsor`.
+
+### `mart.bill_action`, and how repeated actions are collapsed
+
+Congress.gov publishes the same action for a bill more than once on the same day: sometimes
+byte for byte, more often under a different action code, from a different source system, or
+filed under a different type. "Introduced in House" arrives under both `Intro-H` and `1000`,
+and a committee report arrives from both the Library of Congress and House floor actions.
+Collapsing only byte-identical rows (the Phase 1b rule) left both on the bill page.
+
+The grain is therefore **one row per (bill, action date, action text)**, with `action_hash` =
+md5 of the date and that text. An action with no text keys on its code instead, so two
+untitled actions on one day stay apart. The surviving row keeps the code, time and type of the
+first occurrence in the upstream array and adds:
+
+| Column | Description |
+|---|---|
+| `source_system` | Every source that reported it, joined: `House floor actions and Library of Congress` |
+| `action_types` | Every type the group carried, e.g. `{Committee,Discharge}`; `mart.member_feed` selects committee actions on this rather than on `action_type`, so an action one source filed as `Committee` and another as `Discharge` still reaches the feed |
+| `reported_times` | How many upstream entries collapsed into this row |
+
+Measured 2026-09-13: 1,213 of 12,896 action rows collapse away, across 773 of the 1,874 bills.
+503 of those groups differ by source system, 1,093 by action code, 301 by type. The activity
+feed's `committee_action` count falls from 96 to 72, which is duplicate removal, not loss:
+counting distinct (bill, date, text) groups where any occurrence was typed `Committee` gives
+72 independently.
 
 ### `mart.bill_summary`
 
@@ -466,6 +489,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
 | `headline`, `detail`, `detail_full` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, `Voted YEA on 48 nominations (en bloc)`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`, and for en bloc votes the question is shortened to `On the Cloture Motion · 48 nominations` with the full nomination list in `detail_full` (null otherwise). Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
+| `source_url` | For a vote, the roll call's public record (`mart.roll_call.source_url`: the House Clerk XML or the senate.gov vote XML), not `mart.member_vote.source_url`, which for the House is the Congress.gov API endpoint the positions were read from and needs a key to open. The site links a feed row here when the row has no bill page |
 | `congress`, `bill_label` | The Congress the event belongs to, and the human bill form (`H.R. 4735`) when the bill is in `mart.bill`. `bill_label` is null when the roll call names legislation with no page, which is how the site decides whether to link the label to `/bills/{congress}/{type}/{number}` rather than guessing |
 
 ### `mart.fec_committee`

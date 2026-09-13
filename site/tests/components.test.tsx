@@ -166,19 +166,12 @@ describe('key dates card', () => {
 describe('activity feed', () => {
   it('renders votes with and without a bill title, filters by type, searches, and empties gracefully', () => {
     render(<ActivityFeed groups={groupFeed(FEED)} totals={eventTotals(FEED)} totalLabel="7" />);
-    // The bill label is now an internal link, so the headline is split around it.
-    const billLink = screen.getByRole('link', { name: 'H.R. 4795' });
-    expect(billLink).toHaveAttribute('href', '/bills/119/hr/4795');
-    expect(billLink.parentElement).toHaveTextContent(
-      'on H.R. 4795: Protect Economic and Academic Freedom Act of 2026',
-    );
-    // a vote with no legislation has no link
+    // The headline is plain text again; the row's one destination is the Details button.
+    expect(
+      screen.getByText('on H.R. 4795: Protect Economic and Academic Freedom Act of 2026'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'H.R. 4795' })).not.toBeInTheDocument();
     expect(screen.getByText('on nomination PN12-1')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'PN12-1' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'H.Res. 150' })).toHaveAttribute(
-      'href',
-      '/bills/119/hres/150',
-    );
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toBeInTheDocument();
     expect(screen.getByText('on roll call 353')).toBeInTheDocument();
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');
@@ -193,6 +186,37 @@ describe('activity feed', () => {
     expect(screen.getByText(/No events match “zzzz”/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
+  });
+
+  it('gives every row exactly one destination, chosen by mart.member_feed.bill_label', () => {
+    render(<ActivityFeed groups={groupFeed(FEED)} totals={eventTotals(FEED)} totalLabel="7" />);
+    const rows = screen.getAllByText(/^(on |Introduced |Cosponsored |H\.Res\.)/);
+    expect(rows.length).toBe(7);
+    for (const row of rows) {
+      const container = row.closest('div.flex.gap-\\[11px\\]') as HTMLElement;
+      const links = within(container).getAllByRole('link');
+      expect(links).toHaveLength(1); // never both a Details and a source link
+    }
+
+    // four fixture rows name a bill that has a page: three votes/bills plus the committee action
+    const details = screen.getAllByRole('link', { name: 'Details →' });
+    expect(details.map((a) => a.getAttribute('href')).sort()).toEqual([
+      '/bills/119/hr/4735',
+      '/bills/119/hr/4795',
+      '/bills/119/hr/5269',
+      '/bills/119/hres/150',
+    ]);
+    for (const link of details) {
+      expect(link).not.toHaveAttribute('target'); // internal, same tab
+    }
+
+    // the three rows with no bill page keep the outward source link
+    const sources = screen.getAllByRole('link', { name: /source ↗/ });
+    expect(sources).toHaveLength(3);
+    for (const link of sources) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link.getAttribute('href')).toMatch(/clerk\.house\.gov|senate\.gov/);
+    }
   });
 });
 

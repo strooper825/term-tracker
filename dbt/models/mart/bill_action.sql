@@ -1,4 +1,6 @@
--- One row per action on a bill or amendment in mart.bill. Feeds the timeline and feed panels.
+-- One row per action on a bill or amendment in mart.bill, one row per (date, action text):
+-- see stg_bill_actions for how the duplicates Congress.gov publishes are collapsed.
+-- Feeds the timeline and feed panels.
 select
     a.congress,
     a.bill_type,
@@ -10,7 +12,9 @@ select
     a.action_code,
     a.action_text,
     a.action_type,
+    a.action_types,
     a.source_system,
+    a.reported_times,
     a.source,
     a.source_url,
     a.fetched_at

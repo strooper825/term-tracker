@@ -12,9 +12,12 @@ export interface BillPageProps {
   lastUpdated: string | null;
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
+/* `name` prefixes the value so a bare word reads as what it is: "POLICY AREA Education"
+   rather than "EDUCATION" on its own. */
+function Chip({ name, children }: { name?: string; children: React.ReactNode }) {
   return (
     <span className="text-label uppercase tracking-[0.05em] text-ink2 bg-[#F6F5F2] border border-rule rounded-chip px-1.5 py-0.5">
+      {name && <span className="text-ink4">{name} </span>}
       {children}
     </span>
   );
@@ -23,13 +26,16 @@ function Chip({ children }: { children: React.ReactNode }) {
 function BillHeader({ bill }: { bill: BillPageModel }) {
   return (
     <div className="flex flex-col gap-3">
+      {/* The title leads; the number is an identifier beside it, not the headline. */}
       <div className="flex items-center gap-2.5 flex-wrap">
-        <span className="text-[22px] font-semibold tnum -tracking-[0.015em]">{bill.label}</span>
+        <span className="text-card font-semibold tnum text-ink2">{bill.label}</span>
         <Chip>{bill.kindLabel}</Chip>
         <Chip>{bill.congress}</Chip>
-        {bill.policyArea && <Chip>{bill.policyArea}</Chip>}
+        {bill.policyArea && <Chip name="Policy area">{bill.policyArea}</Chip>}
       </div>
-      <h1 className="text-[19px] font-semibold leading-snug m-0 max-w-[70ch]">{bill.title}</h1>
+      <h1 className="text-[22px] font-semibold leading-snug m-0 max-w-[70ch] -tracking-[0.015em]">
+        {bill.title}
+      </h1>
       <div className="text-sm text-ink2 flex gap-2 flex-wrap">
         <span>
           Sponsored by{' '}
@@ -109,14 +115,14 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
   );
 }
 
-function RollCallCard({ rows }: { rows: RollCallRow[] }) {
+function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string }) {
   return (
     <section aria-labelledby="rollcalls-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3">
         <h2 id="rollcalls-title" className="text-card font-semibold m-0">
           Roll calls
         </h2>
-        <span className="text-meta text-ink3 tnum">{rows.length}</span>
+        <span className="text-meta text-ink3 tnum">{meta}</span>
       </div>
       {rows.length === 0 ? (
         <p className="text-sm text-ink3 px-[18px] py-4 m-0">
@@ -169,11 +175,11 @@ export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
         <main className="px-7 py-7 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-7 items-start">
           <div className="flex flex-col gap-7 min-w-0">
             <SummaryCard bill={bill} />
-            <BillActions groups={bill.actions} total={bill.actionCount} />
+            <BillActions groups={bill.actions} meta={bill.actionsMeta} />
           </div>
           <div className="flex flex-col gap-5 min-w-0">
             <BillCosponsors cosponsors={bill.cosponsors} />
-            <RollCallCard rows={bill.rollCalls} />
+            <RollCallCard rows={bill.rollCalls} meta={bill.rollCallsMeta} />
           </div>
         </main>
 
