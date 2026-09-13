@@ -34,7 +34,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
           <h2 id="cosponsors-title" className="text-card font-semibold m-0">
             Cosponsors
           </h2>
-          <span className="text-meta text-ink3 tnum">{cosponsors.total}</span>
+          <span className="text-meta text-ink3 tnum">{cosponsors.meta}</span>
         </div>
         {cosponsors.total > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -43,7 +43,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
                 key={chip.label}
                 className="text-label uppercase tracking-[0.05em] text-ink2 bg-[#F6F5F2] border border-rule rounded-chip px-1.5 py-0.5 tnum"
               >
-                {chip.count} {chip.label}
+                {chip.label}
               </span>
             ))}
             {cosponsors.withdrawn > 0 && (
@@ -91,7 +91,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
 
 /* Same visual language as the member activity feed: sticky date headers, a coloured dot per
    row. Committee-coloured, because every action is a step through committee or the floor. */
-export function BillActions({ groups, total }: { groups: ActionGroup[]; total: number }) {
+export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: string }) {
   const [shown, setShown] = useState(ACTION_GROUPS_SHOWN);
   const visible = groups.slice(0, shown);
   return (
@@ -100,7 +100,7 @@ export function BillActions({ groups, total }: { groups: ActionGroup[]; total: n
         <h2 id="actions-title" className="text-card font-semibold m-0">
           Action history
         </h2>
-        <span className="text-meta text-ink3 tnum">{total} recorded · most recent first</span>
+        <span className="text-meta text-ink3 tnum">{meta}</span>
       </div>
       {groups.length === 0 && (
         <p className="text-sm text-ink3 px-[18px] py-4 m-0">No actions recorded yet.</p>

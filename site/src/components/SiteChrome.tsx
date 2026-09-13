@@ -101,3 +101,23 @@ export function SourceLink({
     </a>
   );
 }
+
+/* Internal counterpart to SourceLink: same chip, no new tab, darker ink because it stays on
+   the site. A feed row carries one or the other, never both. */
+export function DetailsLink({
+  href,
+  title = 'Open the bill page',
+}: {
+  href: string;
+  title?: string;
+}) {
+  return (
+    <a
+      href={href}
+      title={title}
+      className="flex-none text-meta text-ink2 border border-rule rounded-chip px-1.5 py-0.5 hover:border-lockInk hover:bg-canvas"
+    >
+      Details →
+    </a>
+  );
+}

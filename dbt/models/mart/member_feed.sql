@@ -57,7 +57,10 @@ with votes as (
         b.label as bill_label,
         b.congress_gov_url as url,
         v.source,
-        v.source_url,
+        -- the roll call's public record (House Clerk XML, senate.gov vote XML), not
+        -- member_vote.source_url, which for the House is the Congress.gov API endpoint the
+        -- positions were read from and needs a key to open
+        r.source_url,
         v.fetched_at
     from {{ ref('member_vote') }} as v
     inner join {{ ref('roll_call') }} as r
@@ -131,7 +134,11 @@ committee_actions as (
         and s.role = 'sponsor'
     inner join {{ ref('bill') }} as b
         on b.congress = a.congress and b.bill_type = a.bill_type and b.bill_number = a.bill_number
-    where a.congress = {{ var('current_congress') }} and a.action_type = 'Committee'
+    -- action_types holds every classification the collapsed group carried, so an action
+    -- the Library of Congress filed as Committee still counts when another source filed
+    -- the same text as Discharge (stg_bill_actions)
+    where a.congress = {{ var('current_congress') }}
+        and 'Committee' = any(a.action_types)
 )
 
 select * from votes

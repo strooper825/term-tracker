@@ -107,10 +107,11 @@ export interface FeedRow {
   secondary: string;
   /** Uncapped text when `secondary` is a summary (en bloc votes); shown on hover. */
   secondaryFull?: string;
+  /** Where the row goes when there is no bill page: congress.gov or senate.gov. */
   source: string;
-  /** Set when the event names a bill that has a page here: the headline split around the
-   *  label so the label alone becomes an internal link. */
-  link?: { before: string; label: string; href: string; after: string };
+  /** The bill page here, set when the event names a bill that has one. A row shows either
+   *  this or `source`, never both, so each row has a single destination. */
+  detailsHref?: string;
 }
 
 export interface FeedGroup {
@@ -345,49 +346,39 @@ export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Wee
 
 const VOTE_LEAD = /^(Voted .+? on |Did not vote on )([\s\S]*)$/;
 
-/** Split a mart.member_feed vote headline into the bold position and the rest. */
-/** Split a headline around the bill label so the label can be linked. mart.member_feed sets
- *  bill_label only when the bill is in mart.bill, which is exactly when a page exists. */
-export function billLink(item: FeedItem, headline: string): FeedRow['link'] {
+/** The bill page for a feed event, when the event names a bill that has one.
+ *
+ *  mart.member_feed sets bill_label only for legislation that is in mart.bill, which is
+ *  exactly when a page exists, so the frontend never has to guess. A nomination vote, a
+ *  procedural roll call, or a committee action on a bill with no page returns undefined and
+ *  the row keeps its source link instead. */
+export function billDetailsHref(item: FeedItem): string | undefined {
   if (!item.bill_label || !item.bill_type || !item.bill_number) return undefined;
-  const at = headline.indexOf(item.bill_label);
-  if (at < 0) return undefined;
-  return {
-    before: headline.slice(0, at),
-    label: item.bill_label,
-    href: billPath(item.congress, item.bill_type, item.bill_number),
-    after: headline.slice(at + item.bill_label.length),
-  };
+  return billPath(item.congress, item.bill_type, item.bill_number);
 }
 
+/** Split a mart.member_feed vote headline into the bold position and the rest. */
 export function feedRow(item: FeedItem): FeedRow {
   const type = EVENT_TYPE_FROM_MART[item.event_type] ?? 'vote';
   const source = item.url ?? item.source_url;
   const secondary = item.detail ?? '';
   const secondaryFull = item.detail_full && item.detail_full !== secondary ? item.detail_full : undefined;
+  const detailsHref = billDetailsHref(item);
   if (type === 'vote') {
     const m = VOTE_LEAD.exec(item.headline);
     if (m) {
-      const headline = `on ${m[2]}`;
       return {
         type,
         lead: m[1].replace(/ on $/, ' '),
-        headline,
+        headline: `on ${m[2]}`,
         secondary,
         secondaryFull,
         source,
-        link: billLink(item, headline),
+        detailsHref,
       };
     }
   }
-  return {
-    type,
-    headline: item.headline,
-    secondary,
-    secondaryFull,
-    source,
-    link: billLink(item, item.headline),
-  };
+  return { type, headline: item.headline, secondary, secondaryFull, source, detailsHref };
 }
 
 /** Group feed items by calendar day, newest first (the API already orders by event_at desc). */
@@ -635,6 +626,9 @@ export interface CosponsorRow {
 
 export interface CosponsorsModel {
   total: number;
+  /** Corner line: "53 recorded - earliest first". */
+  meta: string;
+  /** Pre-pluralised party counts, e.g. "1 Democrat", "12 Republicans". */
   chips: { label: string; count: number }[];
   rows: CosponsorRow[];
   withdrawn: number;
@@ -666,8 +660,11 @@ export interface BillPageModel {
   summaryEmpty: string | null;
   actions: ActionGroup[];
   actionCount: number;
+  /** Corner line for the action card, the treatment the other two cards now match. */
+  actionsMeta: string;
   cosponsors: CosponsorsModel;
   rollCalls: RollCallRow[];
+  rollCallsMeta: string;
 }
 
 const PARTY_WORD: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' };
@@ -724,16 +721,28 @@ function actionGroups(actions: BillAction[]): ActionGroup[] {
   return groups;
 }
 
+/** "1 Democrat", "12 Democrats". The count is the mart column; only the word changes. */
+export function countLabel(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+/** The line in a card's top corner, matching the action history's treatment across all three
+ *  lists: how many rows and which way they run. */
+export function listMeta(count: number, ordering: string): string {
+  return count === 0 ? 'None recorded' : `${count} recorded · ${ordering}`;
+}
+
 function cosponsorsModel(detail: BillDetail): CosponsorsModel {
   const c = detail.cosponsors;
   const chips = [
-    { label: 'Democrats', count: c.democratic },
-    { label: 'Republicans', count: c.republican },
-    { label: 'Other', count: c.other },
+    { label: countLabel(c.democratic, 'Democrat', 'Democrats'), count: c.democratic },
+    { label: countLabel(c.republican, 'Republican', 'Republicans'), count: c.republican },
+    { label: countLabel(c.other, 'other', 'other'), count: c.other },
   ].filter((chip) => chip.count > 0);
   return {
     total: c.total,
     withdrawn: c.withdrawn,
+    meta: listMeta(c.total, 'earliest first'),
     chips,
     rows: detail.cosponsor_list.map((p: BillCosponsor) => ({
       name: p.name,
@@ -806,7 +815,9 @@ export function buildBillPage(detail: BillDetail): BillPageModel {
     summaryEmpty: summaryEmptyMessage(detail),
     actions: actionGroups(detail.actions),
     actionCount: detail.action_count,
+    actionsMeta: listMeta(detail.action_count, 'most recent first'),
     cosponsors: cosponsorsModel(detail),
     rollCalls: rollCallRows(detail),
+    rollCallsMeta: listMeta(detail.roll_call_count, 'most recent first'),
   };
 }

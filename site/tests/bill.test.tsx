@@ -79,10 +79,14 @@ describe('bill page model', () => {
   it('cosponsor chips come from the mart counts, and tracked members get a link', () => {
     const m = buildBillPage(BILL);
     expect(m.cosponsors.total).toBe(3);
+    // pluralised against the mart count: one Democrat, two Republicans
     expect(m.cosponsors.chips).toEqual([
-      { label: 'Democrats', count: 1 },
-      { label: 'Republicans', count: 2 },
+      { label: '1 Democrat', count: 1 },
+      { label: '2 Republicans', count: 2 },
     ]);
+    expect(m.cosponsors.meta).toBe('3 recorded · earliest first');
+    expect(m.actionsMeta).toBe('3 recorded · most recent first');
+    expect(m.rollCallsMeta).toBe('1 recorded · most recent first');
     expect(m.cosponsors.withdrawn).toBe(1);
     expect(m.cosponsors.rows[0]).toEqual({
       name: 'Bryan Steil',
@@ -132,14 +136,29 @@ describe('bill page: given this API row, this text renders', () => {
     expect(screen.getByText(/Introduced Sep 10, 2025/)).toBeInTheDocument();
     expect(screen.getByText(/Latest action Sep 11, 2025/)).toBeInTheDocument();
 
+    // the title leads: it is the h1 and the larger type; the number is a smaller identifier
+    const heading = screen.getByRole('heading', { level: 1 });
+    const header = heading.parentElement!; // the chip row and the title, not the breadcrumb
+    const label = within(header).getByText('H.R. 5269');
+    expect(heading.className).toContain('text-[22px]');
+    expect(label.className).toContain('text-card');
+    expect(heading.className).not.toContain('text-card');
+    // the policy area says what it is rather than standing alone as a bare keyword
+    expect(screen.getByText('Policy area')).toBeInTheDocument();
+    expect(screen.getByText('Policy area').parentElement).toHaveTextContent(
+      'Policy area Government Operations and Politics',
+    );
+
     const summary = screen.getByLabelText('Summary');
     expect(within(summary).getByText('As of Jan 14, 2026 · Passed House')).toBeInTheDocument();
     expect(within(summary).getByText('This bill requires agencies to publish outcomes.')).toBeInTheDocument();
     expect(within(summary).getByText(/Earlier versions \(2 in all\)/)).toBeInTheDocument();
 
     const cosponsors = screen.getByLabelText('Cosponsors');
-    expect(within(cosponsors).getByText('1 Democrats')).toBeInTheDocument();
+    expect(within(cosponsors).getByText('1 Democrat')).toBeInTheDocument();
     expect(within(cosponsors).getByText('2 Republicans')).toBeInTheDocument();
+    // every card corner reads the same way as the action history
+    expect(within(cosponsors).getByText('3 recorded · earliest first')).toBeInTheDocument();
     expect(within(cosponsors).getByText('1 withdrawn')).toBeInTheDocument();
     expect(within(cosponsors).getByRole('link', { name: 'Bryan Steil' })).toHaveAttribute(
       'href',
@@ -153,6 +172,7 @@ describe('bill page: given this API row, this text renders', () => {
 
     const actions = screen.getByLabelText('Action history');
     expect(within(actions).getByText('3 recorded · most recent first')).toBeInTheDocument();
+    expect(within(calls).getByText('1 recorded · most recent first')).toBeInTheDocument();
     expect(within(actions).getByText('Wednesday, Sep 10, 2025')).toBeInTheDocument();
 
     // two source links: the bill on Congress.gov in the header, the roll call in its card
