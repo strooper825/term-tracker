@@ -93,6 +93,17 @@ jobs:
             sleep 1
           done
           echo "::error::API did not start"; cat api.log; exit 1
+      - name: Vercel diagnostics (identity, teams, projects; ids shown by shape only)
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          echo "VERCEL_ORG_ID: ${#VERCEL_ORG_ID} chars, starts with '${VERCEL_ORG_ID:0:5}'"
+          echo "VERCEL_PROJECT_ID: ${#VERCEL_PROJECT_ID} chars, starts with '${VERCEL_PROJECT_ID:0:4}'"
+          npx vercel whoami --token="$VERCEL_TOKEN" || true
+          npx vercel teams ls --token="$VERCEL_TOKEN" || true
+          npx vercel project ls --token="$VERCEL_TOKEN" || true
+          npx vercel project ls --scope "$VERCEL_ORG_ID" --token="$VERCEL_TOKEN" || true
       - name: Build the site (Vercel prebuilt output)
         working-directory: site
         env:
