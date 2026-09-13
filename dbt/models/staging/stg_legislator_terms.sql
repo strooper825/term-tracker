@@ -1,4 +1,6 @@
 -- One row per (legislator, term) unnested from raw.legislator payload -> 'terms'.
+-- caucus is set for Independents who caucus with a party; party_affiliations lists the
+-- party history within a term when it changed mid-term (the term-level party is the latest).
 select
     l.bioguide_id,
     t.ordinality as term_index,
@@ -9,7 +11,11 @@ select
     (t.value ->> 'district')::int as district,
     (t.value ->> 'class')::int as senate_class,
     t.value ->> 'party' as party,
+    t.value ->> 'caucus' as caucus,
+    t.value -> 'party_affiliations' as party_affiliations,
     t.value ->> 'state_rank' as state_rank,
+    t.value ->> 'how' as how,
+    t.value ->> 'end-type' as end_type,
     'legislators' as source,
     l.source_url,
     l.fetched_at

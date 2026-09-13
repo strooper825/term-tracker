@@ -16,6 +16,7 @@ select
     case when t.chamber = 'house' then t.district end as district,
     t.senate_class,
     t.party,
+    t.caucus,
     t.state_rank,
     t.source,
     t.source_url,

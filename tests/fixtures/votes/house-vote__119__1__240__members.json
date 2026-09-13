@@ -54,6 +54,14 @@
     "voteCast": "Yea",
     "voteParty": "D",
     "voteState": "CA"
+   },
+   {
+    "bioguideID": "K000401",
+    "firstName": "Kevin",
+    "lastName": "Kiley",
+    "voteCast": "Yea",
+    "voteParty": "I",
+    "voteState": "CA"
    }
   ],
   "rollCallNumber": 240,

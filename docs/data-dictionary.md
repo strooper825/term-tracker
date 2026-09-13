@@ -99,14 +99,17 @@ lists; nothing else is altered.
 | Table | Key | Description |
 |---|---|---|
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
-| `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. |
-| `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. Recesses not seeded yet. |
+| `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Six members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries. |
+| `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
 
 ## Staging views (`staging` schema, dbt)
 
-`stg_legislators`, `stg_legislator_terms` (one row per term, `chamber` mapped from `rep`/`sen`
-to `house`/`senate`), `stg_committees` (committees and subcommittees flattened; subcommittee
-`thomas_id` = parent id + suffix), `stg_committee_memberships` (one row per committee member).
+`stg_legislators` (names, `bio` birthday and gender, external ids), `stg_legislator_terms`
+(one row per term, `chamber` mapped from `rep`/`sen` to `house`/`senate`, plus `caucus`,
+`party_affiliations`, `how`, `end_type`), `stg_legislator_leadership_roles` (one row per
+entry of `leadership_roles`), `stg_committees` (committees and subcommittees flattened;
+subcommittee `thomas_id` = parent id + suffix), `stg_committee_memberships` (one row per
+committee member).
 
 Bills: `stg_member_legislation` (list items), `stg_bills` (detail records; amendment titles are
 composed from description, purpose, or the amended bill), `stg_bill_actions` (one row per
@@ -141,10 +144,20 @@ One row per tracked member. Key `bioguide_id`.
 
 | Column | Type | Description |
 |---|---|---|
-| `first_name`, `last_name`, `official_full_name` | text | From congress-legislators `name` |
+| `first_name`, `middle_name`, `last_name`, `nickname`, `suffix`, `official_full_name` | text | From congress-legislators `name`; middle, nickname, and suffix are null when the source has none |
+| `birthday` | date | From `bio.birthday`; the API derives `bio.age` from it at request time |
+| `gender` | text | `M` or `F`, as the source records it |
 | `govtrack_id`, `icpsr_id` | int | For later joins (Voteview uses ICPSR) |
+| `lis_id` | text | Senate LIS id, the key on senate.gov vote records |
 | `fec_ids` | jsonb | Array of FEC candidate ids (Phase 2) |
+| `opensecrets_id`, `wikipedia_id`, `ballotpedia_id`, `wikidata_id` | text | External ids from `id`; Wikipedia and Ballotpedia hold the page title |
+| `cspan_id`, `votesmart_id` | int | External ids from `id` |
 | `photo_url` | text | Congress.gov member image convention; replaced by the API value in Phase 1b |
+
+Source fields not captured (kept only in `raw.legislator.payload`): `id.thomas`,
+`id.maplight`, `id.house_history`, `id.google_entity_id`, `id.pictorial`, `family`,
+`other_names`, and the per-term contact block (`url`, `address`, `office`, `phone`, `fax`,
+`contact_form`, `rss_url`).
 
 ### `mart.term`
 
@@ -160,7 +173,24 @@ Tracked member-terms overlapping the current Congress. Natural key
 | `state_abbr`, `fips_state`, `state_name` | text | Joined to the FIPS seed |
 | `district` | int | House only |
 | `senate_class`, `state_rank` | int, text | Senate only |
-| `party` | text | Party during the term |
+| `party` | text | Party during the term (the latest one when it changed mid-term) |
+| `caucus` | text | For Independents, the party they caucus with (`Democrat` / `Republican`); null otherwise |
+
+### `mart.term_history`
+
+Every term a tracked member has served, in source order. Natural key `(bioguide_id,
+term_index)`. Same columns as `term` plus `term_index`, `party_affiliations` (jsonb list of
+`{start, end, party, caucus}` when the party changed within the term), `how` (`appointment`
+or `special-election`), and `end_type` (why a term ended early). Backs the header lines
+"serving since" and "Nth term" (see `member_summary`).
+
+### `mart.leadership_role`
+
+Party and chamber leadership roles of tracked members from congress-legislators
+`leadership_roles` (Speaker, floor leaders, whips, conference and caucus officers). One row
+per role and Congress, so a title held continuously appears once per Congress; `end_date` is
+null and `is_current` true while held. Columns `title`, `chamber`, `start_date`, `end_date`,
+`is_current`.
 
 ### `mart.committee`
 
@@ -229,7 +259,7 @@ roll_number)`.
 | Column | Type | Description |
 |---|---|---|
 | `voted_at`, `vote_date` | timestamptz, date | Vote time (House: Congress.gov `startDate`; Senate: parsed `vote_date`); date in Eastern time |
-| `question`, `result` | text | As published |
+| `question`, `question_short`, `result` | text | As published; `question_short` is the Senate `question` element without the measure or nomination list (House: same as `question`) |
 | `vote_type` | text | House only (`Yea-and-Nay`, `Recorded Vote`, ...) |
 | `majority_requirement` | text | Senate only (`1/2`, `3/5`, `2/3`) |
 | `bill_type`, `bill_number` | text | Legislation voted on, Congress.gov style; null for nominations and procedural votes |
@@ -268,26 +298,43 @@ One row per tracked member and Congress.
 | `roll_calls` | Roll calls in the chamber this Congress |
 | `positions`, `votes_cast`, `not_voting` | Member rows in `member_vote`; cast = anything but Not Voting |
 | `attendance_pct`, `missed_vote_pct` | 100 x votes_cast / positions and its complement |
-| `party_votes`, `party_agreements`, `party_unity_pct` | Plan definition: of the member's Yea/Nay votes on roll calls where the member's party had a Yea/Nay majority (ties excluded), the share that matched that majority |
+| `scoring_party` | The party letter the unity figures are scored against (see below) |
+| `party_votes`, `party_agreements`, `party_unity_pct` | Plan definition: of the member's Yea/Nay votes on roll calls where the scoring party had a Yea/Nay majority (ties excluded), the share that matched that majority |
 | `cq_party_votes`, `cq_party_agreements`, `party_unity_cq_pct` | Same, restricted to roll calls where the Republican and Democratic majorities opposed each other (the CQ "party unity vote" definition used by most published figures) |
 
-Party is taken from the vote record itself (House `voteParty`, Senate `party`), so a member
-who switches party is scored against the party they belonged to on each vote.
+Scoring party (ADR 0005): the party on the vote record (House `voteParty`, Senate `party`),
+except that a member whose congress-legislators term carries `caucus` is scored with, and
+counted in the majority of, that caucus. That applies to every voter, tracked or not, so the
+two Senate Independents both count toward the Democratic majority. Majorities exist only for
+`R` and `D`; a member scored under any other letter gets null unity figures instead of a
+degenerate 100 percent. Kiley's vote records carry `R` until 2026-03-08 and `I` after; with
+`caucus: Republican` he is scored against the Republican majority throughout.
 
 ### `mart.member_summary`
 
-One row per tracked member: identity, seat, latest term (`term_start_date`, `term_end_date`,
-`congress`, `term_end_congress`), `tracked_congress` (the dbt var `current_congress`, the
-Congress the dashboard covers), the `member_vote_stats` columns for the current Congress,
-`bills_sponsored`, `bills_cosponsored`, `committees`, and `chairmanships`. Days remaining are
-computed by the API.
+One row per tracked member: identity and biography (the `member` columns), seat, latest term
+(`term_start_date`, `term_end_date`, `congress`, `term_end_congress`, `caucus`),
+`tracked_congress` (the dbt var `current_congress`, the Congress the dashboard covers), the
+service record, `leadership_title`, the `member_vote_stats` columns for the current Congress,
+`bills_sponsored`, `bills_cosponsored`, `committees`, and `chairmanships`. Days remaining and
+age are computed by the API.
+
+Service record, from `term_history`: `term_count` (every term served, both chambers, the
+current one included; the header shows it as "Nth term"), `first_term_start_date`,
+`serving_since_date` (start of the current unbroken run of terms; a run breaks only when a
+term begins more than one Congress after the previous one ended, so Cotton's House term ending
+2015-01-03 and Senate term beginning 2015-01-06 are continuous service since 2013),
+`chamber_term_count` and `chamber_since_date` (the same within the current chamber; Slotkin
+reads "4th term · 1st in the Senate"). `leadership_title` is the currently held
+`leadership_role` (latest start when several are open), shown as a chip in the header.
 
 `chairmanships` counts assignments whose `title` starts with `Chair` (so `Chairman` and
-`Chairwoman` count, `Vice Chair` does not) on **full committees of the member's own chamber**:
-the committee has no `parent_thomas_id` (subcommittees excluded) and its `chamber` equals the
-member's chamber (joint committees excluded). Steil chairs House Administration (counted), the
-Joint Committee on the Library (joint, not counted), and a Financial Services subcommittee
-(not counted), so his figure is 1. The site's Committees stat note shows this column.
+`Chairwoman` count, `Vice Chair` does not) on **full committees**: the committee has no
+`parent_thomas_id`, so subcommittee chairs are excluded and joint committees are included.
+Steil chairs House Administration and the Joint Committee on the Library (both counted) and a
+Financial Services subcommittee (not counted), so his figure is 2; the site's Committees stat
+note reads "2 full committee chairs" and the committees card labels the subcommittee chair
+separately.
 
 The site's Party unity stat shows `member_vote_stats.party_unity_cq_pct`, the CQ-style figure
 comparable to published vote studies, under the label "votes with party majority";
@@ -306,7 +353,7 @@ One row per event per tracked member, current Congress. Natural key `(bioguide_i
 | `event_type` | `vote`, `bill_sponsored`, `bill_cosponsored`, `committee_action` (a Committee-type action on a bill the member sponsors); `floor_speech` arrives in Phase 3 |
 | `event_at`, `event_date` | Vote time, introduction date, cosponsorship date, or action date (Eastern) |
 | `event_key` | `vote:<chamber>:<session>:<roll>`, `bill_sponsor:<congress>:<type>:<number>`, `bill_cosponsor:...`, `action:<congress>:<type>:<number>:<date>:<hash>` |
-| `headline`, `detail` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`. Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
+| `headline`, `detail`, `detail_full` | Votes: `Voted YEA on H.R. 3424: <bill title>`, `Voted YEA on nomination PN12-1`, `Voted YEA on 48 nominations (en bloc)`, or `Voted YEA on roll call 253` when no legislation is attached; `detail` is `<question> · <result> <yea>–<nay>`, and for en bloc votes the question is shortened to `On the Cloture Motion · 48 nominations` with the full nomination list in `detail_full` (null otherwise). Bills: `Introduced H.R. 4735: <title>` with the latest action in `detail`; committee actions: `<bill label>: <action text>` with the title in `detail` |
 | `position`, `chamber`, `session`, `roll_number`, `bill_type`, `bill_number`, `url` | References for the panel |
 
 ### `mart.member_activity_timeline`

@@ -38,6 +38,7 @@ select
     c.voted_at,
     c.vote_date,
     c.question,
+    c.question_short,
     c.result,
     c.vote_type,
     c.majority_requirement,

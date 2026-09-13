@@ -18,16 +18,33 @@ with votes as (
             {{ bill_label('r.bill_type', 'r.bill_number') }} || coalesce(': ' || b.title, ''),
             -- senate.gov gives nomination numbers without the PN prefix (document_number 1078,
             -- document_name PN1078); the public form is PN1078
-            case when r.document_type = 'PN' then 'nomination PN' || r.document_number end,
+            case
+                when r.document_type = 'PN' and r.document_count > 1
+                    then r.document_count::text || ' nominations (en bloc)'
+                when r.document_type = 'PN' then 'nomination PN' || r.document_number
+            end,
             'roll call ' || r.roll_number::text
         ) as headline,
         -- question, result, and the tally; for votes without legislation the question is the
-        -- only description, so it always leads
+        -- only description, so it always leads. En bloc votes name dozens of nominations in
+        -- the question, so detail shows a count and detail_full keeps the whole list.
         concat_ws(
             ' · ',
-            r.question,
+            case
+                when r.document_count > 1
+                    then r.question_short || ' · ' || r.document_count::text || ' nominations'
+                else r.question
+            end,
             concat_ws(' ', r.result, r.yea_total::text || '–' || r.nay_total::text)
         ) as detail,
+        case
+            when r.document_count > 1
+                then concat_ws(
+                    ' · ',
+                    r.question,
+                    concat_ws(' ', r.result, r.yea_total::text || '–' || r.nay_total::text)
+                )
+        end as detail_full,
         v.position,
         r.chamber,
         r.session,
@@ -58,6 +75,7 @@ sponsorships as (
         case s.role when 'sponsor' then 'Introduced ' else 'Cosponsored ' end
         || {{ bill_label('s.bill_type', 's.bill_number') }} || ': ' || b.title as headline,
         b.latest_action_text as detail,
+        null::text as detail_full,
         null::text as position,
         null::text as chamber,
         null::int as session,
@@ -88,6 +106,7 @@ committee_actions as (
         {{ bill_label('a.bill_type', 'a.bill_number') }} || ': ' || coalesce(a.action_text, a.action_code)
             as headline,
         b.title as detail,
+        null::text as detail_full,
         null::text as position,
         null::text as chamber,
         null::int as session,

@@ -43,6 +43,8 @@ select
     btrim(regexp_replace(
         coalesce(payload ->> 'vote_question_text', payload ->> 'question'), '\s+', ' ', 'g'
     )) as question,
+    -- the short form without the measure or nomination list ("On the Cloture Motion")
+    btrim(regexp_replace(payload ->> 'question', '\s+', ' ', 'g')) as question_short,
     payload ->> 'vote_result' as result,
     null::text as vote_type,
     payload ->> 'majority_requirement' as majority_requirement,

@@ -67,9 +67,9 @@ export function ActivityFeed({
             }}
             placeholder="Search bills, votes, committees…"
             aria-label="Search activity"
-            className="flex-1 basis-60 min-w-[200px] text-sm bg-card border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px] focus:border-ink3 focus:outline-none"
+            className="flex-none w-full md:w-[260px] text-sm bg-card border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px] focus:border-ink3 focus:outline-none"
           />
-          <div className="flex gap-1.5 flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1.5 [scrollbar-width:thin] flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1.5 [scrollbar-width:thin]">
             {EVENT_TYPES.map((t) => (
               <FilterChip
                 key={t.key}
@@ -117,7 +117,14 @@ export function ActivityFeed({
                     {it.lead && <strong className="font-semibold text-ink">{it.lead}</strong>}
                     {it.headline}
                   </p>
-                  {it.secondary && <p className="text-sm text-ink3 tnum m-0">{it.secondary}</p>}
+                  {it.secondary && (
+                    <p
+                      className="text-sm text-ink3 tnum m-0 line-clamp-2"
+                      title={it.secondaryFull ?? it.secondary}
+                    >
+                      {it.secondary}
+                    </p>
+                  )}
                 </div>
                 <SourceLink href={it.source} />
               </div>

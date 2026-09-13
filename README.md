@@ -10,7 +10,11 @@ working agreements are in [docs/PLAN.md](docs/PLAN.md).
 XML) load into `raw`; dbt builds the `mart` tables listed in
 [docs/data-dictionary.md](docs/data-dictionary.md); the API serves every Phase 1 endpoint
 from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`, `/bills`,
-`/committees`, `/key-dates`, `/meta/freshness`), documented at `/docs`.
+`/committees`, `/key-dates`, `/meta/freshness`), documented at `/docs`. Six members are
+tracked (`dbt/seeds/tracked_members.csv`): Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries.
+`/members/{id}` carries biography (birthday, age, gender, name parts), the full terms
+history with "serving since" and term counts, leadership roles, and external ids
+(OpenSecrets, Wikipedia, Ballotpedia, C-SPAN, Vote Smart, Wikidata, LIS).
 
 ## Stack
 
@@ -67,9 +71,10 @@ python -m ingest.run --source senate_votes
 ```
 
 The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the `tracked_members` seed in the
-database (run the dbt command below once first). It makes roughly 1,000 to 1,900 requests for two
-members (member legislation plus the bills every roll call references), throttled to 5,000 per
-hour; add `--full-refresh` to re-fetch every actions and
+database (run the dbt command below once first). For the six tracked members it makes about
+3,900 requests on a first load (1,874 distinct bills and amendments: member legislation plus
+the bills every roll call references; 39 minutes on 2026-09-13) and roughly half that on a
+nightly run, throttled to 5,000 per hour; add `--full-refresh` to re-fetch every actions and
 cosponsors list regardless of Congress.gov `updateDate`.
 
 ```bash

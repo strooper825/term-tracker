@@ -21,6 +21,12 @@ export function MemberHeader({ member }: { member: MemberHeaderModel }) {
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="text-name font-semibold m-0">{member.name}</h1>
           <PartyBadge party={member.party} />
+          {member.caucusNote && <span className="text-meta text-ink3">{member.caucusNote}</span>}
+          {member.leadershipTitle && (
+            <span className="text-[11px] uppercase tracking-[0.06em] text-ink2 border border-rule rounded-chip px-[7px] py-0.5 whitespace-nowrap">
+              {member.leadershipTitle}
+            </span>
+          )}
         </div>
         <div className="text-base text-ink2 flex gap-2 flex-wrap">
           <span>{member.seat}</span>
@@ -30,6 +36,7 @@ export function MemberHeader({ member }: { member: MemberHeaderModel }) {
           <span>{member.congress}</span>
         </div>
         <div className="text-sm text-ink3 tnum">{member.termLine}</div>
+        <div className="text-sm text-ink3 tnum">{member.serviceLine}</div>
       </div>
     </div>
   );

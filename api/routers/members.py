@@ -26,11 +26,12 @@ router = APIRouter(prefix="/members", tags=["members"])
 # Each tracked member with their most recent term overlapping the current Congress.
 MEMBERS_SQL = text(
     """
-    SELECT m.bioguide_id, m.first_name, m.last_name, m.official_full_name,
-           m.govtrack_id, m.icpsr_id, m.fec_ids, m.photo_url,
-           m.source, m.source_url, m.fetched_at,
+    SELECT m.bioguide_id, m.first_name, m.middle_name, m.last_name, m.nickname, m.suffix,
+           m.official_full_name, m.govtrack_id, m.icpsr_id, m.lis_id, m.fec_ids,
+           m.opensecrets_id, m.wikipedia_id, m.ballotpedia_id, m.cspan_id, m.votesmart_id,
+           m.wikidata_id, m.photo_url, m.source, m.source_url, m.fetched_at,
            t.congress, t.chamber, t.start_date, t.end_date, t.state_abbr, t.state_name,
-           t.fips_state, t.district, t.senate_class, t.party, t.state_rank
+           t.fips_state, t.district, t.senate_class, t.party, t.caucus, t.state_rank
     FROM mart.member AS m
     JOIN LATERAL (
         SELECT * FROM mart.term AS t
@@ -65,6 +66,21 @@ def seat_label(row: Any) -> str:
     if row["district"] == 0:
         return f"{row['state_abbr']} (At Large)"
     return f"{row['state_abbr']}-{row['district']}"
+
+
+def member_ids(row: Any) -> MemberIds:
+    return MemberIds(
+        govtrack=row["govtrack_id"],
+        icpsr=row["icpsr_id"],
+        fec=list(row["fec_ids"] or []),
+        lis=row["lis_id"],
+        opensecrets=row["opensecrets_id"],
+        wikipedia=row["wikipedia_id"],
+        ballotpedia=row["ballotpedia_id"],
+        cspan=row["cspan_id"],
+        votesmart=row["votesmart_id"],
+        wikidata=row["wikidata_id"],
+    )
 
 
 def _add_source(
@@ -114,10 +130,14 @@ def list_members(session: Annotated[Session, Depends(get_session)]) -> MembersRe
                 bioguide_id=row["bioguide_id"],
                 name=MemberName(
                     first=row["first_name"],
+                    middle=row["middle_name"],
                     last=row["last_name"],
+                    nickname=row["nickname"],
+                    suffix=row["suffix"],
                     official_full=row["official_full_name"],
                 ),
                 party=row["party"],
+                caucus=row["caucus"],
                 seat=Seat(
                     chamber=row["chamber"],
                     state=row["state_abbr"],
@@ -135,11 +155,7 @@ def list_members(session: Annotated[Session, Depends(get_session)]) -> MembersRe
                     party=row["party"],
                 ),
                 photo_url=row["photo_url"],
-                ids=MemberIds(
-                    govtrack=row["govtrack_id"],
-                    icpsr=row["icpsr_id"],
-                    fec=list(row["fec_ids"] or []),
-                ),
+                ids=member_ids(row),
                 committees=committees.get(row["bioguide_id"], []),
             )
         )

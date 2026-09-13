@@ -16,6 +16,10 @@ pytestmark = [pytest.mark.integration, pytest.mark.dbt]
 
 STEIL = "/api/v1/members/S001213"
 COTTON = "/api/v1/members/C001095"
+SANDERS = "/api/v1/members/S000033"
+SLOTKIN = "/api/v1/members/S001208"
+KILEY = "/api/v1/members/K000401"
+JEFFRIES = "/api/v1/members/J000294"
 
 
 def test_member_detail(built_mart: None, client: TestClient) -> None:
@@ -38,8 +42,8 @@ def test_member_detail(built_mart: None, client: TestClient) -> None:
     assert votes["party_unity_pct"] is None or 0 <= votes["party_unity_pct"] <= 100
     assert body["activity"]["bills_sponsored"] >= 2
     assert body["activity"]["committees"] == 6
-    # HSHA chair counts; the Joint Library chair (joint) and the HSBA21 chair (subcommittee) do not
-    assert body["activity"]["chairmanships"] == 1
+    # HSHA and Joint Library chairs count; the HSBA21 subcommittee chair does not
+    assert body["activity"]["chairmanships"] == 2
     assert body["sources"]
 
     cotton = client.get(COTTON).json()
@@ -48,6 +52,88 @@ def test_member_detail(built_mart: None, client: TestClient) -> None:
     assert (cotton["term"]["congress"], cotton["term"]["end_congress"]) == (117, 119)
     assert cotton["term"]["tracked_congress"] == 119
     assert cotton["votes"]["not_voting"] >= 1
+
+
+def test_biography_and_service_record(built_mart: None, client: TestClient) -> None:
+    steil = client.get(STEIL).json()
+    assert steil["bio"]["birthday"] == "1981-03-30" and steil["bio"]["gender"] == "M"
+    assert steil["bio"]["age"] >= 45
+    assert steil["service"]["serving_since"] == "2019-01-03"
+    assert (steil["service"]["term_number"], steil["service"]["chamber_term_number"]) == (4, 4)
+    assert steil["leadership"] == []
+
+    # House 2013-01-03 to 2015-01-03, Senate from 2015-01-06: continuous service since 2013
+    cotton = client.get(COTTON).json()
+    assert cotton["service"]["serving_since"] == "2013-01-03"
+    assert cotton["service"]["chamber_since"] == "2015-01-06"
+    assert (cotton["service"]["term_number"], cotton["service"]["chamber_term_number"]) == (3, 2)
+    assert [t["chamber"] for t in cotton["service"]["terms"]] == ["house", "senate", "senate"]
+    assert cotton["leadership"][0]["title"] == "Senate Republican Conference Chair"
+    assert cotton["leadership"][0]["is_current"] is True
+
+    # first-term senator with three House terms behind her
+    slotkin = client.get(SLOTKIN).json()
+    assert slotkin["bio"]["gender"] == "F"
+    assert slotkin["service"]["serving_since"] == "2019-01-03"
+    assert slotkin["service"]["chamber_since"] == "2025-01-03"
+    assert (slotkin["service"]["term_number"], slotkin["service"]["chamber_term_number"]) == (4, 1)
+    assert slotkin["term"]["congresses"] == [119, 120, 121]
+
+    sanders = client.get(SANDERS).json()
+    assert sanders["service"]["serving_since"] == "1991-01-03"
+    assert sanders["service"]["term_number"] == 12
+    assert sanders["service"]["chamber_term_number"] == 4
+    assert sanders["service"]["chamber_since"] == "2007-01-04"
+    assert sanders["bio"]["birthday"] == "1941-09-08"
+
+    jeffries = client.get(JEFFRIES).json()
+    assert jeffries["leadership"][0] == {
+        "title": "House Minority Leader",
+        "chamber": "house",
+        "start_date": "2025-01-03",
+        "end_date": None,
+        "is_current": True,
+    }
+    assert {r["title"] for r in jeffries["leadership"]} == {
+        "House Minority Leader",
+        "House Democratic Caucus Chair",
+    }
+
+
+def test_independents_are_scored_against_their_caucus(built_mart: None, client: TestClient) -> None:
+    """ADR 0005: Sanders (I, caucus D) scores against the Democratic majority, Kiley (I since
+    2026-03-09, caucus R) against the Republican one. On a fixture-only database the figures
+    are exact: Sanders agrees with the Democratic majority on two of the three fixture roll
+    calls, Kiley with the Republican majority on the only fixture roll call that has one."""
+    sanders = client.get(SANDERS).json()
+    assert (sanders["party"], sanders["caucus"]) == ("Independent", "Democrat")
+    assert sanders["votes"]["scoring_party"] == "D"
+    assert sanders["votes"]["party_unity_pct"] is not None
+    if sanders["votes"]["positions"] == 3:  # fixture-only database
+        assert sanders["votes"]["party_unity_pct"] == 66.67
+
+    kiley = client.get(KILEY).json()
+    assert (kiley["party"], kiley["caucus"]) == ("Independent", "Republican")
+    assert kiley["votes"]["scoring_party"] == "R"
+    if kiley["votes"]["positions"] == 5:  # fixture-only database
+        assert kiley["votes"]["party_unity_pct"] == 100.0
+
+    steil = client.get(STEIL).json()
+    assert steil["votes"]["scoring_party"] == "R"
+
+
+def test_key_dates_cover_every_tracked_state(built_mart: None, client: TestClient) -> None:
+    for path, label in [
+        (SANDERS, "Vermont primary election"),
+        (SLOTKIN, "Michigan August primary"),
+        (KILEY, "California statewide direct primary"),
+        (JEFFRIES, "New York federal and state primary"),
+        (STEIL, "Wisconsin partisan primary"),
+        (COTTON, "Arkansas preferential primary"),
+    ]:
+        items = client.get(f"{path}/key-dates").json()["items"]
+        assert label in {i["label"] for i in items}, path
+        assert "General election day" in {i["label"] for i in items}
 
 
 def test_votes_recent_with_position(built_mart: None, client: TestClient) -> None:
@@ -65,7 +151,7 @@ def test_votes_recent_with_position(built_mart: None, client: TestClient) -> Non
         hr3424 = items[("house", 1, 240)]
         assert (hr3424["bill_type"], hr3424["bill_number"]) == ("hr", "3424")
         assert hr3424["bill_title"]  # detail fetched because a roll call references it
-        assert hr3424["yea_total"] + hr3424["nay_total"] + hr3424["not_voting_total"] <= 6
+        assert hr3424["yea_total"] + hr3424["nay_total"] + hr3424["not_voting_total"] <= 7
     assert body["items"]
     assert body["items"] == sorted(body["items"], key=lambda i: i["voted_at"], reverse=True)
     assert all(s["source_url"] for s in body["sources"])

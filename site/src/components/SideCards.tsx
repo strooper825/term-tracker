@@ -9,7 +9,7 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
         <span className="text-meta text-ink3 tnum">{committees.length}</span>
       </div>
       {committees.map((c) => {
-        const chair = c.role === 'Chair';
+        const chair = c.role === 'Chair'; // subcommittee chairs keep the neutral badge
         return (
           <div
             key={c.name}

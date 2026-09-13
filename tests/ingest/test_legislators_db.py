@@ -14,7 +14,7 @@ from tests.fixtures.legislators import fixture_fetch
 
 pytestmark = pytest.mark.integration
 
-FIXTURE_ROWS = 3 + 11 + 31  # legislators + top-level committees + membership lists
+FIXTURE_ROWS = 7 + 11 + 31  # legislators + top-level committees + membership lists
 
 
 def _counts(engine: Engine) -> dict[str, int]:

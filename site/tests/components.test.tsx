@@ -15,7 +15,21 @@ import {
   eventTotals,
   groupFeed,
 } from '@/lib/model';
-import { COTTON, COTTON_LIST, FEED, STEIL, STEIL_COMMITTEES, STEIL_KEY_DATES, STEIL_LIST, WEEKS } from './fixtures';
+import { KeyDatesCard } from '@/components/SideCards';
+import {
+  COTTON,
+  COTTON_LIST,
+  FEED,
+  SANDERS,
+  SANDERS_LIST,
+  SLOTKIN,
+  SLOTKIN_LIST,
+  STEIL,
+  STEIL_COMMITTEES,
+  STEIL_KEY_DATES,
+  STEIL_LIST,
+  WEEKS,
+} from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
@@ -49,7 +63,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     const strip = screen.getByText('Bills sponsored').parentElement!.parentElement!; // stat grid
     expect(within(strip).getByText('36')).toBeInTheDocument(); // member_summary.bills_sponsored
     expect(within(strip).getByText('118')).toBeInTheDocument(); // member_summary.bills_cosponsored
-    expect(screen.getByText('1 chairmanship')).toBeInTheDocument(); // member_summary.chairmanships
+    expect(screen.getByText('2 full committee chairs')).toBeInTheDocument(); // member_summary.chairmanships
     expect(screen.getByText(/Term progress · 618 of 730 days elapsed/)).toBeInTheDocument();
     expect(screen.getByText('84.7%')).toBeInTheDocument();
     expect(screen.getByText(/Last updated Sep 13, 2026 02:09 UTC/)).toBeInTheDocument();
@@ -68,6 +82,9 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(keyDates).getByText('Nov 3, 2026')).toBeInTheDocument();
     expect(screen.getByText('House Committee on House Administration')).toBeInTheDocument();
     expect(screen.getByText('Subcommittee on Capital Markets')).toBeInTheDocument();
+    const card = screen.getByText('Committees', { selector: 'h2' }).closest('section')!;
+    expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
+    expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
     for (const title of ['Fundraising', 'Stock trades', 'Public statements', 'District map']) {
       expect(screen.getByText(title)).toBeInTheDocument();
@@ -81,7 +98,60 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getByText('Arkansas · Class 2')).toBeInTheDocument();
     expect(screen.getByText('Tracking 119th Congress')).toBeInTheDocument();
     expect(screen.getByText('Term: Jan 3, 2021 – Jan 3, 2027 · 890 roll calls in the 119th')).toBeInTheDocument();
+    expect(screen.getByText('Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate')).toBeInTheDocument();
+    expect(screen.getByText('Senate Republican Conference Chair')).toBeInTheDocument(); // leadership_role
     expect(screen.getByText('State map')).toBeInTheDocument();
+  });
+
+  it('header: age and service line from bio and term_history; no chip without a leadership role', () => {
+    render(dashboard());
+    expect(screen.getByText('Age 45 · Serving since 2019 · 4th term')).toBeInTheDocument();
+    expect(screen.queryByText(/Caucuses with/)).not.toBeInTheDocument();
+  });
+
+  it('Independent: INDEPENDENT badge, caucus note, unity note names the caucus, 12th term line', () => {
+    render(dashboard(SANDERS));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Bernard Sanders');
+    expect(screen.getAllByText('INDEPENDENT').length).toBeGreaterThan(0);
+    expect(screen.getByText('Caucuses with Democrats')).toBeInTheDocument(); // term.caucus
+    expect(screen.getByText('Senate Democratic Outreach Chair')).toBeInTheDocument();
+    expect(screen.getByText('Age 85 · Serving since 1991 · 12th term · 4th in the Senate')).toBeInTheDocument();
+    expect(screen.getByText('99.87%')).toBeInTheDocument(); // member_vote_stats.party_unity_cq_pct
+    expect(screen.getByText('votes with Democratic caucus')).toBeInTheDocument();
+    expect(screen.getByText('Vermont · Class 1')).toBeInTheDocument();
+    // Class 1 seat, term to 2031: the 2026 general election is shown but the seat is not on the ballot
+    const election = screen.getByText('Next election').closest('section')!;
+    expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
+    expect(within(election).queryByText('On the ballot')).not.toBeInTheDocument();
+  });
+
+  it('first-term senator with House service reads "1st in the Senate"', () => {
+    render(dashboard(SLOTKIN));
+    expect(screen.getByText('Age 50 · Serving since 2019 · 4th term · 1st in the Senate')).toBeInTheDocument();
+    expect(screen.getAllByText('DEMOCRATIC').length).toBeGreaterThan(0);
+  });
+
+  it('source links open in a new tab', () => {
+    render(dashboard());
+    const links = screen.getAllByRole('link', { name: /source ↗/ });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  });
+});
+
+describe('key dates card', () => {
+  it('shows congress-wide rows when the state has none, and an empty state when nothing applies', () => {
+    const congressOnly = STEIL_KEY_DATES.filter((d) => d.scope === 'congress');
+    const { unmount } = render(<KeyDatesCard dates={buildKeyDates(congressOnly)} />);
+    expect(screen.getByText('119th Congress convenes')).toBeInTheDocument();
+    expect(screen.getByText('General election day')).toBeInTheDocument();
+    expect(screen.queryByText('Wisconsin partisan primary')).not.toBeInTheDocument();
+    unmount();
+    render(<KeyDatesCard dates={[]} />);
+    expect(screen.getByText('No dates recorded.')).toBeInTheDocument();
   });
 });
 
@@ -92,6 +162,7 @@ describe('activity feed', () => {
     expect(screen.getByText('on nomination PN12-1')).toBeInTheDocument();
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toBeInTheDocument();
     expect(screen.getByText('on roll call 353')).toBeInTheDocument();
+    expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');
     expect(screen.getByText('Did not vote')).toBeInTheDocument();
     expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
 
@@ -114,6 +185,10 @@ describe('members index', () => {
     expect(screen.getByText('Members of the 119th Congress')).toBeInTheDocument();
     const steil = screen.getByRole('link', { name: /Rep\. Bryan Steil/ });
     expect(steil).toHaveAttribute('href', '/members/S001213');
+    expect(within(steil).getByRole('presentation', { hidden: true })).toHaveAttribute(
+      'src',
+      'https://www.congress.gov/img/member/s001213_200.jpg',
+    ); // member.photo_url on the index card
     expect(within(steil).getByText('99.24%')).toBeInTheDocument();
     expect(within(steil).getByText('36')).toBeInTheDocument();
     expect(within(steil).getByText('98.70%')).toBeInTheDocument();
@@ -137,5 +212,24 @@ describe('members index', () => {
     expect(screen.getByText(/No members match “Nebraska”/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(screen.getByText('2 of 2 members')).toBeInTheDocument();
+  });
+
+  it('with Democrats and an Independent present, every party chip is enabled and filters', () => {
+    const four = [...rows, buildIndexRow(SANDERS_LIST, SANDERS), buildIndexRow(SLOTKIN_LIST, SLOTKIN)];
+    render(<MembersIndex members={four} congressLabel="119th Congress" />);
+    expect(screen.getByRole('button', { name: /Republican/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Democratic/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Independent/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Democratic/ })).toHaveTextContent('1');
+    expect(screen.getByRole('button', { name: /Independent/ })).toHaveTextContent('1');
+    const sanders = screen.getByRole('link', { name: /Sen\. Bernard Sanders/ });
+    expect(within(sanders).getByText('INDEPENDENT')).toBeInTheDocument();
+    expect(within(sanders).getByText('99.87%')).toBeInTheDocument();
+    expect(within(screen.getByRole('link', { name: /Sen\. Elissa Slotkin/ })).getByText('DEMOCRATIC')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Republican/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Democratic/ }));
+    expect(screen.getByText('1 of 4 members')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Sen\. Bernard Sanders/ })).toBeInTheDocument();
   });
 });

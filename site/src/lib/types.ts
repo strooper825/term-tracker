@@ -19,7 +19,10 @@ export interface Seat {
 
 export interface MemberName {
   first: string;
+  middle?: string | null;
   last: string;
+  nickname?: string | null;
+  suffix?: string | null;
   official_full: string;
 }
 
@@ -41,17 +44,77 @@ export interface VoteStats {
   not_voting: number;
   attendance_pct: number | null;
   missed_vote_pct: number | null;
+  /** Party letter the unity figures are scored against (caucus for Independents, ADR 0005). */
+  scoring_party: string | null;
   party_unity_pct: number | null;
   party_unity_cq_pct: number | null;
+}
+
+export interface MemberBio {
+  birthday: string | null;
+  age: number | null;
+  gender: string | null;
+}
+
+export interface TermHistoryItem {
+  term_index: number;
+  chamber: 'house' | 'senate';
+  congress: number;
+  end_congress: number;
+  start_date: string;
+  end_date: string;
+  state: string;
+  district: number | null;
+  senate_class: number | null;
+  party: string | null;
+  caucus: string | null;
+  how: string | null;
+  end_type: string | null;
+}
+
+export interface ServiceRecord {
+  first_term_start: string;
+  serving_since: string;
+  term_number: number;
+  chamber_since: string;
+  chamber_term_number: number;
+  terms: TermHistoryItem[];
+}
+
+export interface LeadershipRole {
+  title: string;
+  chamber: string;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean;
+}
+
+export interface MemberIds {
+  govtrack: number | null;
+  icpsr: number | null;
+  fec: string[];
+  lis: string | null;
+  opensecrets: string | null;
+  wikipedia: string | null;
+  ballotpedia: string | null;
+  cspan: number | null;
+  votesmart: number | null;
+  wikidata: string | null;
 }
 
 export interface MemberDetail {
   bioguide_id: string;
   name: MemberName;
   party: string | null;
+  /** For Independents, the party they caucus with ("Democrat" / "Republican"). */
+  caucus: string | null;
   seat: Seat;
   term: TermSpan;
+  bio: MemberBio;
+  service: ServiceRecord;
+  leadership: LeadershipRole[];
   photo_url: string | null;
+  ids: MemberIds;
   votes: VoteStats;
   activity: {
     bills_sponsored: number;
@@ -66,6 +129,7 @@ export interface MemberListItem {
   bioguide_id: string;
   name: MemberName;
   party: string | null;
+  caucus: string | null;
   seat: Seat;
   photo_url: string | null;
 }
@@ -99,6 +163,7 @@ export interface FeedItem {
   event_date: string;
   headline: string;
   detail: string | null;
+  detail_full: string | null;
   position: string | null;
   chamber: string | null;
   session: number | null;

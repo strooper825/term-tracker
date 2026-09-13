@@ -1,20 +1,38 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MIN_TICK_GAP_WEEKS,
   buildCommitteeRows,
   buildElection,
   buildHeader,
   buildIndexRow,
+  buildKeyDates,
   buildStats,
   buildTerm,
   buildWeeks,
+  caucusParty,
   eventTotals,
   feedRow,
   groupFeed,
   seatLong,
+  serviceLine,
   timelineRange,
 } from '@/lib/model';
 import { formatDate, formatLongDate, ordinal } from '@/lib/format';
-import { COTTON, COTTON_LIST, FEED, STEIL, STEIL_COMMITTEES, STEIL_KEY_DATES, STEIL_LIST, WEEKS } from './fixtures';
+import {
+  COTTON,
+  COTTON_LIST,
+  EN_BLOC,
+  FEED,
+  SANDERS,
+  SANDERS_LIST,
+  SLOTKIN,
+  SLOTKIN_LIST,
+  STEIL,
+  STEIL_COMMITTEES,
+  STEIL_KEY_DATES,
+  STEIL_LIST,
+  WEEKS,
+} from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
@@ -44,6 +62,26 @@ describe('header: given a mart row, these labels render', () => {
     expect(ordinal(1)).toBe('1st');
     expect(ordinal(112)).toBe('112th');
   });
+
+  it('service line: age from bio.birthday, serving since and Nth term from term_history', () => {
+    expect(serviceLine(STEIL)).toBe('Age 45 · Serving since 2019 · 4th term');
+    // House then Senate: the chamber count is added so a first-term senator reads correctly
+    expect(serviceLine(COTTON)).toBe('Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate');
+    expect(serviceLine(SLOTKIN)).toBe('Age 50 · Serving since 2019 · 4th term · 1st in the Senate');
+    expect(serviceLine(SANDERS)).toBe('Age 85 · Serving since 1991 · 12th term · 4th in the Senate');
+    expect(serviceLine({ ...STEIL, bio: { ...STEIL.bio, age: null } })).toBe('Serving since 2019 · 4th term');
+  });
+
+  it('leadership title and caucus note come from leadership_role and term.caucus', () => {
+    expect(buildHeader(STEIL)).toMatchObject({ leadershipTitle: null, caucusNote: null });
+    expect(buildHeader(COTTON).leadershipTitle).toBe('Senate Republican Conference Chair');
+    const sanders = buildHeader(SANDERS);
+    expect(sanders.party).toBe('Independent');
+    expect(sanders.caucusNote).toBe('Caucuses with Democrats');
+    expect(sanders.leadershipTitle).toBe('Senate Democratic Outreach Chair'); // the current role, not the ended one
+    expect(buildHeader({ ...STEIL, party: 'Independent', caucus: 'Republican' }).caucusNote).toBe('Caucuses with Republicans');
+    expect(caucusParty({ party: 'Democrat', caucus: 'Democrat' })).toBeNull();
+  });
 });
 
 describe('stats and term', () => {
@@ -54,8 +92,15 @@ describe('stats and term', () => {
       ['Party unity', '98.70%', 'votes with party majority'],
       ['Bills sponsored', '36', '119th Congress'],
       ['Bills cosponsored', '118', '119th Congress'],
-      ['Committees', '6', '1 chairmanship'],
+      ['Committees', '6', '2 full committee chairs'],
     ]);
+  });
+
+  it('an Independent is scored against the caucus and the note says so (ADR 0005)', () => {
+    const unity = buildStats(SANDERS).find((s) => s.label === 'Party unity');
+    expect(unity).toEqual({ label: 'Party unity', value: '99.87%', note: 'votes with Democratic caucus' });
+    expect(buildStats(SLOTKIN).find((s) => s.label === 'Party unity')?.note).toBe('votes with party majority');
+    expect(buildStats(SANDERS).find((s) => s.label === 'Committees')?.note).toBe('no full committee chairs');
   });
 
   it('term progress uses days_elapsed over the term length', () => {
@@ -72,7 +117,8 @@ describe('stats and term', () => {
 describe('committees', () => {
   it('maps titles to roles, prefixes subcommittees, and lists chairs first', () => {
     const rows = buildCommitteeRows(STEIL_COMMITTEES);
-    expect(rows.slice(0, 3).map((r) => r.role)).toEqual(['Chair', 'Chair', 'Chair']);
+    expect(rows.slice(0, 3).map((r) => r.role)).toEqual(['Chair', 'Chair', 'Subcommittee chair']);
+    expect(rows.filter((r) => r.role === 'Chair')).toHaveLength(2); // matches chairmanships = 2
     expect(rows.find((r) => r.name === 'Subcommittee on Capital Markets')?.role).toBe('Member');
     expect(rows.find((r) => r.name === 'Joint Committee on Printing')?.role).toBe('Vice Chair');
   });
@@ -95,6 +141,14 @@ describe('feed', () => {
     expect(rows[4]).toMatchObject({ type: 'sponsor', headline: 'Introduced H.R. 4735: Business of Insurance Regulatory Reform Act of 2025' });
     expect(rows[4].lead).toBeUndefined();
     expect(rows[6]).toMatchObject({ type: 'committee', headline: 'H.Res. 150: Submitted in House' });
+    expect(rows[0].secondaryFull).toBeUndefined();
+  });
+
+  it('en bloc nomination votes show a count and keep the full list for hover', () => {
+    const row = feedRow(EN_BLOC);
+    expect(row.headline).toBe('on 48 nominations (en bloc)');
+    expect(row.secondary).toBe('On the Cloture Motion · 48 nominations · Cloture Motion Rejected 51–48');
+    expect(row.secondaryFull).toContain('PN25-28 and PN12-19');
   });
 
   it('groups by calendar day with a long date label and counts totals per type', () => {
@@ -113,7 +167,14 @@ describe('weeks, key dates, election, index', () => {
     const july = weeks.find((w) => w.label === 'Jul 21, 2025');
     expect(july?.counts).toEqual({ vote: 12, sponsor: 1, cosponsor: 3, committee: 0 });
     expect(weeks.every((w) => Object.values(w.counts).every((n) => n >= 0))).toBe(true);
-    expect(weeks.filter((w) => w.tick).length).toBeGreaterThan(10);
+    const tickIndices = weeks.map((w, i) => (w.tick ? i : -1)).filter((i) => i >= 0);
+    expect(tickIndices.length).toBeGreaterThan(6);
+    for (let i = 1; i < tickIndices.length; i += 1) {
+      expect(tickIndices[i] - tickIndices[i - 1]).toBeGreaterThanOrEqual(MIN_TICK_GAP_WEEKS);
+    }
+    expect(weeks[0].tick).toBe('Jan 2025'); // the week of Dec 30 is mostly January
+    expect(weeks.find((w) => w.tick === 'Jan 2026')).toBeTruthy();
+    expect(weeks.find((w) => w.tick === 'Feb')).toBeUndefined(); // too close to the January label
   });
 
   it('election card picks the next election-kind key date and says the seat is on the ballot', () => {
@@ -139,7 +200,22 @@ describe('weeks, key dates, election, index', () => {
       attendance: 99.24,
       sponsored: 36,
       unity: 98.7,
+      photoUrl: 'https://www.congress.gov/img/member/s001213_200.jpg',
     });
     expect(buildIndexRow(COTTON_LIST, COTTON)).toMatchObject({ name: 'Sen. Tom Cotton', chamber: 'Senate', state: 'Arkansas' });
+    expect(buildIndexRow(SANDERS_LIST, SANDERS)).toMatchObject({ party: 'Independent', unity: 99.87, seatShort: 'Vermont (Class 1)' });
+    expect(buildIndexRow(SLOTKIN_LIST, SLOTKIN)).toMatchObject({ party: 'Democratic', chamber: 'Senate', state: 'Michigan' });
+  });
+
+  it('key dates and election degrade when a state has no rows: congress-wide rows still apply', () => {
+    const congressOnly = STEIL_KEY_DATES.filter((d) => d.scope === 'congress');
+    expect(buildKeyDates(congressOnly).map((d) => d.label)).toEqual([
+      '119th Congress convenes',
+      'General election day',
+      '119th Congress ends; House and Class 2 Senate terms expire at noon',
+    ]);
+    // a Class 1 senator whose term runs to 2031 is not on the 2026 ballot
+    expect(buildElection(congressOnly, SANDERS, TODAY)).toMatchObject({ date: 'Nov 3, 2026', onBallot: false });
+    expect(buildKeyDates([])).toEqual([]);
   });
 });

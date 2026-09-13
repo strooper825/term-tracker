@@ -4,14 +4,85 @@ import type {
   FeedItem,
   KeyDate,
   MemberDetail,
+  MemberIds,
   MemberListItem,
+  TermHistoryItem,
   WeekBucket,
 } from '@/lib/types';
+
+const NO_IDS: MemberIds = {
+  govtrack: null,
+  icpsr: null,
+  fec: [],
+  lis: null,
+  opensecrets: null,
+  wikipedia: null,
+  ballotpedia: null,
+  cspan: null,
+  votesmart: null,
+  wikidata: null,
+};
+
+/** mart.term_history rows: one House term. */
+function houseTerm(
+  index: number,
+  congress: number,
+  start: string,
+  end: string,
+  state: string,
+  district: number,
+  party: string,
+): TermHistoryItem {
+  return {
+    term_index: index,
+    chamber: 'house',
+    congress,
+    end_congress: congress,
+    start_date: start,
+    end_date: end,
+    state,
+    district,
+    senate_class: null,
+    party,
+    caucus: null,
+    how: null,
+    end_type: null,
+  };
+}
+
+function senateTerm(
+  index: number,
+  congress: number,
+  endCongress: number,
+  start: string,
+  end: string,
+  state: string,
+  senateClass: number,
+  party: string,
+  caucus: string | null = null,
+): TermHistoryItem {
+  return {
+    term_index: index,
+    chamber: 'senate',
+    congress,
+    end_congress: endCongress,
+    start_date: start,
+    end_date: end,
+    state,
+    district: null,
+    senate_class: senateClass,
+    party,
+    caucus,
+    how: null,
+    end_type: null,
+  };
+}
 
 export const STEIL: MemberDetail = {
   bioguide_id: 'S001213',
   name: { first: 'Bryan', last: 'Steil', official_full: 'Bryan Steil' },
   party: 'Republican',
+  caucus: null,
   seat: {
     chamber: 'house',
     state: 'WI',
@@ -32,7 +103,23 @@ export const STEIL: MemberDetail = {
     days_remaining: 112,
     days_elapsed: 618,
   },
+  bio: { birthday: '1981-03-30', age: 45, gender: 'M' },
+  service: {
+    first_term_start: '2019-01-03',
+    serving_since: '2019-01-03',
+    term_number: 4,
+    chamber_since: '2019-01-03',
+    chamber_term_number: 4,
+    terms: [
+      houseTerm(1, 116, '2019-01-03', '2021-01-03', 'WI', 1, 'Republican'),
+      houseTerm(2, 117, '2021-01-03', '2023-01-03', 'WI', 1, 'Republican'),
+      houseTerm(3, 118, '2023-01-03', '2025-01-03', 'WI', 1, 'Republican'),
+      houseTerm(4, 119, '2025-01-03', '2027-01-03', 'WI', 1, 'Republican'),
+    ],
+  },
+  leadership: [],
   photo_url: 'https://www.congress.gov/img/member/s001213_200.jpg',
+  ids: { ...NO_IDS, govtrack: 412836, icpsr: 21970, fec: ['H8WI01156'], opensecrets: 'N00043379', wikipedia: 'Bryan Steil', ballotpedia: 'Bryan Steil', votesmart: 181289, wikidata: 'Q58494431' },
   votes: {
     roll_calls: 657,
     positions: 657,
@@ -40,10 +127,11 @@ export const STEIL: MemberDetail = {
     not_voting: 5,
     attendance_pct: 99.24,
     missed_vote_pct: 0.76,
+    scoring_party: 'R',
     party_unity_pct: 98.61,
     party_unity_cq_pct: 98.7,
   },
-  activity: { bills_sponsored: 36, bills_cosponsored: 118, committees: 6, chairmanships: 1 },
+  activity: { bills_sponsored: 36, bills_cosponsored: 118, committees: 6, chairmanships: 2 },
   sources: [],
 };
 
@@ -51,6 +139,7 @@ export const COTTON: MemberDetail = {
   bioguide_id: 'C001095',
   name: { first: 'Tom', last: 'Cotton', official_full: 'Tom Cotton' },
   party: 'Republican',
+  caucus: null,
   seat: {
     chamber: 'senate',
     state: 'AR',
@@ -71,7 +160,25 @@ export const COTTON: MemberDetail = {
     days_remaining: 112,
     days_elapsed: 2079,
   },
+  bio: { birthday: '1977-05-13', age: 49, gender: 'M' },
+  // House 2013-2015, then the Senate from 2015-01-06: continuous service since 2013
+  service: {
+    first_term_start: '2013-01-03',
+    serving_since: '2013-01-03',
+    term_number: 3,
+    chamber_since: '2015-01-06',
+    chamber_term_number: 2,
+    terms: [
+      houseTerm(1, 113, '2013-01-03', '2015-01-03', 'AR', 4, 'Republican'),
+      senateTerm(2, 114, 116, '2015-01-06', '2021-01-03', 'AR', 2, 'Republican'),
+      senateTerm(3, 117, 119, '2021-01-03', '2027-01-03', 'AR', 2, 'Republican'),
+    ],
+  },
+  leadership: [
+    { title: 'Senate Republican Conference Chair', chamber: 'senate', start_date: '2025-01-03', end_date: null, is_current: true },
+  ],
   photo_url: null,
+  ids: { ...NO_IDS, govtrack: 412508, icpsr: 21301, lis: 'S374', fec: ['H2AR04083', 'S4AR00103'], opensecrets: 'N00033363', wikipedia: 'Tom Cotton', ballotpedia: 'Tom Cotton', cspan: 63928, votesmart: 135651, wikidata: 'Q3090307' },
   votes: {
     roll_calls: 890,
     positions: 890,
@@ -79,6 +186,7 @@ export const COTTON: MemberDetail = {
     not_voting: 14,
     attendance_pct: 98.43,
     missed_vote_pct: 1.57,
+    scoring_party: 'R',
     party_unity_pct: 99.77,
     party_unity_cq_pct: 99.75,
   },
@@ -86,10 +194,101 @@ export const COTTON: MemberDetail = {
   sources: [],
 };
 
+/** Independent who caucuses with the Democrats; 12th term, 4th in the Senate (mart, 2026-09-13). */
+export const SANDERS: MemberDetail = {
+  bioguide_id: 'S000033',
+  name: { first: 'Bernard', middle: null, last: 'Sanders', nickname: 'Bernie', suffix: null, official_full: 'Bernard Sanders' },
+  party: 'Independent',
+  caucus: 'Democrat',
+  seat: {
+    chamber: 'senate',
+    state: 'VT',
+    state_name: 'Vermont',
+    fips_state: '50',
+    district: null,
+    senate_class: 1,
+    state_rank: 'senior',
+    label: 'Vermont (Class 1)',
+  },
+  term: {
+    congress: 119,
+    end_congress: 121,
+    congresses: [119, 120, 121],
+    tracked_congress: 119,
+    start_date: '2025-01-03',
+    end_date: '2031-01-03',
+    days_remaining: 1573,
+    days_elapsed: 618,
+  },
+  bio: { birthday: '1941-09-08', age: 85, gender: 'M' },
+  service: {
+    first_term_start: '1991-01-03',
+    serving_since: '1991-01-03',
+    term_number: 12,
+    chamber_since: '2007-01-04',
+    chamber_term_number: 4,
+    terms: [
+      houseTerm(1, 102, '1991-01-03', '1993-01-03', 'VT', 0, 'Independent'),
+      houseTerm(8, 109, '2005-01-04', '2007-01-03', 'VT', 0, 'Independent'),
+      senateTerm(9, 110, 112, '2007-01-04', '2013-01-03', 'VT', 1, 'Independent'),
+      senateTerm(12, 119, 121, '2025-01-03', '2031-01-03', 'VT', 1, 'Independent', 'Democrat'),
+    ],
+  },
+  leadership: [
+    { title: 'Senate Democratic Outreach Chair', chamber: 'senate', start_date: '2025-01-03', end_date: null, is_current: true },
+    { title: 'Senate Democratic Outreach Chair', chamber: 'senate', start_date: '2023-01-03', end_date: '2025-01-03', is_current: false },
+  ],
+  photo_url: 'https://www.congress.gov/img/member/s000033_200.jpg',
+  ids: { ...NO_IDS, govtrack: 400357, icpsr: 29147, lis: 'S313', fec: ['H8VT01016', 'S4VT00033'], opensecrets: 'N00000528', wikipedia: 'Bernie Sanders', ballotpedia: 'Bernie Sanders', cspan: 994, votesmart: 27110, wikidata: 'Q359442' },
+  votes: {
+    roll_calls: 890,
+    positions: 887,
+    votes_cast: 824,
+    not_voting: 63,
+    attendance_pct: 92.9,
+    missed_vote_pct: 7.1,
+    scoring_party: 'D',
+    party_unity_pct: 95.26,
+    party_unity_cq_pct: 99.87,
+  },
+  activity: { bills_sponsored: 40, bills_cosponsored: 200, committees: 14, chairmanships: 0 },
+  sources: [],
+};
+
+/** First-term senator with three House terms behind her. */
+export const SLOTKIN: MemberDetail = {
+  ...SANDERS,
+  bioguide_id: 'S001208',
+  name: { first: 'Elissa', middle: null, last: 'Slotkin', nickname: null, suffix: null, official_full: 'Elissa Slotkin' },
+  party: 'Democrat',
+  caucus: null,
+  seat: { ...SANDERS.seat, state: 'MI', state_name: 'Michigan', fips_state: '26', state_rank: 'junior', label: 'Michigan (Class 1)' },
+  bio: { birthday: '1976-07-10', age: 50, gender: 'F' },
+  service: {
+    first_term_start: '2019-01-03',
+    serving_since: '2019-01-03',
+    term_number: 4,
+    chamber_since: '2025-01-03',
+    chamber_term_number: 1,
+    terms: [
+      houseTerm(1, 116, '2019-01-03', '2021-01-03', 'MI', 8, 'Democrat'),
+      houseTerm(2, 117, '2021-01-03', '2023-01-03', 'MI', 8, 'Democrat'),
+      houseTerm(3, 118, '2023-01-03', '2025-01-03', 'MI', 7, 'Democrat'),
+      senateTerm(4, 119, 121, '2025-01-03', '2031-01-03', 'MI', 1, 'Democrat'),
+    ],
+  },
+  leadership: [],
+  photo_url: null,
+  ids: { ...NO_IDS, lis: 'S436' },
+  votes: { ...SANDERS.votes, votes_cast: 862, not_voting: 25, attendance_pct: 97.18, missed_vote_pct: 2.82, party_unity_pct: 92.57, party_unity_cq_pct: 92.24 },
+  activity: { bills_sponsored: 30, bills_cosponsored: 150, committees: 11, chairmanships: 0 },
+};
+
 export const STEIL_LIST: MemberListItem = {
   bioguide_id: 'S001213',
   name: STEIL.name,
   party: 'Republican',
+  caucus: null,
   seat: STEIL.seat,
   photo_url: STEIL.photo_url,
 };
@@ -98,7 +297,26 @@ export const COTTON_LIST: MemberListItem = {
   bioguide_id: 'C001095',
   name: COTTON.name,
   party: 'Republican',
+  caucus: null,
   seat: COTTON.seat,
+  photo_url: null,
+};
+
+export const SANDERS_LIST: MemberListItem = {
+  bioguide_id: 'S000033',
+  name: SANDERS.name,
+  party: 'Independent',
+  caucus: 'Democrat',
+  seat: SANDERS.seat,
+  photo_url: SANDERS.photo_url,
+};
+
+export const SLOTKIN_LIST: MemberListItem = {
+  bioguide_id: 'S001208',
+  name: SLOTKIN.name,
+  party: 'Democrat',
+  caucus: null,
+  seat: SLOTKIN.seat,
   photo_url: null,
 };
 
@@ -127,6 +345,7 @@ export const FEED: FeedItem[] = [
     event_date: '2026-09-03',
     headline: 'Voted YEA on H.R. 4795: Protect Economic and Academic Freedom Act of 2026',
     detail: 'On Passage · Passed 237–169',
+    detail_full: null,
     position: 'Yea',
     chamber: 'house',
     session: 2,
@@ -143,6 +362,7 @@ export const FEED: FeedItem[] = [
     event_date: '2026-01-05',
     headline: 'Voted YEA on nomination PN12-1',
     detail: 'On the Nomination · Nomination Confirmed 52–45',
+    detail_full: null,
     position: 'Yea',
     chamber: 'senate',
     session: 2,
@@ -159,6 +379,7 @@ export const FEED: FeedItem[] = [
     event_date: '2025-12-17',
     headline: 'Did not vote on roll call 353',
     detail: 'On Agreeing to the Amendment · Failed 201–224',
+    detail_full: null,
     position: 'Not Voting',
     chamber: 'house',
     session: 1,
@@ -175,6 +396,7 @@ export const FEED: FeedItem[] = [
     event_date: '2025-01-03',
     headline: 'Voted Johnson (LA) on roll call 2',
     detail: 'Election of the Speaker · Passed 0–0',
+    detail_full: null,
     position: 'Other',
     chamber: 'house',
     session: 1,
@@ -191,6 +413,7 @@ export const FEED: FeedItem[] = [
     event_date: '2025-07-23',
     headline: 'Introduced H.R. 4735: Business of Insurance Regulatory Reform Act of 2025',
     detail: 'Referred to the House Committee on Financial Services.',
+    detail_full: null,
     position: null,
     chamber: null,
     session: null,
@@ -207,6 +430,7 @@ export const FEED: FeedItem[] = [
     event_date: '2026-09-04',
     headline: 'Cosponsored H.R. 5269: RESULTS Act',
     detail: 'Referred to the Committee on Energy and Commerce.',
+    detail_full: null,
     position: null,
     chamber: null,
     session: null,
@@ -223,6 +447,7 @@ export const FEED: FeedItem[] = [
     event_date: '2025-02-21',
     headline: 'H.Res. 150: Submitted in House',
     detail: 'Providing for consideration of the bill',
+    detail_full: null,
     position: null,
     chamber: null,
     session: null,
@@ -233,6 +458,24 @@ export const FEED: FeedItem[] = [
     source_url: 'https://api.congress.gov/v3/bill/119/hres/150/actions?format=json',
   },
 ];
+
+export const EN_BLOC: FeedItem = {
+  event_key: 'vote:senate:1:522',
+  event_type: 'vote',
+  event_at: '2025-10-07T21:12:00Z',
+  event_date: '2025-10-07',
+  headline: 'Voted YEA on 48 nominations (en bloc)',
+  detail: 'On the Cloture Motion · 48 nominations · Cloture Motion Rejected 51–48',
+  detail_full: 'On the Cloture Motion PN25-28 and PN12-19 and PN12-45 and PN22-1 · Cloture Motion Rejected 51–48',
+  position: 'Yea',
+  chamber: 'senate',
+  session: 1,
+  roll_number: 522,
+  bill_type: null,
+  bill_number: null,
+  url: null,
+  source_url: 'https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00522.xml',
+};
 
 export const WEEKS: WeekBucket[] = [
   { week_start: '2025-07-21', vote: 12, bill_sponsored: 1, bill_cosponsored: 3, committee_action: 0, total: 16 },

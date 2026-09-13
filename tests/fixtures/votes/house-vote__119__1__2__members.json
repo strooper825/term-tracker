@@ -51,6 +51,14 @@
     "voteCast": "Jeffries",
     "voteParty": "D",
     "voteState": "AZ"
+   },
+   {
+    "bioguideID": "K000401",
+    "firstName": "Kevin",
+    "lastName": "Kiley",
+    "voteCast": "Not Voting",
+    "voteParty": "I",
+    "voteState": "CA"
    }
   ],
   "rollCallNumber": 2,

@@ -31,27 +31,81 @@ class VoteStats(BaseModel):
     not_voting: int
     attendance_pct: float | None
     missed_vote_pct: float | None
+    scoring_party: str | None = Field(
+        default=None,
+        description="Party letter the unity figures are scored against: the vote-record party, "
+        "or the caucus for an Independent who caucuses with a party (ADR 0005)",
+    )
     party_unity_pct: float | None = Field(
-        description="Share of Yea/Nay votes matching the majority of the member's party"
+        description="Share of Yea/Nay votes matching the majority of the scoring party"
     )
     party_unity_cq_pct: float | None = Field(
         description="Same, on roll calls where Republican and Democratic majorities opposed"
     )
 
 
+class MemberBio(BaseModel):
+    birthday: dt.date | None
+    age: int | None = Field(description="Whole years from birthday to today (UTC)")
+    gender: str | None = Field(description="M or F as congress-legislators records it")
+
+
+class TermHistoryItem(BaseModel):
+    term_index: int = Field(description="1-based position in the source terms list")
+    chamber: str
+    congress: int
+    end_congress: int
+    start_date: dt.date
+    end_date: dt.date
+    state: str
+    district: int | None
+    senate_class: int | None
+    party: str | None
+    caucus: str | None
+    how: str | None = Field(description="appointment or special-election when not a regular one")
+    end_type: str | None = Field(description="Why the term ended early, when it did")
+
+
+class ServiceRecord(BaseModel):
+    first_term_start: dt.date = Field(description="Start of the first term ever served")
+    serving_since: dt.date = Field(
+        description="Start of the current unbroken run of terms (consecutive Congresses)"
+    )
+    term_number: int = Field(description="Terms served so far, this one included, both chambers")
+    chamber_since: dt.date = Field(description="Start of the current unbroken run in this chamber")
+    chamber_term_number: int = Field(description="Terms served in the current chamber")
+    terms: list[TermHistoryItem]
+
+
+class LeadershipRole(BaseModel):
+    title: str
+    chamber: str
+    start_date: dt.date
+    end_date: dt.date | None
+    is_current: bool
+
+
 class ActivityCounts(BaseModel):
     bills_sponsored: int
     bills_cosponsored: int
     committees: int
-    chairmanships: int = Field(description="Chairs of full committees in the member's own chamber")
+    chairmanships: int = Field(
+        description="Chairs of full committees, joint included; subcommittees excluded"
+    )
 
 
 class MemberDetail(BaseModel):
     bioguide_id: str
     name: MemberName
     party: str | None
+    caucus: str | None = Field(
+        default=None, description="For Independents, the party they caucus with"
+    )
     seat: Seat
     term: TermSpan
+    bio: MemberBio
+    service: ServiceRecord
+    leadership: list[LeadershipRole] = Field(description="Every recorded role, newest first")
     photo_url: str | None
     ids: MemberIds
     votes: VoteStats
@@ -85,6 +139,9 @@ class FeedItem(BaseModel):
     event_date: dt.date
     headline: str
     detail: str | None
+    detail_full: str | None = Field(
+        default=None, description="Uncapped text when detail is summarised (en bloc votes)"
+    )
     position: str | None
     chamber: str | None
     session: int | None

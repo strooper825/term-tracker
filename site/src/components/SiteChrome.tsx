@@ -81,6 +81,8 @@ export function SourceLink({
     <a
       href={href}
       title={title}
+      target="_blank"
+      rel="noopener noreferrer"
       className="flex-none text-meta text-ink3 border border-rule rounded-chip px-1.5 py-0.5"
     >
       source ↗

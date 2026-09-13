@@ -47,6 +47,12 @@ export interface MemberHeaderModel {
   seatShort: string;
   congress: string;
   termLine: string;
+  /** "Age 45 · Serving since 2019 · 4th term", plus "· 1st in the Senate" after a chamber change. */
+  serviceLine: string;
+  /** Current party or chamber leadership title from congress-legislators, if any. */
+  leadershipTitle: string | null;
+  /** "Caucuses with Democrats" for an Independent; null otherwise. */
+  caucusNote: string | null;
   photoUrl: string | null;
 }
 
@@ -87,6 +93,8 @@ export interface FeedRow {
   lead?: string;
   headline: string;
   secondary: string;
+  /** Uncapped text when `secondary` is a summary (en bloc votes); shown on hover. */
+  secondaryFull?: string;
   source: string;
 }
 
@@ -106,6 +114,7 @@ export interface IndexRow {
   attendance: number | null;
   sponsored: number;
   unity: number | null;
+  photoUrl: string | null;
 }
 
 /** mart.term.party uses congress-legislators spelling ("Democrat"); the design uses "Democratic". */
@@ -151,11 +160,47 @@ export function committeeDisplayName(c: CommitteeAssignment): string {
   return c.name;
 }
 
+/** Subcommittee chairs are labelled apart from full-committee chairs so the card agrees with
+ *  the chairmanships stat (which counts full committees only). */
+export function committeeRowRole(c: CommitteeAssignment): string {
+  const role = committeeRole(c.title);
+  return role === 'Chair' && c.parent_thomas_id ? 'Subcommittee chair' : role;
+}
+
 export function buildCommitteeRows(committees: CommitteeAssignment[]): CommitteeRow[] {
   const order = (c: CommitteeAssignment) => (committeeRole(c.title) === 'Chair' ? 0 : 1);
   return [...committees]
     .sort((a, b) => order(a) - order(b) || (a.parent_thomas_id ? 1 : 0) - (b.parent_thomas_id ? 1 : 0))
-    .map((c) => ({ name: committeeDisplayName(c), role: committeeRole(c.title) }));
+    .map((c) => ({ name: committeeDisplayName(c), role: committeeRowRole(c) }));
+}
+
+const PARTY_MEMBERS: Record<PartyName, string> = {
+  Republican: 'Republicans',
+  Democratic: 'Democrats',
+  Independent: 'Independents',
+};
+
+/** The caucus as a party name when it differs from the member's own party, else null. */
+export function caucusParty(detail: Pick<MemberDetail, 'party' | 'caucus'>): PartyName | null {
+  if (!detail.caucus) return null;
+  const caucus = partyName(detail.caucus);
+  return caucus === partyName(detail.party) ? null : caucus;
+}
+
+/** "Age 45 · Serving since 2019 · 4th term"; members who changed chamber also get
+ *  "· 1st in the Senate" so a first-term senator with House service reads correctly. */
+export function serviceLine(detail: MemberDetail): string {
+  const svc = detail.service;
+  const chamber = chamberName(detail.seat.chamber);
+  const since = parseDate(svc.serving_since).getUTCFullYear();
+  const changedChamber = svc.terms.some((t) => t.chamber !== detail.seat.chamber);
+  const parts = [
+    ...(detail.bio.age === null ? [] : [`Age ${detail.bio.age}`]),
+    `Serving since ${since}`,
+    `${ordinal(svc.term_number)} term`,
+    ...(changedChamber ? [`${ordinal(svc.chamber_term_number)} in the ${chamber}`] : []),
+  ];
+  return parts.join(' · ');
 }
 
 export function buildHeader(detail: MemberDetail): MemberHeaderModel {
@@ -163,6 +208,7 @@ export function buildHeader(detail: MemberDetail): MemberHeaderModel {
   const tracked = ordinal(detail.term.tracked_congress);
   const multi = detail.term.congresses.length > 1;
   const rollCalls = detail.votes.roll_calls ?? 0;
+  const caucus = caucusParty(detail);
   return {
     bioguideId: detail.bioguide_id,
     name: memberDisplayName(detail.seat.chamber, detail.name.official_full),
@@ -177,16 +223,21 @@ export function buildHeader(detail: MemberDetail): MemberHeaderModel {
     termLine:
       `Term: ${formatDate(detail.term.start_date)} – ${formatDate(detail.term.end_date)} · ` +
       `${formatNumber(rollCalls)} roll calls ${multi ? `in the ${tracked}` : 'to date'}`,
+    serviceLine: serviceLine(detail),
+    leadershipTitle: detail.leadership.find((r) => r.is_current)?.title ?? null,
+    caucusNote: caucus ? `Caucuses with ${PARTY_MEMBERS[caucus]}` : null,
     photoUrl: detail.photo_url,
   };
 }
 
 /** Party unity shows the CQ-style figure (opposing party majorities), the one comparable to
- *  published vote studies; chairmanships is the mart column (full committees, own chamber). */
+ *  published vote studies; for an Independent it is scored against the caucus (ADR 0005) and
+ *  the note says so. Chairmanships is the mart column (full committees, joint included). */
 export function buildStats(detail: MemberDetail): Stat[] {
   const v = detail.votes;
   const chairs = detail.activity.chairmanships;
   const tracked = `${ordinal(detail.term.tracked_congress)} Congress`;
+  const caucus = caucusParty(detail);
   return [
     {
       label: 'Attendance',
@@ -196,7 +247,7 @@ export function buildStats(detail: MemberDetail): Stat[] {
     {
       label: 'Party unity',
       value: formatPercent(v.party_unity_cq_pct),
-      note: 'votes with party majority',
+      note: caucus ? `votes with ${caucus} caucus` : 'votes with party majority',
     },
     { label: 'Bills sponsored', value: formatNumber(detail.activity.bills_sponsored), note: tracked },
     {
@@ -207,7 +258,10 @@ export function buildStats(detail: MemberDetail): Stat[] {
     {
       label: 'Committees',
       value: formatNumber(detail.activity.committees),
-      note: chairs === 0 ? 'no chairmanships' : `${chairs} ${chairs === 1 ? 'chairmanship' : 'chairmanships'}`,
+      note:
+        chairs === 0
+          ? 'no full committee chairs'
+          : `${chairs} full committee ${chairs === 1 ? 'chair' : 'chairs'}`,
     },
   ];
 }
@@ -231,7 +285,13 @@ export function timelineRange(detail: MemberDetail, today: Date): { from: string
   return { from: toIsoDate(from), to: toIsoDate(today) };
 }
 
-/** One column per week (Monday to Sunday) across the range, zero-filled. */
+/** Minimum columns between two axis labels; at ~8px per week this keeps "Jan 2025" clear of
+ *  the next label. */
+export const MIN_TICK_GAP_WEEKS = 6;
+
+/** One column per week (Monday to Sunday) across the range, zero-filled. Axis labels sit on the
+ *  first week of a month, never closer than MIN_TICK_GAP_WEEKS columns apart, with the year only
+ *  on the first label and on January. */
 export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Week[] {
   const start = parseDate(from);
   const monday = addDays(start, -((start.getUTCDay() + 6) % 7));
@@ -239,16 +299,21 @@ export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Wee
   const byWeek = new Map(buckets.map((b) => [b.week_start, b]));
   const weeks: Week[] = [];
   let lastMonth = -1;
+  let lastTickIndex = -MIN_TICK_GAP_WEEKS;
   for (let d = monday; d <= end; d = addDays(d, 7)) {
     const key = toIsoDate(d);
     const b = byWeek.get(key);
+    const monthDay = d.getUTCDate() <= 7 ? d : addDays(d, 6);
     const firstOfMonthInWeek = d.getUTCDate() <= 7 || d.getUTCMonth() !== addDays(d, 6).getUTCMonth();
-    const month = d.getUTCDate() <= 7 ? d.getUTCMonth() : addDays(d, 6).getUTCMonth();
+    const month = monthDay.getUTCMonth();
     let tick = '';
-    if (weeks.length === 0 || (firstOfMonthInWeek && month !== lastMonth)) {
-      tick = `${monthShort(d.getUTCDate() <= 7 ? d : addDays(d, 6))}${month === 0 || weeks.length === 0 ? ` ${(d.getUTCDate() <= 7 ? d : addDays(d, 6)).getUTCFullYear()}` : ''}`;
-      lastMonth = month;
+    const wantsTick = weeks.length === 0 || (firstOfMonthInWeek && month !== lastMonth);
+    if (wantsTick && weeks.length - lastTickIndex >= MIN_TICK_GAP_WEEKS) {
+      const withYear = weeks.length === 0 || month === 0;
+      tick = `${monthShort(monthDay)}${withYear ? ` ${monthDay.getUTCFullYear()}` : ''}`;
+      lastTickIndex = weeks.length;
     }
+    if (wantsTick) lastMonth = month;
     weeks.push({
       label: formatDate(key),
       counts: {
@@ -270,13 +335,14 @@ export function feedRow(item: FeedItem): FeedRow {
   const type = EVENT_TYPE_FROM_MART[item.event_type] ?? 'vote';
   const source = item.url ?? item.source_url;
   const secondary = item.detail ?? '';
+  const secondaryFull = item.detail_full && item.detail_full !== secondary ? item.detail_full : undefined;
   if (type === 'vote') {
     const m = VOTE_LEAD.exec(item.headline);
     if (m) {
-      return { type, lead: m[1].replace(/ on $/, ' '), headline: `on ${m[2]}`, secondary, source };
+      return { type, lead: m[1].replace(/ on $/, ' '), headline: `on ${m[2]}`, secondary, secondaryFull, source };
     }
   }
-  return { type, headline: item.headline, secondary, source };
+  return { type, headline: item.headline, secondary, secondaryFull, source };
 }
 
 /** Group feed items by calendar day, newest first (the API already orders by event_at desc). */
@@ -339,5 +405,6 @@ export function buildIndexRow(item: MemberListItem, detail: MemberDetail): Index
     attendance: detail.votes.attendance_pct,
     sponsored: detail.activity.bills_sponsored,
     unity: detail.votes.party_unity_cq_pct,
+    photoUrl: item.photo_url ?? detail.photo_url,
   };
 }
