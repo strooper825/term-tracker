@@ -1,0 +1,63 @@
+{
+ "pagination": {
+  "count": 5
+ },
+ "cosponsors": [
+  {
+   "bioguideId": "H000601",
+   "firstName": "Bill",
+   "fullName": "Sen. Hagerty, Bill [R-TN]",
+   "isOriginalCosponsor": true,
+   "lastName": "Hagerty",
+   "party": "R",
+   "sponsorshipDate": "2025-02-04",
+   "state": "TN",
+   "url": "https://api.congress.gov/v3/member/H000601?format=json"
+  },
+  {
+   "bioguideId": "T000476",
+   "firstName": "Thomas",
+   "fullName": "Sen. Tillis, Thomas [R-NC]",
+   "isOriginalCosponsor": true,
+   "lastName": "Tillis",
+   "middleName": "Roland",
+   "party": "R",
+   "sponsorshipDate": "2025-02-04",
+   "state": "NC",
+   "url": "https://api.congress.gov/v3/member/T000476?format=json"
+  },
+  {
+   "bioguideId": "S001184",
+   "firstName": "Tim",
+   "fullName": "Sen. Scott, Tim [R-SC]",
+   "isOriginalCosponsor": false,
+   "lastName": "Scott",
+   "party": "R",
+   "sponsorshipDate": "2025-02-06",
+   "state": "SC",
+   "url": "https://api.congress.gov/v3/member/S001184?format=json"
+  },
+  {
+   "bioguideId": "D000618",
+   "firstName": "Steve",
+   "fullName": "Sen. Daines, Steve [R-MT]",
+   "isOriginalCosponsor": false,
+   "lastName": "Daines",
+   "party": "R",
+   "sponsorshipDate": "2025-03-31",
+   "state": "MT",
+   "url": "https://api.congress.gov/v3/member/D000618?format=json"
+  },
+  {
+   "bioguideId": "M001242",
+   "firstName": "Bernie",
+   "fullName": "Sen. Moreno, Bernie [R-OH]",
+   "isOriginalCosponsor": false,
+   "lastName": "Moreno",
+   "party": "R",
+   "sponsorshipDate": "2025-04-29",
+   "state": "OH",
+   "url": "https://api.congress.gov/v3/member/M001242?format=json"
+  }
+ ]
+}

@@ -45,13 +45,24 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   );
 }
 
-export function Breadcrumb({ name }: { name: string }) {
+export interface Crumb {
+  label: string;
+  href: string;
+}
+
+const MEMBERS_ROOT: Crumb[] = [{ label: 'Members', href: '/members' }];
+
+export function Breadcrumb({ name, trail = MEMBERS_ROOT }: { name: string; trail?: Crumb[] }) {
   return (
-    <nav className="flex items-center gap-[7px] text-meta text-ink3">
-      <a href="/members" className="text-ink2">
-        Members
-      </a>
-      <span className="text-[#C6C3BC]">/</span>
+    <nav className="flex items-center gap-[7px] text-meta text-ink3 flex-wrap">
+      {trail.map((crumb) => (
+        <span key={crumb.href} className="flex items-center gap-[7px]">
+          <a href={crumb.href} className="text-ink2">
+            {crumb.label}
+          </a>
+          <span className="text-[#C6C3BC]">/</span>
+        </span>
+      ))}
       <span>{name}</span>
     </nav>
   );

@@ -5,6 +5,8 @@
 import { EVENT_TYPE_FROM_MART, type EventKey, type PartyName } from '@/data/eventTypes';
 import {
   addDays,
+  billPath,
+  congressLabel,
   congressStartDate,
   cycleLabel,
   daysBetween,
@@ -22,6 +24,11 @@ import {
   toIsoDate,
 } from './format';
 import type {
+  BillAction,
+  BillCosponsor,
+  BillDetail,
+  BillRollCall,
+  BillSummaryVersion,
   CommitteeAssignment,
   FeedItem,
   FreshnessResponse,
@@ -101,6 +108,9 @@ export interface FeedRow {
   /** Uncapped text when `secondary` is a summary (en bloc votes); shown on hover. */
   secondaryFull?: string;
   source: string;
+  /** Set when the event names a bill that has a page here: the headline split around the
+   *  label so the label alone becomes an internal link. */
+  link?: { before: string; label: string; href: string; after: string };
 }
 
 export interface FeedGroup {
@@ -336,6 +346,20 @@ export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Wee
 const VOTE_LEAD = /^(Voted .+? on |Did not vote on )([\s\S]*)$/;
 
 /** Split a mart.member_feed vote headline into the bold position and the rest. */
+/** Split a headline around the bill label so the label can be linked. mart.member_feed sets
+ *  bill_label only when the bill is in mart.bill, which is exactly when a page exists. */
+export function billLink(item: FeedItem, headline: string): FeedRow['link'] {
+  if (!item.bill_label || !item.bill_type || !item.bill_number) return undefined;
+  const at = headline.indexOf(item.bill_label);
+  if (at < 0) return undefined;
+  return {
+    before: headline.slice(0, at),
+    label: item.bill_label,
+    href: billPath(item.congress, item.bill_type, item.bill_number),
+    after: headline.slice(at + item.bill_label.length),
+  };
+}
+
 export function feedRow(item: FeedItem): FeedRow {
   const type = EVENT_TYPE_FROM_MART[item.event_type] ?? 'vote';
   const source = item.url ?? item.source_url;
@@ -344,10 +368,26 @@ export function feedRow(item: FeedItem): FeedRow {
   if (type === 'vote') {
     const m = VOTE_LEAD.exec(item.headline);
     if (m) {
-      return { type, lead: m[1].replace(/ on $/, ' '), headline: `on ${m[2]}`, secondary, secondaryFull, source };
+      const headline = `on ${m[2]}`;
+      return {
+        type,
+        lead: m[1].replace(/ on $/, ' '),
+        headline,
+        secondary,
+        secondaryFull,
+        source,
+        link: billLink(item, headline),
+      };
     }
   }
-  return { type, headline: item.headline, secondary, secondaryFull, source };
+  return {
+    type,
+    headline: item.headline,
+    secondary,
+    secondaryFull,
+    source,
+    link: billLink(item, item.headline),
+  };
 }
 
 /** Group feed items by calendar day, newest first (the API already orders by event_at desc). */
@@ -531,5 +571,242 @@ export function buildFundraising(
       `${committeeLabel(f.committee?.name ?? null, f.committee?.committee_id ?? '')} · principal campaign committee`,
     ],
     sourceUrl: f.committee?.fec_url ?? null,
+  };
+}
+
+/* ---------------------------------------------------------------- bill detail page */
+
+const ALLOWED_SUMMARY_TAGS = new Set([
+  'p',
+  'br',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  'ul',
+  'ol',
+  'li',
+  'span',
+  'sup',
+  'sub',
+]);
+
+/** CRS summaries arrive as HTML. Only a fixed set of formatting tags survives, and every
+ *  attribute is dropped, so nothing from the payload can carry a link, a style, or a handler
+ *  into the page. Text inside a dropped tag is kept; script and style bodies are not. */
+export function sanitizeSummaryHtml(html: string): string {
+  return html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (match, rawTag: string) => {
+      const tag = rawTag.toLowerCase();
+      if (!ALLOWED_SUMMARY_TAGS.has(tag)) return '';
+      // rebuilt from the tag name alone, so no attribute survives and <BR/> becomes <br>
+      return match.startsWith('</') ? `</${tag}>` : `<${tag}>`;
+    });
+}
+
+export interface SummaryVersionRow {
+  label: string;
+  date: string;
+  current: boolean;
+}
+
+export interface BillSummaryModel {
+  asOf: string;
+  stage: string;
+  html: string;
+  versions: SummaryVersionRow[];
+}
+
+export interface ActionGroup {
+  date: string;
+  items: { text: string; meta: string }[];
+}
+
+export interface CosponsorRow {
+  name: string;
+  meta: string;
+  date: string;
+  withdrawn: boolean;
+  href: string | null;
+}
+
+export interface CosponsorsModel {
+  total: number;
+  chips: { label: string; count: number }[];
+  rows: CosponsorRow[];
+  withdrawn: number;
+}
+
+export interface RollCallRow {
+  heading: string;
+  question: string | null;
+  tally: string;
+  detail: string;
+  positions: { name: string; party: string | null; position: string }[];
+  source: string;
+}
+
+export interface BillPageModel {
+  label: string;
+  title: string;
+  kindLabel: string;
+  congress: string;
+  policyArea: string | null;
+  introduced: string;
+  sponsorName: string;
+  sponsorMeta: string;
+  sponsorHref: string | null;
+  latestAction: { date: string; text: string } | null;
+  amends: { label: string; href: string } | null;
+  congressGovUrl: string;
+  summary: BillSummaryModel | null;
+  summaryEmpty: string | null;
+  actions: ActionGroup[];
+  actionCount: number;
+  cosponsors: CosponsorsModel;
+  rollCalls: RollCallRow[];
+}
+
+const PARTY_WORD: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' };
+
+/** "R-WI-1" for a representative, "R-AR" for a senator, "" when the source says neither. */
+export function memberMeta(
+  party: string | null,
+  state: string | null,
+  district: number | null,
+): string {
+  const parts = [party, state].filter(Boolean);
+  const base = parts.join('-');
+  return district === null || district === undefined ? base : `${base}-${district}`;
+}
+
+function summaryModel(detail: BillDetail): BillSummaryModel | null {
+  if (!detail.summary) return null;
+  const versionRow = (v: BillSummaryVersion): SummaryVersionRow => ({
+    label: v.action_desc,
+    date: formatDate(v.action_date),
+    current: v.is_latest,
+  });
+  return {
+    asOf: formatDate(detail.summary.action_date),
+    stage: detail.summary.action_desc,
+    html: sanitizeSummaryHtml(detail.summary.text_html),
+    versions: detail.summary_versions.map(versionRow),
+  };
+}
+
+/** Why there is no summary, in words. CRS writes summaries after introduction and skips many
+ *  minor measures, so an absent one is normal and says nothing about the bill. */
+function summaryEmptyMessage(detail: BillDetail): string | null {
+  if (detail.summary) return null;
+  if (detail.kind === 'amendment') {
+    return 'The Congressional Research Service does not summarise amendments.';
+  }
+  return (
+    'The Congressional Research Service has not published a summary of this bill. ' +
+    'Summaries are written after introduction and many measures never receive one.'
+  );
+}
+
+function actionGroups(actions: BillAction[]): ActionGroup[] {
+  const groups: ActionGroup[] = [];
+  for (const a of actions) {
+    const date = formatLongDate(a.action_date);
+    const meta = [a.action_type, a.source_system].filter(Boolean).join(' · ');
+    const item = { text: a.action_text ?? a.action_code ?? 'Action recorded', meta };
+    const last = groups[groups.length - 1];
+    if (last && last.date === date) last.items.push(item);
+    else groups.push({ date, items: [item] });
+  }
+  return groups;
+}
+
+function cosponsorsModel(detail: BillDetail): CosponsorsModel {
+  const c = detail.cosponsors;
+  const chips = [
+    { label: 'Democrats', count: c.democratic },
+    { label: 'Republicans', count: c.republican },
+    { label: 'Other', count: c.other },
+  ].filter((chip) => chip.count > 0);
+  return {
+    total: c.total,
+    withdrawn: c.withdrawn,
+    chips,
+    rows: detail.cosponsor_list.map((p: BillCosponsor) => ({
+      name: p.name,
+      meta: memberMeta(p.party, p.state, p.district),
+      date: formatDate(p.date),
+      withdrawn: p.is_withdrawn,
+      href: p.is_tracked_member ? `/members/${p.bioguide_id}` : null,
+    })),
+  };
+}
+
+function rollCallRows(detail: BillDetail): RollCallRow[] {
+  return detail.roll_calls.map((r: BillRollCall) => ({
+    heading: `${r.chamber === 'house' ? 'House' : 'Senate'} roll call ${r.roll_number} · ${formatDate(r.vote_date)}`,
+    question: r.question,
+    tally: `${r.yea_total}–${r.nay_total}`,
+    detail: [r.result, `${r.present_total} present`, `${r.not_voting_total} not voting`]
+      .filter(Boolean)
+      .join(' · '),
+    positions: r.tracked_positions.map((p) => ({
+      name: p.name,
+      party: p.party,
+      position: p.position,
+    })),
+    source: r.source_url,
+  }));
+}
+
+/** Everything the bill page renders, from one GET /bills/{congress}/{type}/{number} row.
+ *  Formatting and labelling only: every count is an API field, which is a mart column. */
+export function buildBillPage(detail: BillDetail): BillPageModel {
+  const sponsorParty = detail.sponsor.party;
+  return {
+    label: detail.label,
+    title: detail.title,
+    kindLabel: detail.kind === 'amendment' ? 'Amendment' : 'Bill',
+    congress: congressLabel(detail.congress),
+    policyArea: detail.policy_area,
+    introduced: formatDate(detail.introduced_date),
+    sponsorName: detail.sponsor.name,
+    sponsorMeta: [
+      sponsorParty ? PARTY_WORD[sponsorParty] ?? sponsorParty : null,
+      memberMeta(null, detail.sponsor.state, detail.sponsor.district),
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    sponsorHref:
+      detail.sponsor.is_tracked && detail.sponsor.bioguide_id
+        ? `/members/${detail.sponsor.bioguide_id}`
+        : null,
+    latestAction: detail.latest_action_date
+      ? {
+          date: formatDate(detail.latest_action_date),
+          text: detail.latest_action_text ?? '',
+        }
+      : null,
+    amends:
+      detail.amended_bill_congress && detail.amended_bill_type && detail.amended_bill_number
+        ? {
+            label: `${detail.amended_bill_type.toUpperCase()} ${detail.amended_bill_number}`,
+            href: billPath(
+              detail.amended_bill_congress,
+              detail.amended_bill_type,
+              detail.amended_bill_number,
+            ),
+          }
+        : null,
+    congressGovUrl: detail.congress_gov_url,
+    summary: summaryModel(detail),
+    summaryEmpty: summaryEmptyMessage(detail),
+    actions: actionGroups(detail.actions),
+    actionCount: detail.action_count,
+    cosponsors: cosponsorsModel(detail),
+    rollCalls: rollCallRows(detail),
   };
 }

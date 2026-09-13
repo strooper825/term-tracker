@@ -115,7 +115,20 @@ export function ActivityFeed({
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                   <p className="text-base leading-snug m-0">
                     {it.lead && <strong className="font-semibold text-ink">{it.lead}</strong>}
-                    {it.headline}
+                    {it.link ? (
+                      <>
+                        {it.link.before}
+                        <a
+                          href={it.link.href}
+                          className="underline decoration-rule underline-offset-2 hover:decoration-ink3"
+                        >
+                          {it.link.label}
+                        </a>
+                        {it.link.after}
+                      </>
+                    ) : (
+                      it.headline
+                    )}
                   </p>
                   {it.secondary && (
                     <p

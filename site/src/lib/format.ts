@@ -104,3 +104,13 @@ export function titleCase(text: string): string {
 export function cycleLabel(cycle: number): string {
   return `${cycle - 1}–${String(cycle).slice(2)} cycle`;
 }
+
+/** Route of a bill detail page: /bills/119/hr/4735 */
+export function billPath(congress: number, billType: string, billNumber: string): string {
+  return `/bills/${congress}/${billType}/${billNumber}`;
+}
+
+/** "119th Congress" */
+export function congressLabel(congress: number): string {
+  return `${ordinal(congress)} Congress`;
+}

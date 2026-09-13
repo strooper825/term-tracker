@@ -66,6 +66,20 @@ models:
         tests: [not_null]
       - name: sponsorship_date
         tests: [not_null]
+      - name: party
+        tests: [not_null]
+      - name: full_name
+        tests: [not_null]
+  - name: stg_bill_summaries
+    columns:
+      - name: version_code
+        tests: [not_null]
+      - name: action_date
+        tests: [not_null]
+      - name: action_desc
+        tests: [not_null]
+      - name: text_html
+        tests: [not_null]
   - name: stg_house_roll_calls
     columns:
       - name: roll_number

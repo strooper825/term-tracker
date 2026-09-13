@@ -5,6 +5,7 @@
 with votes as (
     select
         v.bioguide_id,
+        v.congress,
         r.voted_at as event_at,
         r.vote_date as event_date,
         'vote' as event_type,
@@ -51,6 +52,9 @@ with votes as (
         r.roll_number,
         r.bill_type,
         r.bill_number,
+        -- null when the roll call names legislation that is not in mart.bill, which is how
+        -- the site decides whether to link the label to a bill page
+        b.label as bill_label,
         b.congress_gov_url as url,
         v.source,
         v.source_url,
@@ -67,6 +71,7 @@ with votes as (
 sponsorships as (
     select
         s.bioguide_id,
+        s.congress,
         s.date::timestamp at time zone 'America/New_York' as event_at,
         s.date as event_date,
         case s.role when 'sponsor' then 'bill_sponsored' else 'bill_cosponsored' end as event_type,
@@ -82,6 +87,7 @@ sponsorships as (
         null::int as roll_number,
         s.bill_type,
         s.bill_number,
+        b.label as bill_label,
         b.congress_gov_url as url,
         s.source,
         s.source_url,
@@ -95,6 +101,7 @@ sponsorships as (
 committee_actions as (
     select
         s.bioguide_id,
+        a.congress,
         coalesce(
             (a.action_date::text || ' ' || coalesce(a.action_time, '12:00:00'))::timestamp,
             a.action_date::timestamp
@@ -113,6 +120,7 @@ committee_actions as (
         null::int as roll_number,
         a.bill_type,
         a.bill_number,
+        b.label as bill_label,
         b.congress_gov_url as url,
         a.source,
         a.source_url,

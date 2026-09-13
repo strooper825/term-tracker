@@ -21,17 +21,28 @@ from tests.fixtures.votes import house_client, senate_client
 
 pytestmark = pytest.mark.integration
 
-# Fixture inventory: 5 list pages; 9 distinct bills/amendments, each with actions + cosponsors.
+# Fixture inventory: 5 list pages; 10 distinct records from the member lists, of which 7 are
+# bills and 3 amendments. Every record gets a detail, an actions and a cosponsors request;
+# only the bills also get a summaries one (amendments have no such endpoint).
 LIST_PAGES = 5
 DISTINCT_BILLS = 10
+SUMMARISED_BILLS = 7
 MEMBER_LEGISLATION_ROWS = 3 + 2 + 2 + 3
+# detail + actions + cosponsors for everything, plus summaries for the bills
+FULL_LOAD_REQUESTS = DISTINCT_BILLS * 3 + SUMMARISED_BILLS
 
 
 def _counts(engine: Engine) -> dict[str, int]:
     with engine.connect() as conn:
         return {
             table: conn.execute(text(f"SELECT count(*) FROM raw.{table}")).scalar_one()
-            for table in ("member_legislation", "bill", "bill_actions", "bill_cosponsors")
+            for table in (
+                "member_legislation",
+                "bill",
+                "bill_actions",
+                "bill_cosponsors",
+                "bill_summaries",
+            )
         }
 
 
@@ -52,20 +63,22 @@ def test_full_load_then_incremental_skips_unchanged(
     client = fixture_client()
     with connect() as conn:
         rows = src.load(conn, client, TRACKED, CONGRESS, full_refresh=True, roll_call_bills=False)
-    assert rows == MEMBER_LEGISLATION_ROWS + DISTINCT_BILLS * 3
-    assert client.requests_made == LIST_PAGES + DISTINCT_BILLS * 3
+    assert rows == MEMBER_LEGISLATION_ROWS + FULL_LOAD_REQUESTS
+    assert client.requests_made == LIST_PAGES + FULL_LOAD_REQUESTS
     counts = _counts(migrated_engine)
     assert counts["member_legislation"] >= MEMBER_LEGISLATION_ROWS
     assert counts["bill"] >= DISTINCT_BILLS
+    assert counts["bill_summaries"] >= SUMMARISED_BILLS
 
-    # Second run: details are re-fetched, actions/cosponsors are not (updateDate unchanged).
+    # Second run: details are re-fetched, the three lists are not (updateDate unchanged, and a
+    # stored empty array counts as loaded, so a bill with no summary is not re-asked either).
     client = fixture_client()
     with connect() as conn:
         src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False)
     assert client.requests_made == LIST_PAGES + DISTINCT_BILLS
     assert _counts(migrated_engine) == counts
 
-    # A changed updateDate on one bill triggers exactly one actions + cosponsors refresh.
+    # A changed updateDate on one bill re-reads that bill's three lists and nothing else.
     with migrated_engine.begin() as conn:
         conn.execute(
             text(
@@ -77,7 +90,20 @@ def test_full_load_then_incremental_skips_unchanged(
     client = fixture_client()
     with connect() as conn:
         src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False)
-    assert client.requests_made == LIST_PAGES + DISTINCT_BILLS + 2
+    assert client.requests_made == LIST_PAGES + DISTINCT_BILLS + 3
+
+    # A list that was never stored is fetched on its own, without re-reading the others.
+    with migrated_engine.begin() as conn:
+        conn.execute(
+            text(
+                "DELETE FROM raw.bill_summaries "
+                "WHERE congress = 119 AND bill_type = 'hr' AND bill_number = '1502'"
+            )
+        )
+    client = fixture_client()
+    with connect() as conn:
+        src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False)
+    assert client.requests_made == LIST_PAGES + DISTINCT_BILLS + 1
 
     with migrated_engine.connect() as conn:
         statuses = (
@@ -123,8 +149,11 @@ def test_missing_api_key_is_a_clear_error(monkeypatch: pytest.MonkeyPatch) -> No
         src.run()
 
 
-def test_roll_call_bills_are_fetched_detail_only(migrated_engine: Engine, clean_runs: None) -> None:
-    """Bills referenced by loaded roll calls get a detail record, without actions or cosponsors."""
+def test_roll_call_bills_get_a_full_page_of_their_own(
+    migrated_engine: Engine, clean_runs: None
+) -> None:
+    """A bill reaches the mart because a roll call names it, and still gets the actions,
+    cosponsors and summaries its detail page needs (they used to be detail-only)."""
     with connect() as conn:
         house_votes.load(conn, house_client(), CONGRESS, full_refresh=True)
         senate_votes.load(conn, senate_client(), CONGRESS, full_refresh=True)
@@ -137,8 +166,11 @@ def test_roll_call_bills_are_fetched_detail_only(migrated_engine: Engine, clean_
     client = fixture_client()
     with connect() as conn:
         src.load(conn, client, TRACKED, CONGRESS, full_refresh=True)
-    # member legislation as before, plus one detail request per roll-call bill
-    assert client.requests_made == LIST_PAGES + DISTINCT_BILLS * 3 + len(ROLL_CALL_FIXTURE_BILLS)
+    # member legislation as before, plus detail + actions + cosponsors + summaries for each
+    # roll-call bill (all four fixtures are bills, so all four have a summaries endpoint)
+    assert client.requests_made == (
+        LIST_PAGES + FULL_LOAD_REQUESTS + len(ROLL_CALL_FIXTURE_BILLS) * 4
+    )
     with migrated_engine.connect() as conn:
         for bill_type, number in ROLL_CALL_FIXTURE_BILLS:
             title = conn.execute(
@@ -149,11 +181,12 @@ def test_roll_call_bills_are_fetched_detail_only(migrated_engine: Engine, clean_
                 {"t": bill_type, "n": number},
             ).scalar_one()
             assert title
-            has_actions = conn.execute(
-                text(
-                    "SELECT count(*) FROM raw.bill_actions "
-                    "WHERE congress = 119 AND bill_type = :t AND bill_number = :n"
-                ),
-                {"t": bill_type, "n": number},
-            ).scalar_one()
-            assert has_actions == 0
+            for table in ("bill_actions", "bill_cosponsors", "bill_summaries"):
+                stored = conn.execute(
+                    text(
+                        f"SELECT count(*) FROM raw.{table} "
+                        "WHERE congress = 119 AND bill_type = :t AND bill_number = :n"
+                    ),
+                    {"t": bill_type, "n": number},
+                ).scalar_one()
+                assert stored == 1, (table, bill_type, number)

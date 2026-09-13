@@ -135,6 +135,7 @@ class TimelineResponse(BaseModel):
 class FeedItem(BaseModel):
     event_key: str
     event_type: EventType
+    congress: int
     event_at: dt.datetime
     event_date: dt.date
     headline: str
@@ -148,6 +149,10 @@ class FeedItem(BaseModel):
     roll_number: int | None
     bill_type: str | None
     bill_number: str | None
+    bill_label: str | None = Field(
+        default=None,
+        description="Human bill form when the bill has a detail page on this site, else null",
+    )
     url: str | None
     source_url: str
 

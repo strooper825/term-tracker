@@ -14,7 +14,9 @@ node scripts/check-static.mjs out                  # fails if the output could r
 ```
 
 Routes: `/members` (index; `/` redirects to it on Vercel via `vercel.json`), `/members/{bioguide}`
-for every row of `tracked_members`.
+for every row of `tracked_members`, and `/bills/{congress}/{type}/{number}` for every row of
+`mart.bill` (about 1,900 pages). Bill pages are reached from the bill number in any activity
+feed row; there is no bill index yet, and bill search is an open item in plan section 12.
 
 ## Tests
 
