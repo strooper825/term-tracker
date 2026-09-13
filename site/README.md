@@ -25,6 +25,8 @@ npm run typecheck
 
 ## Deploy
 
-The nightly workflow builds after `dbt build` and deploys the prebuilt output with the Vercel
+`.github/workflows/deploy.yml` builds the site and deploys the prebuilt output with the Vercel
 CLI (`vercel build`, `vercel deploy --prebuilt`) using the `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and
-`VERCEL_PROJECT_ID` secrets. Vercel's Git integration is not used.
+`VERCEL_PROJECT_ID` secrets. Vercel's Git integration is not used. The nightly ingest calls
+it after `dbt build`; dispatch it on its own (Actions tab, `deploy_target` auto, preview, or
+production) to publish a frontend change without an ingest.

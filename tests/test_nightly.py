@@ -1,4 +1,4 @@
-"""Nightly job pieces: freshness evaluation, dbt env derivation, URL normalisation, workflow."""
+"""Nightly job pieces: freshness evaluation, dbt env derivation, URL normalisation, workflows."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from ingest.freshness import SourceStatus, evaluate, read_sizes, read_statuses, 
 from ingest.run import SOURCES
 
 ROOT = Path(__file__).resolve().parent.parent
+WORKFLOWS = ROOT / ".github/workflows"
 NOW = datetime(2026, 9, 13, 6, 30, tzinfo=UTC)
 
 
@@ -71,44 +72,91 @@ def test_settings_normalise_plain_postgres_url() -> None:
     assert settings.database_url == "postgresql+psycopg://u:p@host/db"
 
 
-def test_nightly_workflow_shape() -> None:
-    workflow = yaml.safe_load((ROOT / ".github/workflows/nightly.yml").read_text(encoding="utf-8"))
+def _workflow(name: str) -> tuple[dict, dict, str]:
+    raw = (WORKFLOWS / name).read_text(encoding="utf-8")
+    workflow = yaml.safe_load(raw)
     triggers = workflow[True] if True in workflow else workflow["on"]  # YAML parses `on` as True
+    return workflow, triggers, raw
+
+
+def _step_order(steps: list[dict], prefixes: tuple[str, ...]) -> list[int]:
+    names = [step.get("name", step.get("run", "")) for step in steps]
+    return [next(i for i, n in enumerate(names) if n.startswith(p)) for p in prefixes]
+
+
+def test_old_single_job_workflow_is_gone() -> None:
+    assert not (WORKFLOWS / "nightly.yml").exists()
+
+
+def test_ingest_workflow_shape() -> None:
+    workflow, triggers, raw = _workflow("ingest.yml")
     assert triggers["schedule"] == [{"cron": "0 6 * * *"}]
-    assert "workflow_dispatch" in triggers
-    job = workflow["jobs"]["nightly"]
-    assert {
-        "DATABASE_URL",
-        "CONGRESS_GOV_API_KEY",
-        "FEC_API_KEY",
-        "VERCEL_ORG_ID",
-        "VERCEL_PROJECT_ID",
-    } <= set(job["env"])
-    names = [step.get("name", step.get("run", "")) for step in job["steps"]]
-    order = [
-        next(i for i, n in enumerate(names) if n.startswith(prefix))
-        for prefix in (
-            "Migrate",
-            "dbt seed",
-            "Ingest",
-            "dbt build",
-            "Build the site",
-            "Deploy the prebuilt",
-            "Freshness check",
-        )
-    ]
-    assert order == sorted(order), (
-        "migrate -> seed -> ingest -> dbt build -> site -> deploy -> freshness"
+    inputs = triggers["workflow_dispatch"]["inputs"]
+    assert inputs["full_refresh"]["type"] == "boolean"
+    assert inputs["max_age_hours"]["default"] == 26
+    assert inputs["deploy"]["default"] is True
+
+    ingest = workflow["jobs"]["ingest"]
+    assert {"DATABASE_URL", "CONGRESS_GOV_API_KEY", "FEC_API_KEY"} <= set(ingest["env"])
+    order = _step_order(
+        ingest["steps"], ("Migrate", "dbt seed", "Ingest", "dbt build", "Freshness check")
     )
-    deploy = next(s for s in job["steps"] if s.get("name", "").startswith("Deploy the prebuilt"))
-    assert "--prebuilt" in deploy["run"] and "if" not in deploy  # a deploy failure fails the job
-    # the empty-string branch of `cond && '' || x` is falsy and always yields x; never use it
-    assert "&& '' ||" not in (ROOT / ".github/workflows/nightly.yml").read_text(encoding="utf-8")
-    assert "!= 'preview' && '--prod' || ''" in deploy["env"]["PROD_FLAG"]
-    failure_steps = [s for s in job["steps"] if s.get("if") == "failure()"]
-    assert failure_steps and "gh issue" in failure_steps[0]["run"]
+    assert order == sorted(order), "migrate -> seed -> ingest -> dbt build -> freshness"
+    names = " ".join(step.get("name", "") for step in ingest["steps"])
+    assert "Deploy" not in names and "Build the site" not in names  # deploy lives in deploy.yml
+
+    deploy = workflow["jobs"]["deploy"]
+    assert deploy["uses"] == "./.github/workflows/deploy.yml"  # same run, so alerting covers it
+    assert deploy["needs"] == "ingest"
+    assert deploy["with"] == {"deploy_target": "auto"}
+    assert deploy["secrets"] == "inherit"
+    assert "github.event_name == 'schedule'" in deploy["if"]
+
+    alert = workflow["jobs"]["alert"]
+    assert alert["needs"] == ["ingest", "deploy"] and alert["if"] == "always()"
+    open_step, close_step = alert["steps"]
+    assert "needs.deploy.result == 'failure'" in open_step["if"]  # a deploy failure alerts too
+    assert "gh issue" in open_step["run"] and "nightly-failure" in open_step["run"]
+    assert "needs.deploy.result == 'skipped'" in close_step["if"]  # deploy opted out is still ok
+    assert "gh issue close" in close_step["run"]
     assert workflow["permissions"]["issues"] == "write"
+    # the empty-string branch of `cond && '' || x` is falsy and always yields x; never use it
+    assert "&& '' ||" not in raw
     assert list(SOURCES)[:2] == ["legislators", "congress_gov_house_votes"]  # votes before bills
+
+
+def test_deploy_workflow_shape() -> None:
+    workflow, triggers, raw = _workflow("deploy.yml")
+    dispatch = triggers["workflow_dispatch"]["inputs"]["deploy_target"]
+    assert dispatch["options"] == ["auto", "preview", "production"]
+    assert dispatch["default"] == "auto"  # production from main, preview elsewhere
+    assert triggers["workflow_call"]["inputs"]["deploy_target"]["default"] == "auto"
+
+    job = workflow["jobs"]["deploy"]
+    assert {"DATABASE_URL", "VERCEL_ORG_ID", "VERCEL_PROJECT_ID"} <= set(job["env"])
+    steps = job["steps"]
+    order = _step_order(
+        steps,
+        (
+            "Resolve the deployment target",
+            "Start the API",
+            "Build the site",
+            "Confirm the built site cannot reach the API",
+            "Deploy the prebuilt",
+        ),
+    )
+    assert order == sorted(order), "resolve -> API -> build -> static check -> deploy"
+    resolve = steps[order[0]]
+    assert (
+        'if [ "$REF_NAME" = "main" ]; then target=production; else target=preview'
+        in (resolve["run"])
+    )
+    deploy = steps[order[-1]]
+    assert "--prebuilt" in deploy["run"] and "if" not in deploy  # a deploy failure fails the job
+    assert deploy["env"]["PROD_FLAG"] == "${{ steps.target.outputs.prod_flag }}"
+    assert "&& '' ||" not in raw
+    assert "Migrate" not in " ".join(s.get("name", "") for s in steps)  # no ingest here
+    assert workflow["permissions"] == {"contents": "read"}
 
 
 @pytest.mark.integration

@@ -133,29 +133,37 @@ ingest/         Ingestion CLI (python -m ingest.run --source all), sources/, mod
 dbt/            dbt project: models/staging, models/mart, seeds (fips, tracked_members), macros, tests
 migrations/     Alembic environment and versions/
 tests/          api/, ingest/, fixtures/ (recorded payloads; CI never calls live APIs)
-docs/           PLAN.md, data-dictionary.md, adr/
-.github/        ci.yml (lint + tests), nightly.yml (ingest -> dbt -> freshness)
+docs/           PLAN.md, data-dictionary.md, verification-notes.md, adr/
+.github/        ci.yml (lint + tests), ingest.yml (ingest -> dbt -> freshness -> deploy), deploy.yml (site build -> Vercel)
 ```
 
-## Nightly job
+## Nightly job and deploys
 
-`.github/workflows/nightly.yml` runs at 06:00 UTC against the managed Neon database named by
-the `DATABASE_URL` repository secret (never in `.env`; local development keeps its own URL):
-migrations, `dbt seed` (so `seed.tracked_members` exists on a fresh database), `python -m
-ingest.run --source all` (votes before bills), `dbt build`, then
-`python -m ingest.freshness`, which fails the run when any source has no success in the last
-26 hours and writes a freshness table plus the database size against the 0.5 GB free tier to
-the step summary. A failure opens an issue labelled `nightly-failure` (or comments on the open
-one); the next success closes it. Run it by hand from the Actions tab (`workflow_dispatch`),
-optionally with `full_refresh`.
+Two workflows, both against the managed Neon database named by the `DATABASE_URL` repository
+secret (never in `.env`; local development keeps its own URL):
+
+- `.github/workflows/ingest.yml` runs at 06:00 UTC: migrations, `dbt seed` (so
+  `seed.tracked_members` exists on a fresh database), `python -m ingest.run --source all`
+  (votes before bills), `dbt build`, then `python -m ingest.freshness`, which fails the run
+  when any source has no success in the last 26 hours and writes a freshness table plus the
+  database size against the 0.5 GB free tier to the step summary. On success it calls
+  `deploy.yml` in the same run. A failure in either job opens an issue labelled
+  `nightly-failure` (or comments on the open one); the next fully successful run closes it.
+  Run it by hand from the Actions tab (`workflow_dispatch`), optionally with `full_refresh`,
+  `max_age_hours`, or `deploy: false`.
+- `.github/workflows/deploy.yml` starts the API in the runner against the managed database,
+  builds the static site, checks that the output makes no API calls, and deploys the prebuilt
+  output with the Vercel CLI. Dispatch it on its own to publish a frontend change without an
+  ingest; `deploy_target` is `auto` (production from `main`, preview from any other branch),
+  `preview`, or `production`.
 
 
 ## Site
 
-`site/` is the Next.js frontend (see `site/README.md`). It is built once per night by the
-workflow after `dbt build`, from an API started in the runner against the managed database,
-and deployed with the Vercel CLI as prebuilt output (`VERCEL_TOKEN`, `VERCEL_ORG_ID`,
-`VERCEL_PROJECT_ID` secrets). No runtime server; the built pages make no API calls. To build
+`site/` is the Next.js frontend (see `site/README.md`). It is built by `deploy.yml` (nightly
+after `dbt build`, or on demand) from an API started in the runner against the managed
+database, and deployed with the Vercel CLI as prebuilt output (`VERCEL_TOKEN`,
+`VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secrets). No runtime server; the built pages make no API calls. To build
 locally: start the API (`uvicorn api.main:app`), then in `site/` run
 `API_BASE_URL=http://127.0.0.1:8000 npm run build`.
 

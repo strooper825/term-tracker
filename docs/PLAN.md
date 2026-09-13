@@ -72,7 +72,7 @@ Phase column indicates when the panel goes live. Claude Code builds the data lay
 - **API:** FastAPI + SQLAlchemy 2.x (read-only; serves the `mart` schema). In v1 it is the data contract the static site build reads from; public deployment is deferred.
 - **Frontend:** Next.js + Tailwind, statically generated once per night after dbt runs; deployed to Vercel from the workflow (prebuilt output, no Git integration). No runtime API server in v1. See §7.
 - **Managed database:** Neon (free tier, Postgres 16) for the nightly job and site build. Local dev stays on Docker Postgres; the two never share a connection string.
-- **Scheduling:** GitHub Actions cron (nightly, 06:00 UTC): migrate → seed → ingest → dbt build → site build → deploy → freshness check. Migrate to a host-side scheduler if runtime exceeds ~30 min
+- **Scheduling:** GitHub Actions cron (nightly, 06:00 UTC) in `ingest.yml`: migrate → seed → ingest → dbt build → freshness check, then `deploy.yml` (site build → static check → Vercel deploy) called in the same run. `deploy.yml` is also dispatchable alone, so a frontend change ships without an ingest. Migrate to a host-side scheduler if runtime exceeds ~30 min
 - **Analysis (later):** R against `mart` for the ideology/alignment work
 - **Secrets:** `CONGRESS_GOV_API_KEY` and `FEC_API_KEY` — in `.env` locally, GitHub Actions repository secrets in CI. Never committed. `.env.example` lists both names with blank values.
 
@@ -218,7 +218,8 @@ term-tracker/
 │   └── api/
 ├── .github/workflows/
 │   ├── ci.yml                  # lint, test, dbt compile
-│   └── nightly.yml             # ingest → dbt run → freshness check
+│   ├── ingest.yml              # nightly: ingest → dbt run → freshness check → deploy.yml
+│   └── deploy.yml              # site build → static check → Vercel (also on demand)
 └── docs/
     ├── data-dictionary.md
     └── adr/                    # architecture decision records
