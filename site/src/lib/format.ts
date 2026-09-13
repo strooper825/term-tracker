@@ -74,3 +74,33 @@ export function formatNumber(n: number): string {
 export function formatPercent(n: number | null): string {
   return n === null ? 'n/a' : `${n.toFixed(2)}%`;
 }
+
+/** Whole dollars: 5467777.07 -> "$5,467,777"; negative amounts keep the sign. */
+export function formatMoney(n: number): string {
+  const rounded = Math.round(Math.abs(n));
+  return `${n < 0 ? '-' : ''}$${rounded.toLocaleString('en-US')}`;
+}
+
+/** One-decimal share: 4.63 -> "4.6%". */
+export function formatShare(n: number | null): string {
+  return n === null ? 'n/a' : `${n.toFixed(1)}%`;
+}
+
+const SMALL_WORDS = new Set(['for', 'of', 'the', 'and', 'to', 'a', 'an', 'in', 'on']);
+
+/** "STEIL FOR WISCONSIN, INC." -> "Steil for Wisconsin, Inc."; "JULY QUARTERLY" -> "July Quarterly". */
+export function titleCase(text: string): string {
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map((word, i) => {
+      if (i > 0 && SMALL_WORDS.has(word)) return word;
+      return word.replace(/(^|[-(])(\p{L})/gu, (_m, p, c: string) => p + c.toUpperCase());
+    })
+    .join(' ');
+}
+
+/** 2026 -> "2025–26 cycle" */
+export function cycleLabel(cycle: number): string {
+  return `${cycle - 1}–${String(cycle).slice(2)} cycle`;
+}

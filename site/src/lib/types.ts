@@ -217,3 +217,39 @@ export interface FreshnessResponse {
   generated_at: string;
   sources: { source: string; source_url: string | null; fetched_at: string }[];
 }
+
+export type FundraisingStatus = 'filed' | 'no_filings' | 'no_committee' | 'no_candidate';
+
+export interface ReceiptSource {
+  amount: number;
+  /** Share of total receipts, a mart column (never computed here). */
+  pct: number | null;
+}
+
+export interface FundraisingResponse {
+  bioguide_id: string;
+  cycle: number;
+  status: FundraisingStatus;
+  candidate: { candidate_id: string; name: string | null; fec_url: string } | null;
+  committee: { committee_id: string; name: string | null; fec_url: string } | null;
+  coverage: {
+    start_date: string;
+    end_date: string;
+    last_report_type: string | null;
+    last_report_year: number | null;
+  } | null;
+  totals: { raised: number; spent: number; cash_on_hand: number; debts: number } | null;
+  receipts: {
+    individual_small: ReceiptSource;
+    individual_large: ReceiptSource;
+    individual: ReceiptSource;
+    pac: ReceiptSource;
+    party: ReceiptSource;
+    self_funding: ReceiptSource;
+    transfers: ReceiptSource;
+    other: ReceiptSource;
+  } | null;
+  small_donor_pct: number | null;
+  small_donor_of_individual_pct: number | null;
+  sources: SourceRef[];
+}

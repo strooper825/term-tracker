@@ -1,0 +1,84 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 2,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "affiliated_committee_name": "AMERICAN BATTLEGROUND FUND",
+   "candidate_ids": [
+    "H2CA03157"
+   ],
+   "committee_id": "C00801985",
+   "committee_type": "H",
+   "committee_type_full": "House",
+   "cycles": [
+    2022,
+    2024,
+    2026
+   ],
+   "designation": "P",
+   "designation_full": "Principal campaign committee",
+   "filing_frequency": "Q",
+   "first_f1_date": "2022-01-21",
+   "first_file_date": "2022-01-13",
+   "form_type": "F1",
+   "last_f1_date": "2026-09-03",
+   "last_file_date": "2026-09-03",
+   "leadership_pac": null,
+   "lobbyist_registrant_pac": null,
+   "name": "KEVIN KILEY FOR CONGRESS",
+   "organization_type": null,
+   "organization_type_full": null,
+   "party": "OTH",
+   "party_full": "OTHER",
+   "party_type": null,
+   "party_type_full": null,
+   "sponsor_candidate_ids": null,
+   "state": "CA",
+   "state_full": "California",
+   "treasurer_name": "LAWLER, KELLY"
+  },
+  {
+   "affiliated_committee_name": "KILEY VICTORY FUND",
+   "candidate_ids": [
+    "H2CA03157"
+   ],
+   "committee_id": "C00818328",
+   "committee_type": "Q",
+   "committee_type_full": "PAC - Qualified",
+   "cycles": [
+    2022,
+    2024,
+    2026
+   ],
+   "designation": "D",
+   "designation_full": "Leadership PAC",
+   "filing_frequency": "M",
+   "first_f1_date": "2022-06-15",
+   "first_file_date": "2022-06-15",
+   "form_type": "F1",
+   "last_f1_date": "2026-01-17",
+   "last_file_date": "2026-08-20",
+   "leadership_pac": "X",
+   "lobbyist_registrant_pac": null,
+   "name": "PAC FOR NEW LEADERSHIP",
+   "organization_type": null,
+   "organization_type_full": null,
+   "party": "OTH",
+   "party_full": "OTHER",
+   "party_type": null,
+   "party_type_full": null,
+   "sponsor_candidate_ids": [
+    "H2CA03157"
+   ],
+   "state": "CA",
+   "state_full": "California",
+   "treasurer_name": "LAWLER, KELLY"
+  }
+ ]
+}

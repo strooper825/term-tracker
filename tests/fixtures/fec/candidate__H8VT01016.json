@@ -1,0 +1,76 @@
+{
+ "api_version": "1.0",
+ "pagination": {
+  "count": 1,
+  "is_count_exact": true,
+  "page": 1,
+  "pages": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "active_through": 2006,
+   "candidate_first_name": "BERNARD",
+   "candidate_id": "H8VT01016",
+   "candidate_inactive": true,
+   "candidate_last_name": "SANDERS",
+   "candidate_middle_name": null,
+   "candidate_prefix": null,
+   "candidate_status": "C",
+   "candidate_suffix": null,
+   "cycles": [
+    1988,
+    1990,
+    1992,
+    1994,
+    1996,
+    1998,
+    2000,
+    2002,
+    2004,
+    2006
+   ],
+   "district": "00",
+   "district_number": 0,
+   "election_districts": [
+    "00",
+    "00",
+    "00",
+    "00",
+    "00",
+    "00",
+    "00",
+    "00",
+    "00",
+    "00"
+   ],
+   "election_years": [
+    1988,
+    1990,
+    1992,
+    1994,
+    1996,
+    1998,
+    2000,
+    2002,
+    2004,
+    2006
+   ],
+   "federal_funds_flag": false,
+   "first_file_date": "1988-03-30",
+   "flags": "H8VT01016",
+   "has_raised_funds": true,
+   "incumbent_challenge": "I",
+   "incumbent_challenge_full": "Incumbent",
+   "last_f2_date": "2003-06-03",
+   "last_file_date": "2005-07-05",
+   "load_date": "2005-06-17T00:00:00",
+   "name": "SANDERS, BERNARD",
+   "office": "H",
+   "office_full": "House",
+   "party": "IND",
+   "party_full": "INDEPENDENT",
+   "state": "VT"
+  }
+ ]
+}

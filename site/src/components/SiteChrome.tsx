@@ -34,7 +34,8 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
     <footer className="border-t border-rule px-7 pt-5 pb-7 flex flex-col gap-1.5">
       <p className="text-meta text-ink3 m-0">
-        Data from Congress.gov, Senate.gov, and the unitedstates/congress-legislators project.
+        Data from Congress.gov, Senate.gov, the FEC, and the unitedstates/congress-legislators
+        project.
         {lastUpdated ? ` Last updated ${lastUpdated}.` : ' Last update time not recorded.'}
       </p>
       <a href={`${REPO_URL}/blob/main/docs/data-dictionary.md`} className="text-meta">

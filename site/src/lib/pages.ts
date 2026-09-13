@@ -4,6 +4,7 @@ import { formatNumber, ordinal } from './format';
 import {
   buildCommitteeRows,
   buildElection,
+  buildFundraising,
   buildHeader,
   buildIndexRow,
   buildKeyDates,
@@ -42,11 +43,12 @@ export async function indexPageProps(): Promise<{
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
   const detail = await api.member(bioguide);
   const range = timelineRange(detail, today);
-  const [timeline, feed, committees, keyDates, freshness] = await Promise.all([
+  const [timeline, feed, committees, keyDates, fundraising, freshness] = await Promise.all([
     api.timeline(bioguide, range.from, range.to),
     api.feedAll(bioguide),
     api.committees(bioguide),
     api.keyDates(bioguide),
+    api.fundraising(bioguide),
     api.freshness(),
   ]);
   const totals = eventTotals(feed);
@@ -62,6 +64,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     election: buildElection(keyDates.items, detail, today),
     committees: buildCommitteeRows(committees.items),
     keyDates: buildKeyDates(keyDates.items),
+    fundraising: buildFundraising(fundraising, detail.seat.chamber),
     lastUpdated: lastUpdated(freshness),
   };
 }

@@ -6,21 +6,26 @@ import { EVENT_TYPE_FROM_MART, type EventKey, type PartyName } from '@/data/even
 import {
   addDays,
   congressStartDate,
+  cycleLabel,
   daysBetween,
   formatDate,
   formatLongDate,
+  formatMoney,
   formatNumber,
   formatPercent,
+  formatShare,
   formatTimestampUtc,
   monthShort,
   ordinal,
   parseDate,
+  titleCase,
   toIsoDate,
 } from './format';
 import type {
   CommitteeAssignment,
   FeedItem,
   FreshnessResponse,
+  FundraisingResponse,
   KeyDate,
   MemberDetail,
   MemberListItem,
@@ -406,5 +411,115 @@ export function buildIndexRow(item: MemberListItem, detail: MemberDetail): Index
     sponsored: detail.activity.bills_sponsored,
     unity: detail.votes.party_unity_cq_pct,
     photoUrl: item.photo_url ?? detail.photo_url,
+  };
+}
+
+export interface FundraisingStat {
+  label: string;
+  value: string;
+  note?: string;
+  title?: string;
+}
+
+export interface ShareRow {
+  label: string;
+  /** Formatted dollar amount, shown on hover. */
+  amount: string;
+  /** Bar width: the mart share, clamped to 0..100 for rendering only. */
+  pct: number;
+  pctLabel: string;
+}
+
+export interface FundraisingModel {
+  cycleLabel: string;
+  filed: boolean;
+  stats: FundraisingStat[];
+  shares: ShareRow[];
+  /** What is missing, when not filed. */
+  message: string | null;
+  /** Coverage and committee lines under the card. */
+  footer: string[];
+  /** FEC.gov page for the committee (or the candidate when there is no committee). */
+  sourceUrl: string | null;
+}
+
+const SHARE_ROWS: { key: keyof NonNullable<FundraisingResponse['receipts']>; label: string }[] = [
+  { key: 'individual_small', label: 'Individuals, $200 and under' },
+  { key: 'individual_large', label: 'Individuals, over $200' },
+  { key: 'pac', label: 'PACs' },
+  { key: 'party', label: 'Party committees' },
+  { key: 'self_funding', label: 'Self-funding' },
+  { key: 'transfers', label: 'Transfers from authorized committees' },
+  { key: 'other', label: 'Other receipts' },
+];
+
+function committeeLabel(name: string | null, id: string): string {
+  return name ? titleCase(name) : id;
+}
+
+/** Fundraising panel from a mart.member_fundraising row. Shares are the mart *_pct columns;
+ *  rows with nothing in them are left out so the card stays the size of its placeholder. */
+export function buildFundraising(
+  f: FundraisingResponse,
+  chamber: 'house' | 'senate',
+): FundraisingModel {
+  const cycle = cycleLabel(f.cycle);
+  const seat = chamber === 'house' ? 'House' : 'Senate';
+  if (f.status !== 'filed' || !f.totals || !f.receipts || !f.coverage) {
+    const committee = f.committee ? committeeLabel(f.committee.name, f.committee.committee_id) : null;
+    const message =
+      f.status === 'no_candidate'
+        ? `The FEC has no ${seat} candidate record for this member, so there are no filings to show.`
+        : f.status === 'no_committee'
+          ? `No principal campaign committee is registered with the FEC for the ${cycle}.`
+          : `${committee ?? 'The principal campaign committee'} has not filed a report covering the ${cycle} yet.`;
+    return {
+      cycleLabel: cycle,
+      filed: false,
+      stats: [],
+      shares: [],
+      message,
+      footer: committee ? [committee] : f.candidate ? [`FEC candidate ${f.candidate.candidate_id}`] : [],
+      sourceUrl: f.committee?.fec_url ?? f.candidate?.fec_url ?? null,
+    };
+  }
+  const t = f.totals;
+  const stats: FundraisingStat[] = [
+    { label: 'Raised', value: formatMoney(t.raised), title: 'Total receipts this cycle' },
+    { label: 'Spent', value: formatMoney(t.spent), title: 'Total disbursements this cycle' },
+    {
+      label: 'Cash on hand',
+      value: formatMoney(t.cash_on_hand),
+      note: t.debts > 0 ? `${formatMoney(t.debts)} in debts` : 'no debts',
+      title: 'At the end of the latest report',
+    },
+    {
+      label: 'Small-donor share',
+      value: formatShare(f.small_donor_pct),
+      note: 'of total raised',
+      title: 'Individual contributions of $200 or less, as a share of total receipts',
+    },
+  ];
+  const shares: ShareRow[] = SHARE_ROWS.filter((r) => f.receipts![r.key].amount > 0).map((r) => {
+    const src = f.receipts![r.key];
+    return {
+      label: r.label,
+      amount: formatMoney(src.amount),
+      pct: Math.min(100, Math.max(0, src.pct ?? 0)),
+      pctLabel: formatShare(src.pct),
+    };
+  });
+  const report = f.coverage.last_report_type ? ` · ${titleCase(f.coverage.last_report_type)} report` : '';
+  return {
+    cycleLabel: cycle,
+    filed: true,
+    stats,
+    shares,
+    message: null,
+    footer: [
+      `Through ${formatDate(f.coverage.end_date)}${report}`,
+      `${committeeLabel(f.committee?.name ?? null, f.committee?.committee_id ?? '')} · principal campaign committee`,
+    ],
+    sourceUrl: f.committee?.fec_url ?? null,
   };
 }

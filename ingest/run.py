@@ -16,18 +16,19 @@ import logging
 import sys
 from collections.abc import Callable, Sequence
 
-from ingest.sources import congress_gov, house_votes, legislators, senate_votes
+from ingest.sources import congress_gov, fec, house_votes, legislators, senate_votes
 
 log = logging.getLogger("ingest")
 
 # name -> callable that runs that source end to end and returns rows loaded.
-# Order matters for --source all: votes before bills, so bills referenced by new roll calls
-# are fetched the same night.
+# Order matters for --source all: legislators first (the FEC source reads its candidate ids),
+# votes before bills, so bills referenced by new roll calls are fetched the same night.
 SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
     house_votes.SOURCE: house_votes.run,
     senate_votes.SOURCE: senate_votes.run,
     congress_gov.SOURCE: congress_gov.run,
+    fec.SOURCE: fec.run,
 }
 
 

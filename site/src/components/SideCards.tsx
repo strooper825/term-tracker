@@ -1,4 +1,5 @@
 // CommitteesCard, KeyDatesCard, NextElectionCard, LockedPanels: ported from design/src/components.
+import type { ReactNode } from 'react';
 import type { CommitteeRow, ElectionModel, KeyDateRow } from '@/lib/model';
 
 export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
@@ -104,15 +105,22 @@ export interface LockedPanel {
   desc: string;
 }
 
-/* Sized as they will be when live, so the page does not reflow on release. */
-export function LockedPanels({ panels }: { panels: LockedPanel[] }) {
+/* Locked panels are sized as they will be when live, so the page does not reflow on release;
+   a released panel (`live`) takes the leading cells of the same grid. */
+export function LockedPanels({ panels, live }: { panels: LockedPanel[]; live?: ReactNode }) {
+  const pending = panels.length;
   return (
     <section className="px-7 pt-1 pb-7">
       <div className="flex items-baseline justify-between gap-4 mb-3">
-        <h2 className="text-[13px] font-semibold text-ink2 m-0">Planned data panels</h2>
-        <span className="text-meta text-ink4">Not yet published</span>
+        <h2 className="text-[13px] font-semibold text-ink2 m-0">
+          {live ? 'Data panels' : 'Planned data panels'}
+        </h2>
+        <span className="text-meta text-ink4">
+          {live ? `${pending} not yet published` : 'Not yet published'}
+        </span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {live}
         {panels.map((p) => (
           <div
             key={p.title}

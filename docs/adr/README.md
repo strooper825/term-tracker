@@ -10,6 +10,8 @@ also recorded here once made.
 - [0002. Bulk snapshot sources are loaded whole into raw](0002-bulk-snapshots-load-whole.md)
 - [0003. bill.status is deferred](0003-bill-status-deferred.md)
 - [0004. member_vote.position adds Other, keeps position_raw](0004-vote-position-vocabulary.md)
+- [0005. Party unity scores Independents against the party they caucus with](0005-party-unity-scoring-party.md)
+- [0006. Fundraising v1: principal campaign committee, current cycle, no industry categories](0006-fec-principal-committee-scope.md)
 
 ## Format
 

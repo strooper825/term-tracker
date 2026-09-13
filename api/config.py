@@ -31,6 +31,16 @@ class Settings(BaseSettings):
     congress_gov_requests_per_hour: int = 5000  # documented per-key limit
     current_congress: int = 119  # keep in step with the dbt var of the same name
 
+    # Ingestion (OpenFEC, Phase 2). Same api.data.gov key scheme; see .env.example.
+    fec_api_key: str | None = None
+    fec_requests_per_hour: int = 1000  # documented per-key limit
+    fec_requests_per_minute: int = 60  # X-RateLimit-Limit reported by the API (2026-09-13)
+
+    @property
+    def fec_cycle(self) -> int:
+        """The two-year election cycle that ends with the current Congress (119 -> 2026)."""
+        return 1788 + 2 * self.current_congress
+
 
 @lru_cache
 def get_settings() -> Settings:
