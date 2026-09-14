@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -116,6 +117,54 @@ class BillRollCall(BaseModel):
     source_url: str
 
 
+JourneyStatus = Literal[
+    "complete", "passed", "failed", "vetoed", "no_roll_call", "not_recorded", "pending"
+]
+
+
+class PartySplit(BaseModel):
+    party: str = Field(description="R, D, I, or Other: the party letter on the vote record")
+    yea: int
+    nay: int
+    yea_pct: float | None = Field(description="Share of Yea plus Nay on the roll call")
+    nay_pct: float | None = Field(description="Share of Yea plus Nay on the roll call")
+
+
+class PassageVote(BaseModel):
+    chamber: str
+    session: int
+    roll_number: int
+    vote_date: dt.date
+    question: str | None
+    result: str | None = Field(description="As published, e.g. Passed, Bill Defeated")
+    passed: bool
+    majority_label: str | None = Field(description="Threshold the source states: 2/3 required")
+    yea_total: int
+    nay_total: int
+    present_total: int
+    not_voting_total: int
+    yea_pct: float | None = Field(description="Yea over Yea plus Nay")
+    nay_pct: float | None = Field(description="Nay over Yea plus Nay")
+    parties: list[PartySplit] = Field(
+        description="R, D, I, Other in that order; a party with no Yea or Nay is omitted"
+    )
+    source_url: str = Field(description="The roll call record")
+
+
+class JourneyStage(BaseModel):
+    stage_key: str = Field(
+        description="introduced, house_vote, senate_vote, to_president, or became_law"
+    )
+    label: str = Field(description='e.g. "House vote"')
+    order: int = Field(description="1 is Introduced; chamber votes follow the chamber of origin")
+    status: JourneyStatus = Field(description="What the record shows; see ADR 0009")
+    status_label: str = Field(description='e.g. "Passed", "No roll call vote", "Pending"')
+    date: dt.date | None
+    detail: str | None = Field(description="Result or action text as published")
+    ends_journey: bool = Field(description="A failed vote or veto with nothing recorded after it")
+    vote: PassageVote | None = Field(description="The latest passage roll call for a vote stage")
+
+
 class BillDetail(BillListItem):
     amended_bill_congress: int | None = Field(description="Amendments: the bill amended")
     amended_bill_type: str | None
@@ -130,4 +179,7 @@ class BillDetail(BillListItem):
     cosponsor_list: list[BillCosponsor] = Field(description="Every cosponsor, earliest first")
     actions: list[BillAction] = Field(description="Complete action history, newest first")
     roll_calls: list[BillRollCall] = Field(description="Every recorded roll call on this bill")
+    journey: list[JourneyStage] = Field(
+        description="Shown stages of the vote journey in order; empty for amendments (ADR 0009)"
+    )
     sources: list[SourceRef]

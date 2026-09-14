@@ -351,3 +351,38 @@ models:
         tests: [not_null]
       - name: fetched_at
         tests: [not_null]
+
+  - name: bill_passage_vote
+    description: >
+      Passage-type roll calls on bills with a page, with the result read as passed or failed and
+      the Yea/Nay split by party letter (ADR 0009). is_latest_in_chamber marks the one the vote
+      journey uses.
+    columns:
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: passed
+        tests: [not_null]
+      - name: is_latest_in_chamber
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: bill_journey_stage
+    description: >
+      One row per stage of a bill's vote journey: Introduced, the chamber votes (origin first),
+      To President, Became law, each read from a passage roll call or a Library of Congress
+      late-stage action code. Not a bill status (ADR 0003, ADR 0009).
+    columns:
+      - name: stage_key
+        tests:
+          - accepted_values: { arguments: { values: ["introduced", "house_vote", "senate_vote", "to_president", "became_law"] } }
+      - name: status
+        tests:
+          - accepted_values: { arguments: { values: ["complete", "passed", "failed", "vetoed", "no_roll_call", "not_recorded", "pending"] } }
+      - name: stage_label
+        tests: [not_null]
+      - name: status_label
+        tests: [not_null]
+      - name: is_shown
+        tests: [not_null]

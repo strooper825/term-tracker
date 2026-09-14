@@ -5,6 +5,7 @@ import type {
   CongressSession,
   FeedItem,
   FundraisingResponse,
+  JourneyStage,
   KeyDate,
   MemberDetail,
   MemberIds,
@@ -594,6 +595,353 @@ export const NO_CANDIDATE_FUNDRAISING: FundraisingResponse = {
 };
 
 /** GET /bills/119/hr/5269 as the API returns it, trimmed to what the page renders. */
+/* Vote journeys as GET /bills/119/{type}/{number} returned them from the live mart on
+   2026-09-14 (mart.bill_journey_stage, shown stages, with mart.bill_passage_vote). */
+/** H.R. 5269 (BILL): introduced, no passage roll call yet */
+export const BILL_JOURNEY: JourneyStage[] = [
+  {
+    "stage_key": "introduced",
+    "label": "Introduced",
+    "order": 1,
+    "status": "complete",
+    "status_label": "Introduced",
+    "date": "2025-09-10",
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "house_vote",
+    "label": "House vote",
+    "order": 2,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "senate_vote",
+    "label": "Senate vote",
+    "order": 3,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "to_president",
+    "label": "To President",
+    "order": 4,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "became_law",
+    "label": "Became law",
+    "order": 5,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  }
+];
+
+/** S. 5, Laken Riley Act: Senate then House roll calls, presented, law 119-1 */
+export const LAW_JOURNEY: JourneyStage[] = [
+  {
+    "stage_key": "introduced",
+    "label": "Introduced",
+    "order": 1,
+    "status": "complete",
+    "status_label": "Introduced",
+    "date": "2025-01-06",
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "senate_vote",
+    "label": "Senate vote",
+    "order": 2,
+    "status": "passed",
+    "status_label": "Passed",
+    "date": "2025-01-20",
+    "detail": "Bill Passed",
+    "ends_journey": false,
+    "vote": {
+      "chamber": "senate",
+      "session": 1,
+      "roll_number": 7,
+      "vote_date": "2025-01-20",
+      "question": "On Passage of the Bill S. 5",
+      "result": "Bill Passed",
+      "passed": true,
+      "majority_label": null,
+      "yea_total": 64,
+      "nay_total": 35,
+      "present_total": 0,
+      "not_voting_total": 0,
+      "yea_pct": 64.65,
+      "nay_pct": 35.35,
+      "parties": [
+        {
+          "party": "R",
+          "yea": 52,
+          "nay": 0,
+          "yea_pct": 52.53,
+          "nay_pct": 0.0
+        },
+        {
+          "party": "D",
+          "yea": 12,
+          "nay": 33,
+          "yea_pct": 12.12,
+          "nay_pct": 33.33
+        },
+        {
+          "party": "I",
+          "yea": 0,
+          "nay": 2,
+          "yea_pct": 0.0,
+          "nay_pct": 2.02
+        }
+      ],
+      "source_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00007.xml"
+    }
+  },
+  {
+    "stage_key": "house_vote",
+    "label": "House vote",
+    "order": 3,
+    "status": "passed",
+    "status_label": "Passed",
+    "date": "2025-01-22",
+    "detail": "Passed",
+    "ends_journey": false,
+    "vote": {
+      "chamber": "house",
+      "session": 1,
+      "roll_number": 23,
+      "vote_date": "2025-01-22",
+      "question": "On Passage",
+      "result": "Passed",
+      "passed": true,
+      "majority_label": null,
+      "yea_total": 263,
+      "nay_total": 156,
+      "present_total": 0,
+      "not_voting_total": 14,
+      "yea_pct": 62.77,
+      "nay_pct": 37.23,
+      "parties": [
+        {
+          "party": "R",
+          "yea": 217,
+          "nay": 0,
+          "yea_pct": 51.79,
+          "nay_pct": 0.0
+        },
+        {
+          "party": "D",
+          "yea": 46,
+          "nay": 156,
+          "yea_pct": 10.98,
+          "nay_pct": 37.23
+        }
+      ],
+      "source_url": "https://clerk.house.gov/evs/2025/roll023.xml"
+    }
+  },
+  {
+    "stage_key": "to_president",
+    "label": "To President",
+    "order": 4,
+    "status": "complete",
+    "status_label": "Presented",
+    "date": "2025-01-23",
+    "detail": "Presented to President.",
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "became_law",
+    "label": "Became law",
+    "order": 5,
+    "status": "complete",
+    "status_label": "Enacted",
+    "date": "2025-01-29",
+    "detail": "Became Public Law No: 119-1.",
+    "ends_journey": false,
+    "vote": null
+  }
+];
+
+/** H.R. 192: passed the House under suspension, Senate pending */
+export const PASSED_HOUSE_JOURNEY: JourneyStage[] = [
+  {
+    "stage_key": "introduced",
+    "label": "Introduced",
+    "order": 1,
+    "status": "complete",
+    "status_label": "Introduced",
+    "date": "2025-01-03",
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "house_vote",
+    "label": "House vote",
+    "order": 2,
+    "status": "passed",
+    "status_label": "Passed",
+    "date": "2025-01-13",
+    "detail": "Passed",
+    "ends_journey": false,
+    "vote": {
+      "chamber": "house",
+      "session": 1,
+      "roll_number": 8,
+      "vote_date": "2025-01-13",
+      "question": "On Motion to Suspend the Rules and Pass",
+      "result": "Passed",
+      "passed": true,
+      "majority_label": "2/3 required",
+      "yea_total": 407,
+      "nay_total": 0,
+      "present_total": 0,
+      "not_voting_total": 27,
+      "yea_pct": 100.0,
+      "nay_pct": 0.0,
+      "parties": [
+        {
+          "party": "R",
+          "yea": 206,
+          "nay": 0,
+          "yea_pct": 50.61,
+          "nay_pct": 0.0
+        },
+        {
+          "party": "D",
+          "yea": 201,
+          "nay": 0,
+          "yea_pct": 49.39,
+          "nay_pct": 0.0
+        }
+      ],
+      "source_url": "https://clerk.house.gov/evs/2025/roll008.xml"
+    }
+  },
+  {
+    "stage_key": "senate_vote",
+    "label": "Senate vote",
+    "order": 3,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "to_president",
+    "label": "To President",
+    "order": 4,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "became_law",
+    "label": "Became law",
+    "order": 5,
+    "status": "pending",
+    "status_label": "Pending",
+    "date": null,
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  }
+];
+
+/** S. 2882: Senate passage vote failed (3/5 required); the journey ends */
+export const FAILED_JOURNEY: JourneyStage[] = [
+  {
+    "stage_key": "introduced",
+    "label": "Introduced",
+    "order": 1,
+    "status": "complete",
+    "status_label": "Introduced",
+    "date": "2025-09-18",
+    "detail": null,
+    "ends_journey": false,
+    "vote": null
+  },
+  {
+    "stage_key": "senate_vote",
+    "label": "Senate vote",
+    "order": 2,
+    "status": "failed",
+    "status_label": "Failed",
+    "date": "2025-09-30",
+    "detail": "Bill Defeated",
+    "ends_journey": true,
+    "vote": {
+      "chamber": "senate",
+      "session": 1,
+      "roll_number": 534,
+      "vote_date": "2025-09-30",
+      "question": "On Passage of the Bill S. 2882",
+      "result": "Bill Defeated",
+      "passed": false,
+      "majority_label": "3/5 required",
+      "yea_total": 47,
+      "nay_total": 53,
+      "present_total": 0,
+      "not_voting_total": 0,
+      "yea_pct": 47.0,
+      "nay_pct": 53.0,
+      "parties": [
+        {
+          "party": "R",
+          "yea": 0,
+          "nay": 53,
+          "yea_pct": 0.0,
+          "nay_pct": 53.0
+        },
+        {
+          "party": "D",
+          "yea": 45,
+          "nay": 0,
+          "yea_pct": 45.0,
+          "nay_pct": 0.0
+        },
+        {
+          "party": "I",
+          "yea": 2,
+          "nay": 0,
+          "yea_pct": 2.0,
+          "nay_pct": 0.0
+        }
+      ],
+      "source_url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00534.xml"
+    }
+  }
+];
+
 export const BILL: BillDetail = {
   congress: 119,
   bill_type: 'hr',
@@ -742,6 +1090,7 @@ export const BILL: BillDetail = {
       source_url: 'https://clerk.house.gov/evs/2026/roll295.xml',
     },
   ],
+  journey: BILL_JOURNEY,
   sources: [],
 };
 
@@ -769,6 +1118,7 @@ export const AMENDMENT: BillDetail = {
   label: 'H.Amdt. 9',
   kind: 'amendment',
   title: 'Amendment 9 to H.R. 21',
+  journey: [], // amendments have no vote journey
   amended_bill_congress: 119,
   amended_bill_type: 'hr',
   amended_bill_number: '21',

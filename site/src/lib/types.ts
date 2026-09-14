@@ -362,6 +362,55 @@ export interface BillRollCall {
   source_url: string;
 }
 
+export type JourneyStatus =
+  | 'complete'
+  | 'passed'
+  | 'failed'
+  | 'vetoed'
+  | 'no_roll_call'
+  | 'not_recorded'
+  | 'pending';
+
+export interface PartySplit {
+  party: string;
+  yea: number;
+  nay: number;
+  yea_pct: number | null;
+  nay_pct: number | null;
+}
+
+export interface PassageVote {
+  chamber: string;
+  session: number;
+  roll_number: number;
+  vote_date: string;
+  question: string | null;
+  result: string | null;
+  passed: boolean;
+  majority_label: string | null;
+  yea_total: number;
+  nay_total: number;
+  present_total: number;
+  not_voting_total: number;
+  yea_pct: number | null;
+  nay_pct: number | null;
+  parties: PartySplit[];
+  source_url: string;
+}
+
+/** A stage of mart.bill_journey_stage, shown stages only, in order (ADR 0009). */
+export interface JourneyStage {
+  stage_key: string;
+  label: string;
+  order: number;
+  status: JourneyStatus;
+  status_label: string;
+  date: string | null;
+  detail: string | null;
+  ends_journey: boolean;
+  vote: PassageVote | null;
+}
+
 export interface BillDetail extends BillListItem {
   amended_bill_congress: number | null;
   amended_bill_type: string | null;
@@ -372,6 +421,7 @@ export interface BillDetail extends BillListItem {
   cosponsor_list: BillCosponsor[];
   actions: BillAction[];
   roll_calls: BillRollCall[];
+  journey: JourneyStage[];
   sources: SourceRef[];
 }
 

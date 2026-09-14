@@ -25,6 +25,9 @@ from api.schemas.bill import (
     BillSponsor,
     BillSummaryVersion,
     CosponsorCounts,
+    JourneyStage,
+    PartySplit,
+    PassageVote,
     TrackedPosition,
 )
 from api.schemas.members import SourceRef
@@ -101,6 +104,32 @@ ROLL_CALLS_SQL = text(
     """
 )
 
+# The shown stages of the vote journey, each with its passage roll call when it has one (ADR 0009).
+JOURNEY_SQL = text(
+    """
+    SELECT j.stage_key, j.stage_label, j.stage_order, j.status, j.status_label, j.event_date,
+           j.detail, j.ends_journey,
+           v.chamber, v.session, v.roll_number, v.vote_date, v.question, v.result, v.passed,
+           v.majority_label, v.yea_total, v.nay_total, v.present_total, v.not_voting_total,
+           v.yea_pct, v.nay_pct,
+           v.yea_republican, v.nay_republican, v.yea_republican_pct, v.nay_republican_pct,
+           v.yea_democratic, v.nay_democratic, v.yea_democratic_pct, v.nay_democratic_pct,
+           v.yea_independent, v.nay_independent, v.yea_independent_pct, v.nay_independent_pct,
+           v.yea_other, v.nay_other, v.yea_other_pct, v.nay_other_pct,
+           v.source_url AS vote_source_url
+    FROM mart.bill_journey_stage AS j
+    LEFT JOIN mart.bill_passage_vote AS v
+      ON v.congress = j.congress AND v.bill_type = j.bill_type AND v.bill_number = j.bill_number
+     AND v.chamber = j.vote_chamber AND v.session = j.vote_session
+     AND v.roll_number = j.vote_roll_number
+    WHERE j.congress = :congress AND j.bill_type = :bill_type AND j.bill_number = :bill_number
+      AND j.is_shown
+    ORDER BY j.stage_order
+    """
+)
+
+PARTY_COLUMNS = (("R", "republican"), ("D", "democratic"), ("I", "independent"), ("Other", "other"))
+
 # Tracked-member positions on every roll call for this bill, with the member's display name.
 POSITIONS_SQL = text(
     """
@@ -148,6 +177,50 @@ def _counts(row: Any) -> CosponsorCounts:
         republican=row["cosponsors_republican"],
         other=row["cosponsors_other"],
         withdrawn=row["cosponsors_withdrawn"],
+    )
+
+
+def _journey_stage(row: Any) -> JourneyStage:
+    vote = None
+    if row["roll_number"] is not None:
+        vote = PassageVote(
+            chamber=row["chamber"],
+            session=row["session"],
+            roll_number=row["roll_number"],
+            vote_date=row["vote_date"],
+            question=row["question"],
+            result=row["result"],
+            passed=row["passed"],
+            majority_label=row["majority_label"],
+            yea_total=row["yea_total"],
+            nay_total=row["nay_total"],
+            present_total=row["present_total"],
+            not_voting_total=row["not_voting_total"],
+            yea_pct=row["yea_pct"],
+            nay_pct=row["nay_pct"],
+            parties=[
+                PartySplit(
+                    party=letter,
+                    yea=row[f"yea_{name}"],
+                    nay=row[f"nay_{name}"],
+                    yea_pct=row[f"yea_{name}_pct"],
+                    nay_pct=row[f"nay_{name}_pct"],
+                )
+                for letter, name in PARTY_COLUMNS
+                if row[f"yea_{name}"] or row[f"nay_{name}"]
+            ],
+            source_url=row["vote_source_url"],
+        )
+    return JourneyStage(
+        stage_key=row["stage_key"],
+        label=row["stage_label"],
+        order=row["stage_order"],
+        status=row["status"],
+        status_label=row["status_label"],
+        date=row["event_date"],
+        detail=row["detail"],
+        ends_journey=row["ends_journey"],
+        vote=vote,
     )
 
 
@@ -221,6 +294,7 @@ def bill_detail(
     actions = session.execute(ACTIONS_SQL, params).mappings().all()
     calls = session.execute(ROLL_CALLS_SQL, params).mappings().all()
     positions = session.execute(POSITIONS_SQL, params).mappings().all()
+    journey = session.execute(JOURNEY_SQL, params).mappings().all()
 
     by_call: dict[tuple[str, int, int], list[TrackedPosition]] = defaultdict(list)
     for p in positions:
@@ -268,5 +342,6 @@ def bill_detail(
             )
             for r in calls
         ],
+        journey=[_journey_stage(j) for j in journey],
         sources=_sources([row, *summaries, *cosponsors, *actions, *calls]),
     )

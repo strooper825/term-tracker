@@ -33,3 +33,10 @@ of Congress feeds, and Congress.gov publishes no reference mapping and no stage 
 validate a derivation against. A derived stage therefore cannot be checked for
 correctness on a whole-Congress basis. Still deferred; the recorded roll calls in
 `mart.roll_call` give a partial check for passage votes when this is revisited.
+
+## Update 2026-09-14 (vote journey)
+
+Still deferred. The bill page's vote journey (ADR 0009) shows passage roll calls and the
+Library of Congress late-stage action codes (presented, signed or vetoed, became public law)
+stage by stage, each only when a completed record shows it. It is not a status field and
+derives no current stage.
