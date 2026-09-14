@@ -1,8 +1,15 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { BillPage } from '@/components/BillPage';
-import { buildBillPage, memberMeta, sanitizeSummaryHtml } from '@/lib/model';
-import { AMENDMENT, BILL, BILL_NO_SUMMARY } from './fixtures';
+import { buildBillPage, buildJourney, memberMeta, sanitizeSummaryHtml } from '@/lib/model';
+import {
+  AMENDMENT,
+  BILL,
+  BILL_NO_SUMMARY,
+  FAILED_JOURNEY,
+  LAW_JOURNEY,
+  PASSED_HOUSE_JOURNEY,
+} from './fixtures';
 
 const TRAIL = [{ label: 'Members', href: '/members' }];
 
@@ -110,6 +117,58 @@ describe('bill page model', () => {
     ]);
   });
 
+  it('vote journey: stage labels, statuses, tallies and bar widths are the mart rows, formatted', () => {
+    const law = buildJourney(LAW_JOURNEY);
+    // S. 5 started in the Senate, so the Senate vote comes first
+    expect(law.map((s) => [s.label, s.statusLabel, s.tone])).toEqual([
+      ['Introduced', 'Introduced', 'done'],
+      ['Senate vote', 'Passed', 'done'],
+      ['House vote', 'Passed', 'done'],
+      ['To President', 'Presented', 'done'],
+      ['Became law', 'Enacted', 'done'],
+    ]);
+    const senate = law[1].vote!;
+    expect(senate.tally).toBe('64–35');
+    expect(senate.href).toBe('#roll-call-senate-1-7');
+    expect(senate.linkLabel).toBe('Senate roll call 7');
+    expect(senate.bars.map((b) => [b.heading, b.breakdown])).toEqual([
+      ['Yea 64', 'R 52 · D 12'],
+      ['Nay 35', 'D 33 · I 2'],
+    ]);
+    // party colours, widths straight from the mart's share of Yea plus Nay
+    expect(senate.bars[0].segments.map((s) => [s.party, s.pct, s.color])).toEqual([
+      ['R', 52.53, '#B9302F'],
+      ['D', 12.12, '#1F4E9C'],
+    ]);
+    expect(law[4].date).toBe('Jan 29, 2025');
+    expect(law[4].detail).toBe('Became Public Law No: 119-1.');
+
+    const passedHouse = buildJourney(PASSED_HOUSE_JOURNEY);
+    expect(passedHouse.map((s) => s.statusLabel)).toEqual([
+      'Introduced',
+      'Passed',
+      'Pending',
+      'Pending',
+      'Pending',
+    ]);
+    expect(passedHouse[1].vote?.majority).toBe('2/3 required');
+    expect(passedHouse[2].tone).toBe('pending');
+    expect(passedHouse[2].vote).toBeNull();
+
+    const failed = buildJourney(FAILED_JOURNEY);
+    expect(failed.map((s) => [s.label, s.statusLabel, s.tone, s.endsJourney])).toEqual([
+      ['Introduced', 'Introduced', 'done', false],
+      ['Senate vote', 'Failed', 'failed', true],
+    ]);
+    expect(failed[1].vote?.bars.map((b) => b.breakdown)).toEqual(['D 45 · I 2', 'R 53']);
+
+    // a chamber that acted without a roll call reads neutrally and carries no bar
+    const noRollCall = buildJourney([
+      { ...LAW_JOURNEY[2], status: 'no_roll_call', status_label: 'No roll call vote', date: null, vote: null },
+    ]);
+    expect(noRollCall[0]).toMatchObject({ statusLabel: 'No roll call vote', tone: 'neutral', vote: null });
+  });
+
   it('explains an absent summary rather than showing an empty box', () => {
     const bill = buildBillPage(BILL_NO_SUMMARY);
     expect(bill.summary).toBeNull();
@@ -184,6 +243,64 @@ describe('bill page: given this API row, this text renders', () => {
       'href',
       'https://clerk.house.gov/evs/2026/roll295.xml',
     );
+  });
+
+  it('vote journey: every stage renders in the chamber-of-origin order, with tally, link and party bars', () => {
+    render(page({ ...BILL, journey: LAW_JOURNEY }));
+    const journey = screen.getByLabelText('Vote journey');
+    const stages = within(journey).getAllByRole('listitem');
+    expect(stages.map((li) => li.getAttribute('data-stage'))).toEqual([
+      'introduced',
+      'senate_vote',
+      'house_vote',
+      'to_president',
+      'became_law',
+    ]);
+    expect(within(stages[1]).getByText('64–35')).toBeInTheDocument();
+    expect(within(stages[1]).getByRole('link', { name: 'Senate roll call 7' })).toHaveAttribute(
+      'href',
+      '#roll-call-senate-1-7',
+    );
+    expect(within(stages[1]).getByRole('img', { name: 'Yea 64: R 52 · D 12' })).toBeInTheDocument();
+    expect(within(stages[1]).getByRole('img', { name: 'Nay 35: D 33 · I 2' })).toBeInTheDocument();
+    expect(within(stages[2]).getByText('263–156')).toBeInTheDocument();
+    expect(within(stages[4]).getByText('Enacted')).toBeInTheDocument();
+    expect(within(stages[4]).getByText('Became Public Law No: 119-1.')).toBeInTheDocument();
+  });
+
+  it('vote journey: stages with no vote yet render as pending rather than being hidden', () => {
+    render(page({ ...BILL, journey: PASSED_HOUSE_JOURNEY }));
+    const journey = screen.getByLabelText('Vote journey');
+    expect(within(journey).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(journey).getAllByText('Pending')).toHaveLength(3);
+    expect(within(journey).getByText('407–0')).toBeInTheDocument();
+    expect(within(journey).getByText('2/3 required')).toBeInTheDocument();
+  });
+
+  it('vote journey: a failed passage vote is the last stage drawn', () => {
+    render(page({ ...BILL, journey: FAILED_JOURNEY }));
+    const journey = screen.getByLabelText('Vote journey');
+    expect(within(journey).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(journey).getByText('Failed')).toBeInTheDocument();
+    expect(within(journey).getByText('47–53')).toBeInTheDocument();
+    expect(within(journey).getByText('Nothing is recorded after this vote.')).toBeInTheDocument();
+    // no greyed-out future stages
+    expect(within(journey).queryByText('Pending')).not.toBeInTheDocument();
+    expect(within(journey).queryByText('House vote')).not.toBeInTheDocument();
+    expect(within(journey).queryByText('Became law')).not.toBeInTheDocument();
+  });
+
+  it('roll call rows carry the anchors the journey links to; an amendment has no journey', () => {
+    render(page());
+    expect(document.getElementById('roll-call-house-2-295')).toHaveTextContent(
+      'House roll call 295 · Jan 14, 2026',
+    );
+    expect(screen.getByLabelText('Vote journey')).toBeInTheDocument();
+  });
+
+  it('an amendment renders no vote journey', () => {
+    render(page(AMENDMENT));
+    expect(screen.queryByLabelText('Vote journey')).not.toBeInTheDocument();
   });
 
   it('renders the empty states instead of blank sections', () => {

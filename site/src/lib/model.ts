@@ -2,7 +2,12 @@
  *  Nothing here computes a statistic; it formats, labels, groups, and fills empty weeks.
  *  Every displayed number traces back to a named mart column (see docs/data-dictionary.md). */
 
-import { EVENT_TYPE_FROM_MART, type EventKey, type PartyName } from '@/data/eventTypes';
+import {
+  EVENT_TYPE_FROM_MART,
+  PARTY_COLOR,
+  type EventKey,
+  type PartyName,
+} from '@/data/eventTypes';
 import {
   addDays,
   billPath,
@@ -34,7 +39,10 @@ import type {
   FeedItem,
   FreshnessResponse,
   FundraisingResponse,
+  JourneyStage,
+  JourneyStatus,
   KeyDate,
+  PassageVote,
   MemberDetail,
   MemberListItem,
   WeekBucket,
@@ -714,6 +722,8 @@ export interface CosponsorsModel {
 }
 
 export interface RollCallRow {
+  /** Element id of the row, which the vote journey links to. */
+  anchor: string;
   heading: string;
   question: string | null;
   tally: string;
@@ -744,6 +754,112 @@ export interface BillPageModel {
   cosponsors: CosponsorsModel;
   rollCalls: RollCallRow[];
   rollCallsMeta: string;
+  /** Shown stages of mart.bill_journey_stage; empty for amendments. */
+  journey: JourneyStageModel[];
+}
+
+export type JourneyTone = 'done' | 'failed' | 'neutral' | 'pending';
+
+export interface VoteSegmentModel {
+  party: string;
+  count: number;
+  /** mart.bill_passage_vote party share of Yea plus Nay, used as the segment width */
+  pct: number;
+  color: string;
+}
+
+export interface VoteBarModel {
+  label: 'Yea' | 'Nay';
+  heading: string;
+  breakdown: string;
+  segments: VoteSegmentModel[];
+  ariaLabel: string;
+}
+
+export interface JourneyVoteModel {
+  tally: string;
+  href: string;
+  linkLabel: string;
+  majority: string | null;
+  bars: VoteBarModel[];
+}
+
+export interface JourneyStageModel {
+  key: string;
+  label: string;
+  statusLabel: string;
+  tone: JourneyTone;
+  date: string | null;
+  detail: string | null;
+  endsJourney: boolean;
+  vote: JourneyVoteModel | null;
+}
+
+const JOURNEY_TONE: Record<JourneyStatus, JourneyTone> = {
+  complete: 'done',
+  passed: 'done',
+  failed: 'failed',
+  vetoed: 'failed',
+  no_roll_call: 'neutral',
+  not_recorded: 'neutral',
+  pending: 'pending',
+};
+
+const PARTY_BY_LETTER: Record<string, PartyName> = {
+  R: 'Republican',
+  D: 'Democratic',
+  I: 'Independent',
+};
+const OTHER_PARTY_COLOR = '#8A877F';
+
+/** Element id of a roll call's row in the bill page's Roll calls card. */
+export function rollCallAnchor(chamber: string, session: number, rollNumber: number): string {
+  return `roll-call-${chamber}-${session}-${rollNumber}`;
+}
+
+function voteBars(vote: PassageVote): VoteBarModel[] {
+  return (['Yea', 'Nay'] as const).map((label) => {
+    const yea = label === 'Yea';
+    const total = yea ? vote.yea_total : vote.nay_total;
+    const parties = vote.parties.filter((p) => (yea ? p.yea : p.nay) > 0);
+    const breakdown = parties.map((p) => `${p.party} ${yea ? p.yea : p.nay}`).join(' · ');
+    return {
+      label,
+      heading: `${label} ${formatNumber(total)}`,
+      breakdown,
+      segments: parties.map((p) => ({
+        party: p.party,
+        count: yea ? p.yea : p.nay,
+        pct: (yea ? p.yea_pct : p.nay_pct) ?? 0,
+        color: PARTY_BY_LETTER[p.party] ? PARTY_COLOR[PARTY_BY_LETTER[p.party]] : OTHER_PARTY_COLOR,
+      })),
+      ariaLabel: breakdown ? `${label} ${total}: ${breakdown}` : `${label} ${total}`,
+    };
+  });
+}
+
+/** The vote journey from GET /bills/{congress}/{type}/{number} `journey`: labels, statuses,
+ *  dates and bar widths are mart columns; this only formats them and picks the tone. */
+export function buildJourney(stages: JourneyStage[]): JourneyStageModel[] {
+  return stages.map((stage) => ({
+    key: stage.stage_key,
+    label: stage.label,
+    statusLabel: stage.status_label,
+    tone: JOURNEY_TONE[stage.status],
+    date: stage.date ? formatDate(stage.date) : null,
+    // a vote stage's status already says Passed or Failed; its question says what was voted on
+    detail: stage.vote ? stage.vote.question : stage.detail,
+    endsJourney: stage.ends_journey,
+    vote: stage.vote
+      ? {
+          tally: `${stage.vote.yea_total}–${stage.vote.nay_total}`,
+          href: `#${rollCallAnchor(stage.vote.chamber, stage.vote.session, stage.vote.roll_number)}`,
+          linkLabel: `${stage.vote.chamber === 'house' ? 'House' : 'Senate'} roll call ${stage.vote.roll_number}`,
+          majority: stage.vote.majority_label,
+          bars: voteBars(stage.vote),
+        }
+      : null,
+  }));
 }
 
 const PARTY_WORD: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' };
@@ -835,6 +951,7 @@ function cosponsorsModel(detail: BillDetail): CosponsorsModel {
 
 function rollCallRows(detail: BillDetail): RollCallRow[] {
   return detail.roll_calls.map((r: BillRollCall) => ({
+    anchor: rollCallAnchor(r.chamber, r.session, r.roll_number),
     heading: `${r.chamber === 'house' ? 'House' : 'Senate'} roll call ${r.roll_number} · ${formatDate(r.vote_date)}`,
     question: r.question,
     tally: `${r.yea_total}–${r.nay_total}`,
@@ -898,5 +1015,6 @@ export function buildBillPage(detail: BillDetail): BillPageModel {
     cosponsors: cosponsorsModel(detail),
     rollCalls: rollCallRows(detail),
     rollCallsMeta: listMeta(detail.roll_call_count, 'most recent first'),
+    journey: buildJourney(detail.journey),
   };
 }

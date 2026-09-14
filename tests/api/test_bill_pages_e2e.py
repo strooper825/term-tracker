@@ -131,3 +131,97 @@ def test_feed_rows_carry_the_bill_label_only_when_a_page_exists(
                 f"/api/v1/bills/{item['congress']}/{item['bill_type']}/{item['bill_number']}"
             )
             assert page.status_code == 200, item["bill_label"]
+
+
+def _stages(body: dict) -> dict[str, dict]:
+    return {stage["stage_key"]: stage for stage in body["journey"]}
+
+
+def test_journey_shown_stages_are_ordered_and_votes_add_up(
+    built_mart: None, client: TestClient
+) -> None:
+    """ADR 0009 invariants on every fixture bill: stages run 1..n in order, every vote stage has
+    its roll call, and the party split adds up to the tally."""
+    for bill_type, number in FIXTURE_BILLS:
+        body = _get(client, bill_type, number)
+        if body["kind"] == "amendment":
+            assert body["journey"] == [], (bill_type, number)
+            continue
+        orders = [stage["order"] for stage in body["journey"]]
+        assert orders == list(range(1, len(orders) + 1)), (bill_type, number)
+        assert body["journey"][0]["stage_key"] == "introduced"
+        assert body["journey"][0]["date"] == body["introduced_date"]
+        for stage in body["journey"]:
+            vote = stage["vote"]
+            assert (vote is not None) == (stage["status"] in ("passed", "failed")), stage
+            if vote:
+                assert sum(p["yea"] for p in vote["parties"]) == vote["yea_total"]
+                assert sum(p["nay"] for p in vote["parties"]) == vote["nay_total"]
+                assert vote["passed"] is (stage["status"] == "passed")
+
+
+def test_journey_house_passage_votes_from_the_fixture_roll_calls(
+    built_mart: None, client: TestClient
+) -> None:
+    """House roll call 1-122 (On Passage, H.R. 276) and 1-240 (suspension, H.R. 3424)."""
+    on_passage = _stages(_get(client, "hr", "276"))
+    assert list(on_passage)[:3] == ["introduced", "house_vote", "senate_vote"]
+    house = on_passage["house_vote"]
+    assert (house["status"], house["status_label"]) == ("passed", "Passed")
+    assert (house["vote"]["session"], house["vote"]["roll_number"]) == (1, 122)
+    assert house["vote"]["question"] == "On Passage"
+    assert house["vote"]["majority_label"] is None
+
+    suspension = _stages(_get(client, "hr", "3424"))["house_vote"]
+    assert (suspension["vote"]["session"], suspension["vote"]["roll_number"]) == (1, 240)
+    assert suspension["vote"]["question"] == "On Motion to Suspend the Rules and Pass"
+    assert suspension["vote"]["majority_label"] == "2/3 required"
+
+
+def test_journey_enacted_joint_resolution_senate_first_with_no_house_roll_call(
+    built_mart: None, client: TestClient
+) -> None:
+    """S.J.Res. 13: Senate roll call 1-237 is in the fixtures, the House roll call is not, and the
+    Library of Congress actions record presentation and the public law."""
+    body = _get(client, "sjres", "13")
+    stages = _stages(body)
+    assert list(stages) == [
+        "introduced",
+        "senate_vote",
+        "house_vote",
+        "to_president",
+        "became_law",
+    ]  # chamber of origin first
+    senate = stages["senate_vote"]
+    assert senate["status"] == "passed"
+    # the vote fixtures trim member lists, so the tally is compared with the same roll call's row
+    # in roll_calls rather than with the live 52-47
+    call = next(
+        r for r in body["roll_calls"] if (r["chamber"], r["roll_number"]) == ("senate", 237)
+    )
+    assert senate["vote"]["roll_number"] == 237
+    assert (senate["vote"]["yea_total"], senate["vote"]["nay_total"]) == (
+        call["yea_total"],
+        call["nay_total"],
+    )
+    assert senate["vote"]["result"] == "Joint Resolution Passed"
+    assert stages["house_vote"]["status"] == "no_roll_call"  # a later stage is on record
+    assert stages["house_vote"]["vote"] is None
+    assert (stages["to_president"]["status_label"], stages["to_president"]["date"]) == (
+        "Presented",
+        "2025-06-10",
+    )
+    law = stages["became_law"]
+    assert (law["status"], law["date"], law["detail"]) == (
+        "complete",
+        "2025-06-20",
+        "Became Public Law No: 119-19.",
+    )
+    assert not any(stage["ends_journey"] for stage in stages.values())
+
+
+def test_journey_simple_resolution_has_only_its_chamber(
+    built_mart: None, client: TestClient
+) -> None:
+    assert list(_stages(_get(client, "sres", "837"))) == ["introduced", "senate_vote"]
+    assert list(_stages(_get(client, "hres", "150"))) == ["introduced", "house_vote"]

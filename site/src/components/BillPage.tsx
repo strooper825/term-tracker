@@ -2,6 +2,7 @@
 // at build time in src/lib/model.ts from GET /bills/{congress}/{type}/{number}, and the two
 // client islands only collapse long lists.
 import type { BillPageModel, RollCallRow } from '@/lib/model';
+import { BillJourney } from './BillJourney';
 import { BillActions, BillCosponsors } from './BillLists';
 import { Breadcrumb, SiteFooter, SiteHeader, SourceLink } from './SiteChrome';
 
@@ -130,7 +131,11 @@ function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string }) {
         </p>
       ) : (
         rows.map((row) => (
-          <div key={row.heading} className="px-[18px] py-3 border-b border-[#F4F2ED] flex flex-col gap-1.5">
+          <div
+            key={row.anchor}
+            id={row.anchor}
+            className="px-[18px] py-3 border-b border-[#F4F2ED] flex flex-col gap-1.5 scroll-mt-4"
+          >
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm font-semibold tnum">{row.heading}</span>
               <SourceLink href={row.source} title="View the roll call record" />
@@ -173,6 +178,11 @@ export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
         </section>
 
         <main className="px-7 py-7 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-7 items-start">
+          {bill.journey.length > 0 && (
+            <div className="lg:col-span-2 min-w-0">
+              <BillJourney stages={bill.journey} />
+            </div>
+          )}
           <div className="flex flex-col gap-7 min-w-0">
             <SummaryCard bill={bill} />
             <BillActions groups={bill.actions} meta={bill.actionsMeta} />

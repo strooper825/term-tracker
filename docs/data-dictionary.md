@@ -292,6 +292,52 @@ action text). 773 of the 1,874 bills loaded on 2026-09-13 have at least one repe
 collapsing them removes 1,213 of 12,896 action rows. `assert_bill_summary_one_latest` checks the counts against the rows in
 `mart.bill_summary` and `mart.bill_cosponsor`.
 
+### `mart.bill_passage_vote`
+
+One row per passage-type roll call on a bill with a page (`mart.bill`, kind `bill`); ADR 0009.
+Natural key `(congress, chamber, session, roll_number)`. Passage questions are matched by the
+macro `is_passage_question`: House "On Passage", "On Agreeing to the Resolution[, as Amended]",
+"On Motion to Suspend the Rules and Pass|Agree[, as Amended]"; Senate "On Passage of the Bill",
+"On the Joint Resolution", "On the Resolution", "On the Concurrent Resolution".
+
+| Column | Description |
+|---|---|
+| `congress`, `bill_type`, `bill_number` | The bill |
+| `chamber`, `session`, `roll_number`, `voted_at`, `vote_date`, `question`, `result` | From `mart.roll_call` |
+| `passed` | `result` read by macro `passage_passed`; an unmapped result fails `assert_bill_passage_vote_consistent` |
+| `majority_label` | `2/3 required` or `3/5 required` when the source states it (House `vote_type`, Senate `majority_requirement`), else null |
+| `is_latest_in_chamber` | The latest passage roll call for the bill in the chamber, the one the journey reads |
+| `yea_total`, `nay_total`, `present_total`, `not_voting_total` | Tally |
+| `yea_pct`, `nay_pct` | Of Yea plus Nay |
+| `yea_republican`, `nay_republican`, `yea_democratic`, `nay_democratic`, `yea_independent`, `nay_independent`, `yea_other`, `nay_other` | Split by the party letter on each member's vote record (R, D, I, other) |
+| `*_pct` for each of the eight | Share of Yea plus Nay, so a Yea bar and a Nay bar share one scale |
+
+`source` and `source_url` are the roll call's (`congress_gov` with the House Clerk XML, or
+`senate_gov`). Coverage on 2026-09-14: 400 House passage roll calls on 399 bills (20 failed),
+63 Senate ones on 60 bills (8 failed); 40 bills have both, 419 of the 1,721 bills either.
+
+### `mart.bill_journey_stage`
+
+One row per stage of a bill's vote journey (kind `bill` only); ADR 0009. Natural key
+`(congress, bill_type, bill_number, stage_key)`. Not a status: each stage reads one completed
+record.
+
+| Column | Description |
+|---|---|
+| `stage_key`, `stage_label` | `introduced` Introduced, `house_vote` House vote, `senate_vote` Senate vote, `to_president` To President, `became_law` Became law |
+| `stage_order` | 1 is Introduced; chamber votes follow the chamber of origin (S. and S.J.Res.: Senate first). H.Res./S.Res. have one chamber stage; concurrent resolutions no President stages |
+| `status`, `status_label` | `complete` (Introduced; To President from action codes E20000, E30000, E40000; Became law from E40000 or type BecameLaw), `passed`/`failed` (latest passage roll call), `vetoed` (E30000 "Vetoed by President." and no law), `no_roll_call` (no passage roll call although a later stage is on record), `not_recorded` (To President with no action although Became law is on record), `pending` |
+| `event_date`, `detail` | Introduction date, roll-call date and published result, or the action date and text |
+| `vote_chamber`, `vote_session`, `vote_roll_number` | The passage roll call for a `passed` or `failed` stage |
+| `ends_journey` | A failed or vetoed stage with nothing recorded after it |
+| `is_shown` | False for stages after the one that ends the journey; the API returns shown stages only |
+
+`GET /bills/{congress}/{type}/{number}` returns the shown stages as `journey`, each vote stage
+with its passage roll call and party split. Status counts on 2026-09-14 (shown stages): House
+vote 380 passed, 19 failed, 12 no roll call; Senate vote 55 passed, 5 failed, 39 no roll call;
+To President 70 presented; Became law 68 enacted, 2 vetoed; 26 journeys end at a failure or
+veto, hiding 40 later stages.
+
 ### `mart.bill_action`, and how repeated actions are collapsed
 
 Congress.gov publishes the same action for a bill more than once on the same day: sometimes
