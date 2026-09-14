@@ -340,3 +340,103 @@ def test_sessions_cover_the_tracked_congress(built_mart: None, client: TestClien
     assert [s["session"] for s in body["sessions"]] == sorted(
         s["session"] for s in body["sessions"]
     )
+
+
+# path -> next election, opponent, and prior result as the Clerk of the House statistics print
+# them (2024; Arkansas 2020), shares over valid votes (blank and over votes excluded).
+ELECTIONS = {
+    STEIL: {
+        "next": ("2026-11-03", True, "WI-1", "WI-1"),
+        "opponent": ("Mitchell Berman", "D"),
+        "prior": ("WI-1", 2024, 212515, 54.01, "BARCA", "D", 172402, 43.81, 40113, 10.19),
+        "votes": (393493, 0, 0),
+    },
+    COTTON: {
+        "next": ("2026-11-03", True, "Arkansas", "Arkansas"),
+        "opponent": ("Hallie Shoffner", "D"),
+        "prior": (
+            "Arkansas", 2020, 793871, 66.53, "HARRINGTON", "Libertarian", 399390, 33.47,
+            394481, 33.06,
+        ),
+        "votes": (1193261, 0, 0),
+    },
+    SANDERS: {
+        "next": ("2030-11-05", False, "Vermont", "Vermont"),
+        "opponent": None,
+        "prior": ("Vermont", 2024, 229429, 63.16, "MALLOY", "R", 116512, 32.07, 112917, 31.08),
+        "votes": (363253, 9336, 296),
+    },
+    SLOTKIN: {
+        "next": ("2030-11-05", False, "Michigan", "Michigan"),
+        "opponent": None,
+        "prior": (
+            "Michigan", 2024, 2712686, 48.64, "ROGERS", "R", 2693680, 48.3, 19006, 0.34,
+        ),
+        "votes": (5577187, 0, 0),
+    },
+    KILEY: {
+        "next": ("2026-11-03", True, "CA-6", "CA-3"),
+        "opponent": ("Richard Pan", "D"),
+        "prior": ("CA-3", 2024, 234246, 55.47, "MORSE", "D", 188067, 44.53, 46179, 10.93),
+        "votes": (422313, 0, 0),
+    },
+    JEFFRIES: {
+        "next": ("2026-11-03", True, "NY-8", "NY-8"),
+        "opponent": ("Lewis Mizrahi", "R"),
+        "prior": ("NY-8", 2024, 168036, 75.08, "DELANEY", "R", 54863, 24.51, 113173, 50.57),
+        "votes": (223804, 17346, 0),
+    },
+}  # fmt: skip
+
+
+@pytest.mark.parametrize("path", list(ELECTIONS), ids=lambda p: p.rsplit("/", 1)[-1])
+def test_election_from_fixtures_matches_the_clerk(
+    built_mart: None, client: TestClient, path: str
+) -> None:
+    exp = ELECTIONS[path]
+    body = client.get(f"{path}/election").json()
+    nxt = body["next"]
+    date, on_ballot, race, seat = exp["next"]
+    assert (nxt["election_date"], nxt["on_ballot_this_cycle"]) == (date, on_ballot)
+    assert (nxt["race_label"], nxt["seat_label"], nxt["cycle"]) == (race, seat, 2026)
+    assert nxt["race_differs_from_seat"] is (race != seat)
+
+    if exp["opponent"] is None:
+        assert body["opponent_status"] == "not_on_ballot" and body["opponent"] is None
+    else:
+        assert body["opponent_status"] == "confirmed"
+        assert (body["opponent"]["name"], body["opponent"]["party"]) == exp["opponent"]
+        assert body["opponent"]["source_url"].startswith("https://")
+
+    prior_seat, year, w_votes, w_pct, ru_name, ru_party, ru_votes, ru_pct, margin, m_pct = exp[
+        "prior"
+    ]
+    assert body["prior_status"] == "found"
+    prior = body["prior"]
+    assert (prior["seat_label"], prior["election_year"], prior["special"]) == (
+        prior_seat,
+        year,
+        False,
+    )
+    assert (prior["winner"]["votes"], prior["winner"]["pct"]) == (w_votes, w_pct)
+    runner_up = prior["runner_up"]
+    assert ru_name in runner_up["name"] and runner_up["party"] == ru_party
+    assert (runner_up["votes"], runner_up["pct"]) == (ru_votes, ru_pct)
+    assert (prior["margin_votes"], prior["margin_pct"]) == (margin, m_pct)
+    assert (prior["valid_votes"], prior["blank_votes"], prior["over_votes"]) == exp["votes"]
+    assert prior["source_url"] == (
+        f"https://clerk.house.gov/member_info/electionInfo/{year}/statistics{year}.pdf"
+    )
+    assert {s["source"] for s in body["sources"]} >= {"legislators", "mit_election_lab"}
+
+
+def test_election_fusion_lines_and_missing_fec_record(built_mart: None, client: TestClient) -> None:
+    jeffries = client.get(f"{JEFFRIES}/election").json()
+    # Delaney ran on the Republican and Conservative lines, printed separately by the Clerk
+    assert jeffries["prior"]["runner_up"]["party_lines"] == ["REPUBLICAN", "CONSERVATIVE"]
+    assert jeffries["opponent"]["fec_candidate_id"] is None
+    assert jeffries["opponent"]["fec_url"] is None
+    steil = client.get(f"{STEIL}/election").json()
+    assert steil["opponent"]["fec_url"] == (
+        "https://www.fec.gov/data/candidate/H6WI01283/?cycle=2026&election_full=false"
+    )

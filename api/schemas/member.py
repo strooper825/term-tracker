@@ -241,6 +241,69 @@ class KeyDatesResponse(BaseModel):
     sources: list[SourceRef]
 
 
+OpponentStatus = Literal["confirmed", "not_researched", "not_on_ballot"]
+PriorElectionStatus = Literal["found", "uncontested", "no_contest", "appointed"]
+
+
+class NextElection(BaseModel):
+    election_date: dt.date = Field(description="Regular general election day (2 U.S.C. 7)")
+    election_year: int
+    cycle: int = Field(description="Current two-year cycle, e.g. 2026 for 2025-2026")
+    on_ballot_this_cycle: bool = Field(description="The seat's next election is in this cycle")
+    days_away: int = Field(description="Days from today (UTC) to election day; negative once past")
+    race_label: str = Field(description="Seat contested, e.g. CA-6 or Vermont")
+    seat_label: str = Field(description="Seat the member holds now, e.g. CA-3")
+    race_differs_from_seat: bool = Field(description="True when redistricting moved the race")
+    date_source_url: str
+
+
+class Opponent(BaseModel):
+    name: str
+    party: str = Field(description="As the card shows it: D, R, I, or a party name")
+    fec_candidate_id: str | None
+    fec_url: str | None = Field(description="Public FEC candidate page, when the FEC has a record")
+    source_url: str = Field(description="Report confirming the nomination")
+    verified_on: dt.date
+    note: str | None
+
+
+class ElectionCandidate(BaseModel):
+    name: str = Field(description="As published by the MIT Election Lab, upper case")
+    party: str | None = Field(description="D, R, I, or the party name of the largest line")
+    party_lines: list[str] = Field(description="Every ballot line, largest first (fusion)")
+    votes: int | None = Field(description="None when the state counted no votes (uncontested)")
+    pct: float | None = Field(description="Share of valid votes (blank and over votes excluded)")
+
+
+class PriorElection(BaseModel):
+    election_year: int
+    election_date: dt.date
+    special: bool
+    seat_label: str = Field(description="Seat as it was at that election, e.g. CA-3")
+    winner: ElectionCandidate
+    runner_up: ElectionCandidate | None = Field(description="None when the winner was unopposed")
+    margin_votes: int | None
+    margin_pct: float | None = Field(description="Points of valid votes")
+    candidates: int = Field(description="Named candidates in the contest")
+    valid_votes: int = Field(description="Candidates, write-ins, scattering; the share denominator")
+    blank_votes: int
+    over_votes: int
+    mixed_votes: int = Field(description="Rows combining blank and other votes; excluded")
+    source_url: str = Field(description="Clerk of the House election statistics for the year")
+    dataset_url: str = Field(description="MIT Election Lab dataset version the figures come from")
+    dataset_version: str
+
+
+class ElectionResponse(BaseModel):
+    bioguide_id: str
+    next: NextElection
+    opponent_status: OpponentStatus
+    opponent: Opponent | None
+    prior_status: PriorElectionStatus
+    prior: PriorElection | None
+    sources: list[SourceRef]
+
+
 FundraisingStatus = Literal["filed", "no_filings", "no_committee", "no_candidate"]
 
 

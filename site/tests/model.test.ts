@@ -17,6 +17,7 @@ import {
   feedRow,
   groupFeed,
   policyAreaTotals,
+  priorResultLine,
   rowsWithoutPolicyArea,
   seatLong,
   serviceLine,
@@ -51,6 +52,7 @@ import {
   STEIL_LIST,
   WEEKS,
 } from './fixtures';
+import { KILEY_ELECTION, SANDERS_ELECTION, STEIL_ELECTION } from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
@@ -195,18 +197,38 @@ describe('weeks, key dates, election, index', () => {
     expect(weeks.find((w) => w.tick === 'Feb')).toBeUndefined(); // too close to the January label
   });
 
-  it('election card picks the next election-kind key date and says the seat is on the ballot', () => {
-    const e = buildElection(STEIL_KEY_DATES, STEIL, TODAY);
-    expect(e).toEqual({
+  it('election card words the mart row: on the ballot, opponent, prior result', () => {
+    expect(buildElection(STEIL_ELECTION)).toEqual({
       date: 'Nov 3, 2026',
-      daysAway: 51,
-      kind: 'General election day',
+      subtitle: 'General election · 51 days away',
       onBallot: true,
-      opponent: null,
+      raceNote: null,
+      opponent: 'Mitchell Berman (D)',
+      opponentSourceUrl: STEIL_ELECTION.opponent!.source_url,
+      prior: '2024, WI-1: won 54.0%–43.8% over Peter Barca (D), +10.2 pts',
+      priorSourceUrl: 'https://clerk.house.gov/member_info/electionInfo/2024/statistics2024.pdf',
       rating: null,
     });
-    expect(buildElection([], STEIL, TODAY)).toBeNull();
     expect(formatDate('2026-11-03')).toBe('Nov 3, 2026');
+  });
+
+  it('election card for a Class 1 seat and for a race moved by redistricting', () => {
+    expect(buildElection(SANDERS_ELECTION)).toMatchObject({
+      date: 'Nov 5, 2030',
+      subtitle: '2030 · not on the ballot in 2026',
+      onBallot: false,
+      opponent: null,
+      prior: '2024, Vermont: won 63.2%–32.1% over Gerald Malloy (R), +31.1 pts',
+    });
+    expect(buildElection(KILEY_ELECTION)).toMatchObject({
+      raceNote: 'Running in CA-6 (seat now CA-3)',
+      opponent: 'Richard Pan (D)',
+      prior: '2024, CA-3: won 55.5%–44.5% over Jessica Morse (D), +10.9 pts',
+    });
+    const unopposed = { ...STEIL_ELECTION.prior!, runner_up: null };
+    expect(priorResultLine(unopposed)).toBe('2024, WI-1: won unopposed');
+    const past = { ...STEIL_ELECTION, next: { ...STEIL_ELECTION.next, days_away: -2 } };
+    expect(buildElection(past).subtitle).toBe('General election · 2 days ago');
   });
 
   it('index rows carry attendance, sponsored, and unity from the detail row', () => {
@@ -225,15 +247,13 @@ describe('weeks, key dates, election, index', () => {
     expect(buildIndexRow(SLOTKIN_LIST, SLOTKIN)).toMatchObject({ party: 'Democratic', chamber: 'Senate', state: 'Michigan' });
   });
 
-  it('key dates and election degrade when a state has no rows: congress-wide rows still apply', () => {
+  it('key dates degrade when a state has no rows: congress-wide rows still apply', () => {
     const congressOnly = STEIL_KEY_DATES.filter((d) => d.scope === 'congress');
     expect(buildKeyDates(congressOnly).map((d) => d.label)).toEqual([
       '119th Congress convenes',
       'General election day',
       '119th Congress ends; House and Class 2 Senate terms expire at noon',
     ]);
-    // a Class 1 senator whose term runs to 2031 is not on the 2026 ballot
-    expect(buildElection(congressOnly, SANDERS, TODAY)).toMatchObject({ date: 'Nov 3, 2026', onBallot: false });
     expect(buildKeyDates([])).toEqual([]);
   });
 });

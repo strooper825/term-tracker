@@ -1,6 +1,7 @@
 // CommitteesCard, KeyDatesCard, NextElectionCard, LockedPanels: ported from design/src/components.
 import type { ReactNode } from 'react';
 import type { CommitteeRow, ElectionModel, KeyDateRow } from '@/lib/model';
+import { SourceLink } from './SiteChrome';
 
 export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
   return (
@@ -61,10 +62,13 @@ export function KeyDatesCard({ dates }: { dates: KeyDateRow[] }) {
 }
 
 export function NextElectionCard({ election }: { election: ElectionModel | null }) {
-  const row = (label: string, value: string | null) => (
-    <div className="flex justify-between gap-3 text-sm border-t border-ruleSoft pt-2.5">
-      <span className="text-ink2">{label}</span>
-      <span className={value ? 'text-ink' : 'text-ink4'}>{value || 'Not yet available'}</span>
+  const row = (label: string, value: string | null, sourceUrl: string | null = null) => (
+    <div className="flex justify-between items-start gap-3 text-sm border-t border-ruleSoft pt-2.5">
+      <span className="flex-none text-ink2">{label}</span>
+      <span className="flex items-start justify-end gap-1.5 text-right min-w-0">
+        <span className={value ? 'text-ink' : 'text-ink4'}>{value || 'Not yet available'}</span>
+        {value && sourceUrl && <SourceLink href={sourceUrl} />}
+      </span>
     </div>
   );
   return (
@@ -73,10 +77,8 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
       {election ? (
         <>
           <div className="text-[22px] font-semibold tnum -tracking-[0.015em]">{election.date}</div>
-          <div className="text-sm text-ink3 mt-0.5">
-            {election.kind}
-            {election.daysAway >= 0 ? ` · ${election.daysAway} days away` : ` · ${-election.daysAway} days ago`}
-          </div>
+          <div className="text-sm text-ink3 mt-0.5">{election.subtitle}</div>
+          {election.raceNote && <div className="text-sm text-ink3">{election.raceNote}</div>}
           {election.onBallot && (
             <div className="mt-3 inline-flex items-center text-[11px] uppercase tracking-[0.06em] bg-[#F2F0EA] border border-rule rounded-chip px-2 py-1">
               On the ballot
@@ -87,7 +89,8 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
         <div className="text-sm text-ink4">Not yet available</div>
       )}
       <div className="mt-4 flex flex-col gap-2.5">
-        {row('Opponent', election?.opponent ?? null)}
+        {row('Opponent', election?.opponent ?? null, election?.opponentSourceUrl ?? null)}
+        {row('Prior result', election?.prior ?? null, election?.priorSourceUrl ?? null)}
         {row('Race rating', election?.rating ?? null)}
       </div>
     </section>

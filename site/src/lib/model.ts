@@ -31,11 +31,13 @@ import type {
   BillRollCall,
   BillSummaryVersion,
   CommitteeAssignment,
+  ElectionResponse,
   FeedItem,
   FreshnessResponse,
   FundraisingResponse,
   KeyDate,
   MemberDetail,
+  PriorElection,
   MemberListItem,
   WeekBucket,
 } from './types';
@@ -83,10 +85,15 @@ export interface CommitteeRow {
 
 export interface ElectionModel {
   date: string;
-  daysAway: number;
-  kind: string;
+  /** "General election · 51 days away", or "2030 · not on the ballot in 2026" */
+  subtitle: string;
   onBallot: boolean;
+  /** "Running in CA-6 (seat now CA-3)" when redistricting moved the race, else null */
+  raceNote: string | null;
   opponent: string | null;
+  opponentSourceUrl: string | null;
+  prior: string | null;
+  priorSourceUrl: string | null;
   rating: string | null;
 }
 
@@ -484,21 +491,37 @@ export function buildKeyDates(dates: KeyDate[]): KeyDateRow[] {
     .map((d) => ({ date: formatDate(d.date), label: d.label }));
 }
 
-/** The next election-kind key date on or after `today` (else the most recent one), or null. */
-export function buildElection(dates: KeyDate[], detail: MemberDetail, today: Date): ElectionModel | null {
-  const elections = dates.filter((d) => d.kind === 'election').sort((a, b) => a.date.localeCompare(b.date));
-  if (elections.length === 0) return null;
-  const todayIso = toIsoDate(today);
-  const next = elections.find((d) => d.date >= todayIso) ?? elections[elections.length - 1];
-  const electionDate = parseDate(next.date);
-  const termEnd = parseDate(detail.term.end_date);
+/** "2024, CA-3: won 55.5%–44.5% over Jessica Morse (D), +10.9 pts" from mart.member_prior_election. */
+export function priorResultLine(prior: PriorElection): string {
+  const head = `${prior.election_year}, ${prior.seat_label}`;
+  const runnerUp = prior.runner_up;
+  if (!runnerUp) return `${head}: won unopposed`;
+  const party = runnerUp.party ? ` (${runnerUp.party})` : '';
+  const margin = prior.margin_pct === null ? '' : `, +${prior.margin_pct.toFixed(1)} pts`;
+  return (
+    `${head}: won ${formatShare(prior.winner.pct)}–${formatShare(runnerUp.pct)} ` +
+    `over ${titleCase(runnerUp.name)}${party}${margin}`
+  );
+}
+
+/** The Next election card from mart.member_next_election and mart.member_prior_election: the
+ *  date, cycle, ballot status and days away all arrive computed; this only words them. */
+export function buildElection(election: ElectionResponse): ElectionModel {
+  const { next, opponent, prior } = election;
+  const when = next.days_away >= 0 ? `${next.days_away} days away` : `${-next.days_away} days ago`;
   return {
-    date: formatDate(next.date),
-    daysAway: daysBetween(today, electionDate),
-    kind: next.label,
-    // The seat is on the ballot when the term ends in the January after the election.
-    onBallot: termEnd.getUTCFullYear() === electionDate.getUTCFullYear() + 1 && termEnd.getUTCMonth() === 0,
-    opponent: null,
+    date: formatDate(next.election_date),
+    subtitle: next.on_ballot_this_cycle
+      ? `General election · ${when}`
+      : `${next.election_year} · not on the ballot in ${next.cycle}`,
+    onBallot: next.on_ballot_this_cycle,
+    raceNote: next.race_differs_from_seat
+      ? `Running in ${next.race_label} (seat now ${next.seat_label})`
+      : null,
+    opponent: opponent ? `${opponent.name} (${opponent.party})` : null,
+    opponentSourceUrl: opponent?.source_url ?? null,
+    prior: prior ? priorResultLine(prior) : null,
+    priorSourceUrl: prior?.source_url ?? null,
     rating: null,
   };
 }

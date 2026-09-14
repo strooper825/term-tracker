@@ -18,22 +18,25 @@ import {
   groupFeed,
   policyAreaTotals,
 } from '@/lib/model';
-import { KeyDatesCard } from '@/components/SideCards';
+import { KeyDatesCard, NextElectionCard } from '@/components/SideCards';
 import {
   COTTON,
   COTTON_FUNDRAISING,
   COTTON_LIST,
   FEED,
+  KILEY_ELECTION,
   NO_CANDIDATE_FUNDRAISING,
   NO_COMMITTEE_FUNDRAISING,
   NO_FILINGS_FUNDRAISING,
   SANDERS,
+  SANDERS_ELECTION,
   SANDERS_LIST,
   SESSIONS,
   SLOTKIN,
   SLOTKIN_LIST,
   STEIL,
   STEIL_COMMITTEES,
+  STEIL_ELECTION,
   STEIL_FUNDRAISING,
   STEIL_KEY_DATES,
   STEIL_LIST,
@@ -42,7 +45,7 @@ import {
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
 
-function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
+function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING, election = STEIL_ELECTION) {
   return (
     <MemberDashboard
       member={buildHeader(detail)}
@@ -54,7 +57,7 @@ function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
       totalLabel="7"
       policyAreas={policyAreaTotals(FEED)}
       dateRanges={buildDateRanges(SESSIONS, detail.term, TODAY)}
-      election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
+      election={buildElection(election)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}
@@ -87,9 +90,14 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     render(dashboard());
     const election = screen.getByText('Next election').closest('section')!;
     expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
-    expect(within(election).getByText(/General election day · 51 days away/)).toBeInTheDocument();
+    expect(within(election).getByText('General election · 51 days away')).toBeInTheDocument();
     expect(within(election).getByText('On the ballot')).toBeInTheDocument();
-    expect(within(election).getAllByText('Not yet available')).toHaveLength(2); // opponent, rating
+    expect(within(election).getByText('Mitchell Berman (D)')).toBeInTheDocument(); // race_nominees seed
+    expect(
+      within(election).getByText('2024, WI-1: won 54.0%–43.8% over Peter Barca (D), +10.2 pts'),
+    ).toBeInTheDocument(); // member_prior_election
+    expect(within(election).getAllByText('Not yet available')).toHaveLength(1); // race rating
+    expect(within(election).getAllByRole('link', { name: /source ↗/ })).toHaveLength(2);
     const keyDates = screen.getByText('Key dates').closest('section')!;
     expect(within(keyDates).getByText('Nov 3, 2026')).toBeInTheDocument();
     expect(screen.getByText('House Committee on House Administration')).toBeInTheDocument();
@@ -123,7 +131,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
   });
 
   it('Independent: INDEPENDENT badge, caucus note, unity note names the caucus, 12th term line', () => {
-    render(dashboard(SANDERS));
+    render(dashboard(SANDERS, STEIL_FUNDRAISING, SANDERS_ELECTION));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Bernard Sanders');
     expect(screen.getAllByText('INDEPENDENT').length).toBeGreaterThan(0);
     expect(screen.getByText('Caucuses with Democrats')).toBeInTheDocument(); // term.caucus
@@ -132,10 +140,21 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getByText('99.87%')).toBeInTheDocument(); // member_vote_stats.party_unity_cq_pct
     expect(screen.getByText('votes with Democratic caucus')).toBeInTheDocument();
     expect(screen.getByText('Vermont · Class 1')).toBeInTheDocument();
-    // Class 1 seat, term to 2031: the 2026 general election is shown but the seat is not on the ballot
+    // Class 1 seat, term to 2031: the card names the 2030 election and says it is not this cycle
     const election = screen.getByText('Next election').closest('section')!;
-    expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
+    expect(within(election).getByText('Nov 5, 2030')).toBeInTheDocument();
+    expect(within(election).getByText('2030 · not on the ballot in 2026')).toBeInTheDocument();
     expect(within(election).queryByText('On the ballot')).not.toBeInTheDocument();
+    expect(within(election).getAllByText('Not yet available')).toHaveLength(2); // opponent, rating
+  });
+
+  it('next election card: a race moved by redistricting says where the member is running', () => {
+    render(<NextElectionCard election={buildElection(KILEY_ELECTION)} />);
+    expect(screen.getByText('Running in CA-6 (seat now CA-3)')).toBeInTheDocument();
+    expect(screen.getByText('Richard Pan (D)')).toBeInTheDocument();
+    expect(
+      screen.getByText('2024, CA-3: won 55.5%–44.5% over Jessica Morse (D), +10.9 pts'),
+    ).toBeInTheDocument();
   });
 
   it('first-term senator with House service reads "1st in the Senate"', () => {

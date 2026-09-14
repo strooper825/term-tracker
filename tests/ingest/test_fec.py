@@ -30,6 +30,14 @@ def test_api_key_travels_in_header_not_url() -> None:
     client.close()
 
 
+def test_list_parameters_repeat_rather_than_serialise() -> None:
+    url = FecClient.url("committees", candidate_id=["H8WI01156", "H6WI01283"], cycle=2026)
+    assert url == (
+        f"{BASE_URL}/committees/?candidate_id=H8WI01156&candidate_id=H6WI01283&cycle=2026"
+    )
+    assert "%5B" not in url  # no "[" from a list repr, which OpenFEC rejects with HTTP 422
+
+
 def test_results_follow_pagination_pages() -> None:
     base = f"{BASE_URL}/committee/C1/totals/?per_page=100&page="
     client = _client(

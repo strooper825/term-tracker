@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,6 +18,8 @@ from api.schemas.member import (
     BillItem,
     BillsResponse,
     CommitteesResponse,
+    ElectionCandidate,
+    ElectionResponse,
     FecCandidateRef,
     FecCommitteeRef,
     FeedItem,
@@ -30,6 +32,9 @@ from api.schemas.member import (
     LeadershipRole,
     MemberBio,
     MemberDetail,
+    NextElection,
+    Opponent,
+    PriorElection,
     ReceiptBreakdown,
     ReceiptSource,
     ServiceRecord,
@@ -132,6 +137,10 @@ FUNDRAISING_SQL = text(
     LIMIT 1
     """
 )
+
+NEXT_ELECTION_SQL = text("SELECT * FROM mart.member_next_election WHERE bioguide_id = :bioguide")
+
+PRIOR_ELECTION_SQL = text("SELECT * FROM mart.member_prior_election WHERE bioguide_id = :bioguide")
 
 KEY_DATES_SQL = text(
     """
@@ -409,6 +418,124 @@ def member_key_dates(
         bioguide_id=bioguide,
         items=[KeyDate(**{k: row[k] for k in KeyDate.model_fields}) for row in rows],
         sources=_sources(rows),
+    )
+
+
+def race_label(chamber: str, state_abbr: str, state_name: str | None, district: int | None) -> str:
+    """The contested seat: "CA-6", "AK (At Large)", or the state name for a Senate race."""
+    if chamber == "senate":
+        return state_name or state_abbr
+    if district == 0:
+        return f"{state_abbr} (At Large)"
+    return f"{state_abbr}-{district}"
+
+
+def _election_candidate(row: Any, prefix: str) -> ElectionCandidate | None:
+    if row[f"{prefix}_name"] is None:
+        return None
+    return ElectionCandidate(
+        name=row[f"{prefix}_name"],
+        party=row[f"{prefix}_party"],
+        party_lines=list(row[f"{prefix}_party_lines"] or []),
+        votes=row[f"{prefix}_votes"],
+        pct=row[f"{prefix}_pct"],
+    )
+
+
+def _prior_election(row: Any) -> PriorElection | None:
+    winner = _election_candidate(row, "winner")
+    if row["status"] not in ("found", "uncontested") or winner is None:
+        return None
+    return PriorElection(
+        election_year=row["election_year"],
+        election_date=row["election_date"],
+        special=row["special"],
+        seat_label=race_label(
+            row["chamber"], row["state_abbr"], row["state_name"], row["district"]
+        ),
+        winner=winner,
+        runner_up=_election_candidate(row, "runner_up"),
+        margin_votes=row["margin_votes"],
+        margin_pct=row["margin_pct"],
+        candidates=row["candidates"],
+        valid_votes=row["valid_votes"],
+        blank_votes=row["blank_votes"],
+        over_votes=row["over_votes"],
+        mixed_votes=row["mixed_votes"],
+        source_url=row["source_url"],
+        dataset_url=row["dataset_url"],
+        dataset_version=row["dataset_version"],
+    )
+
+
+@router.get(
+    "/election",
+    response_model=ElectionResponse,
+    summary="Next election for the seat, the opponent when known, and the prior result",
+)
+def member_election(
+    bioguide: str, session: Annotated[Session, Depends(get_session)]
+) -> ElectionResponse:
+    _summary(session, bioguide)
+    row = session.execute(NEXT_ELECTION_SQL, {"bioguide": bioguide}).mappings().first()
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"No election row for bioguide id {bioguide}")
+    prior_row = session.execute(PRIOR_ELECTION_SQL, {"bioguide": bioguide}).mappings().first()
+    today = datetime.now(UTC).date()
+
+    sources = [
+        SourceRef(source=row["source"], source_url=row["source_url"], fetched_at=row["fetched_at"])
+    ]
+    opponent = None
+    if row["opponent_status"] == "confirmed":
+        opponent = Opponent(
+            name=row["opponent_name"],
+            party=row["opponent_party"],
+            fec_candidate_id=row["opponent_fec_candidate_id"],
+            fec_url=row["opponent_fec_url"],
+            source_url=row["opponent_source_url"],
+            verified_on=row["opponent_verified_on"],
+            note=row["opponent_note"],
+        )
+        sources.append(
+            SourceRef(
+                source="race_nominees_seed",
+                source_url=row["opponent_source_url"],
+                fetched_at=datetime.combine(row["opponent_verified_on"], time(), UTC),
+            )
+        )
+    prior = _prior_election(prior_row) if prior_row is not None else None
+    if prior_row is not None and prior is not None:
+        sources.append(
+            SourceRef(
+                source=prior_row["source"],
+                source_url=prior_row["source_url"],
+                fetched_at=prior_row["fetched_at"],
+            )
+        )
+
+    return ElectionResponse(
+        bioguide_id=bioguide,
+        next=NextElection(
+            election_date=row["election_date"],
+            election_year=row["election_year"],
+            cycle=row["cycle"],
+            on_ballot_this_cycle=row["on_ballot_this_cycle"],
+            days_away=(row["election_date"] - today).days,
+            race_label=race_label(
+                row["chamber"], row["state_abbr"], row["state_name"], row["race_district"]
+            ),
+            seat_label=race_label(
+                row["chamber"], row["state_abbr"], row["state_name"], row["seat_district"]
+            ),
+            race_differs_from_seat=bool(row["race_differs_from_seat"]),
+            date_source_url=row["election_date_source_url"],
+        ),
+        opponent_status=row["opponent_status"],
+        opponent=opponent,
+        prior_status=prior_row["status"] if prior_row is not None else "no_contest",
+        prior=prior,
+        sources=sorted(sources, key=lambda s: s.source_url),
     )
 
 

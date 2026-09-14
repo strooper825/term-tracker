@@ -13,6 +13,7 @@ also recorded here once made.
 - [0005. Party unity scores Independents against the party they caucus with](0005-party-unity-scoring-party.md)
 - [0006. Fundraising v1: principal campaign committee, current cycle, no industry categories](0006-fec-principal-committee-scope.md)
 - [0007. A member can cosponsor the same bill twice](0007-repeat-cosponsorship.md)
+- [0008. Next Election card: MIT Election Lab prior results, hand-maintained opponents](0008-election-context-sources.md)
 
 ## Format
 

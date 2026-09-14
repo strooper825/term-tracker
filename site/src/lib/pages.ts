@@ -47,12 +47,13 @@ export async function indexPageProps(): Promise<{
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
   const detail = await api.member(bioguide);
   const range = timelineRange(detail, today);
-  const [timeline, feed, committees, keyDates, fundraising, freshness, sessions] =
+  const [timeline, feed, committees, keyDates, election, fundraising, freshness, sessions] =
     await Promise.all([
       api.timeline(bioguide, range.from, range.to),
       api.feedAll(bioguide),
       api.committees(bioguide),
       api.keyDates(bioguide),
+      api.election(bioguide),
       api.fundraising(bioguide),
       api.freshness(),
       api.sessions(),
@@ -71,7 +72,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     // The rolling windows count back from the latest ingest rather than the build clock, so
     // every boundary the filter uses comes from data.
     dateRanges: buildDateRanges(sessions.sessions, detail.term, latestIngest(freshness, today)),
-    election: buildElection(keyDates.items, detail, today),
+    election: buildElection(election),
     committees: buildCommitteeRows(committees.items),
     keyDates: buildKeyDates(keyDates.items),
     fundraising: buildFundraising(fundraising, detail.seat.chamber),

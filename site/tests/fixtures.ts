@@ -3,6 +3,7 @@ import type {
   BillDetail,
   CommitteeAssignment,
   CongressSession,
+  ElectionResponse,
   FeedItem,
   FundraisingResponse,
   KeyDate,
@@ -799,3 +800,118 @@ export const SESSIONS: CongressSession[] = [
     is_current: true,
   },
 ];
+
+const CLERK_2024 = 'https://clerk.house.gov/member_info/electionInfo/2024/statistics2024.pdf';
+const MIT_HOUSE = 'https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/IG0UN2&version=15.0';
+const MIT_SENATE = 'https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/PEJ5QU&version=8.0';
+const USC_2_7 = 'https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title2-section7';
+
+/** GET /members/S001213/election on 2026-09-13 (fixture mart; prior result per the Clerk). */
+export const STEIL_ELECTION: ElectionResponse = {
+  bioguide_id: 'S001213',
+  next: {
+    election_date: '2026-11-03',
+    election_year: 2026,
+    cycle: 2026,
+    on_ballot_this_cycle: true,
+    days_away: 51,
+    race_label: 'WI-1',
+    seat_label: 'WI-1',
+    race_differs_from_seat: false,
+    date_source_url: USC_2_7,
+  },
+  opponent_status: 'confirmed',
+  opponent: {
+    name: 'Mitchell Berman',
+    party: 'D',
+    fec_candidate_id: 'H6WI01283',
+    fec_url: 'https://www.fec.gov/data/candidate/H6WI01283/?cycle=2026&election_full=false',
+    source_url: 'https://wisconsinexaminer.com/2026/08/11/berman-wins-democratic-nod-to-challenge-steil-in-wisconsins-1st-district/',
+    verified_on: '2026-09-13',
+    note: 'Won the Democratic primary on 2026-08-11',
+  },
+  prior_status: 'found',
+  prior: {
+    election_year: 2024,
+    election_date: '2024-11-05',
+    special: false,
+    seat_label: 'WI-1',
+    winner: { name: 'BRYAN STEIL', party: 'R', party_lines: ['REPUBLICAN'], votes: 212515, pct: 54.01 },
+    runner_up: { name: 'PETER BARCA', party: 'D', party_lines: ['DEMOCRAT'], votes: 172402, pct: 43.81 },
+    margin_votes: 40113,
+    margin_pct: 10.19,
+    candidates: 3,
+    valid_votes: 393493,
+    blank_votes: 0,
+    over_votes: 0,
+    mixed_votes: 0,
+    source_url: CLERK_2024,
+    dataset_url: MIT_HOUSE,
+    dataset_version: '15.0',
+  },
+  sources: [],
+};
+
+/** Class 1 senator: the seat is next contested in 2030; prior result Vermont 2024. */
+export const SANDERS_ELECTION: ElectionResponse = {
+  bioguide_id: 'S000033',
+  next: {
+    election_date: '2030-11-05',
+    election_year: 2030,
+    cycle: 2026,
+    on_ballot_this_cycle: false,
+    days_away: 1514,
+    race_label: 'Vermont',
+    seat_label: 'Vermont',
+    race_differs_from_seat: false,
+    date_source_url: USC_2_7,
+  },
+  opponent_status: 'not_on_ballot',
+  opponent: null,
+  prior_status: 'found',
+  prior: {
+    election_year: 2024,
+    election_date: '2024-11-05',
+    special: false,
+    seat_label: 'Vermont',
+    winner: { name: 'BERNIE SANDERS', party: 'I', party_lines: ['INDEPENDENT'], votes: 229429, pct: 63.16 },
+    runner_up: { name: 'GERALD MALLOY', party: 'R', party_lines: ['REPUBLICAN'], votes: 116512, pct: 32.07 },
+    margin_votes: 112917,
+    margin_pct: 31.08,
+    candidates: 6,
+    valid_votes: 363253,
+    blank_votes: 9336,
+    over_votes: 296,
+    mixed_votes: 0,
+    source_url: CLERK_2024,
+    dataset_url: MIT_SENATE,
+    dataset_version: '8.0',
+  },
+  sources: [],
+};
+
+/** Redistricting: seat CA-3, 2026 race in CA-6. */
+export const KILEY_ELECTION: ElectionResponse = {
+  ...STEIL_ELECTION,
+  bioguide_id: 'K000401',
+  next: { ...STEIL_ELECTION.next, race_label: 'CA-6', seat_label: 'CA-3', race_differs_from_seat: true },
+  opponent: {
+    name: 'Richard Pan',
+    party: 'D',
+    fec_candidate_id: 'H6CA03158',
+    fec_url: 'https://www.fec.gov/data/candidate/H6CA03158/?cycle=2026&election_full=false',
+    source_url: 'https://www.cbsnews.com/sacramento/news/california-congressional-district-6-primary-election-2026/',
+    verified_on: '2026-09-13',
+    note: null,
+  },
+  prior: {
+    ...STEIL_ELECTION.prior!,
+    seat_label: 'CA-3',
+    winner: { name: 'KEVIN KILEY', party: 'R', party_lines: ['REPUBLICAN'], votes: 234246, pct: 55.47 },
+    runner_up: { name: 'JESSICA MORSE', party: 'D', party_lines: ['DEMOCRAT'], votes: 188067, pct: 44.53 },
+    margin_votes: 46179,
+    margin_pct: 10.93,
+    candidates: 2,
+    valid_votes: 422313,
+  },
+};

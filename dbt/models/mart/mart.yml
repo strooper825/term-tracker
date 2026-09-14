@@ -351,3 +351,48 @@ models:
         tests: [not_null]
       - name: fetched_at
         tests: [not_null]
+
+  - name: member_prior_election
+    description: >
+      The general election that began each tracked member's current term, from the MIT Election
+      Lab constituency returns, cited to the Clerk of the House statistics (ADR 0008). Shares
+      exclude blank and over votes; fusion lines are summed per candidate.
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: status
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["found", "uncontested", "no_contest", "appointed"] } }
+      - name: election_year
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+      - name: fetched_at
+        tests: [not_null]
+
+  - name: member_next_election
+    description: >
+      The next regular general election for each tracked member's seat, whether it is in this
+      cycle, and the hand-maintained opponent for races on this cycle's ballot (ADR 0008).
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: election_date
+        tests: [not_null]
+      - name: on_ballot_this_cycle
+        tests: [not_null]
+      - name: opponent_status
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["confirmed", "not_researched", "not_on_ballot"] } }
+      - name: source_url
+        tests: [not_null]
+      - name: fetched_at
+        tests: [not_null]

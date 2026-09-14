@@ -30,7 +30,7 @@ Phase column indicates when the panel goes live. Claude Code builds the data lay
 | # | Panel | Contents | Source | Phase |
 |---|---|---|---|---|
 | 1 | Term at a glance (header) | Photo, party, seat, term dates, days remaining, votes cast, missed-vote %, party-unity %, bills sponsored / cosponsored | Congress.gov, Senate.gov, Voteview | 1 |
-| 2 | Next election | Election date, opponent(s) if known, filing status; race rating (manual field) | Manual / FEC candidate list | 1 (date only) → 2 |
+| 2 | Next election | Election date, opponent if known, prior result; race rating not available (ADR 0008) | Computed in the mart; hand-maintained nominee seed; MIT Election Lab (Clerk statistics) | 1 (date only) → 2 |
 | 3 | Activity counts | Floor votes, bills sponsored, bills cosponsored, committee assignments | Congress.gov | 1 |
 | 4 | Legislative timeline (dot chart) | Weekly dots colored by type: vote, sponsored bill, cosponsored bill, committee action, floor speech | Congress.gov | 1 |
 | 5 | Activity feed | Chronological list: "Voted YEA on H.R. 1234", "Introduced S. 567", etc. | Congress.gov, Senate.gov | 1 |
@@ -121,6 +121,7 @@ Phase 2 adds `fec_committee`, `fec_summary`, `fec_contribution_agg`. Phase 3 add
 | Voteview (`voteview.com/data`) | Ideology scores, historical votes | None | CSV bulk; Phase 3 |
 | Census (FIPS, ACS) | Constituency geography and demographics | key optional | FIPS seed in Phase 1; ACS in Phase 3 |
 | OpenFEC API (`api.open.fec.gov/v1`) | Committees, totals, contributions | `FEC_API_KEY` | Phase 2 |
+| MIT Election Data and Science Lab (Harvard Dataverse) | House and Senate constituency returns 1976–2024, compiled from the Clerk of the House statistics | None; House file behind a Dataverse guestbook | Committed snapshots in `data/mit_election_lab/`, refreshed by hand each cycle (ADR 0008) |
 | House Clerk / Senate eFD | Financial disclosures, PTRs | None (scrape/PDF) | Phase 3; hardest source |
 | USAspending API | Awards by district/state | None | Phase 3 |
 
@@ -276,7 +277,7 @@ term-tracker/
 | Managed Postgres host | Decided: Neon free tier, Postgres 16 (§3) | Done |
 | Industry classification for donations | OpenSecrets bulk / self-built | Still open. Phase 2 v1 shipped the Fundraising panel without contributor categories (ADR 0006); `fec_contribution_agg` and "top industries" wait on this |
 | Map content | USAspending awards (recommended) / events / none | Before Phase 3 |
-| Race rating source | Cook (paywalled) / Sabato / Inside Elections / omit | Before Phase 2 |
+| Race rating source | Cook (paywalled) / Sabato / Inside Elections / omit | Decided: omit for now; paywalled editorial content, the card shows "Not yet available" (ADR 0008) |
 
 ### Open items
 

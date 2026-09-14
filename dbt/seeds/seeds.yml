@@ -52,3 +52,45 @@ seeds:
           - accepted_values: { arguments: { values: ["congress", "chamber", "state", "member"] } }
       - name: source_url
         tests: [not_null]
+
+  - name: race_nominees
+    description: >
+      Hand-maintained opponent for each tracked member whose seat is on the ballot in the current
+      cycle (ADR 0008): one row per race, the major opponent on the general election ballot,
+      each with the source that confirms the nomination and the date it was checked. Maintained
+      for tracked members only and deliberately capped: past a handful of contested seats the
+      Opponent field reverts to "not yet available" rather than growing this list (ADR 0008,
+      scaling ceiling). district is blank for a Senate race and is the district of the race,
+      which can differ from the member's current seat after redistricting (Kiley: CA-6).
+    config:
+      column_types:
+        bioguide_id: text
+        election_date: date
+        chamber: text
+        state_abbr: text
+        district: integer
+        nominee_name: text
+        nominee_party: text
+        fec_candidate_id: text
+        verified_on: date
+        source_url: text
+        note: text
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('tracked_members'), field: bioguide_id } }
+      - name: election_date
+        tests: [not_null]
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: nominee_name
+        tests: [not_null]
+      - name: nominee_party
+        tests: [not_null]
+      - name: verified_on
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]

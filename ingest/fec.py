@@ -59,7 +59,9 @@ class FecClient:
 
     @staticmethod
     def url(path: str, **params: Any) -> str:
-        query = urlencode({k: v for k, v in params.items() if v is not None})
+        # doseq: a list value becomes a repeated parameter (candidate_id=A&candidate_id=B), which
+        # is how OpenFEC takes several values; without it the list is sent as its Python repr.
+        query = urlencode({k: v for k, v in params.items() if v is not None}, doseq=True)
         return f"{BASE_URL}/{path.strip('/')}/" + (f"?{query}" if query else "")
 
     def get(self, path: str, **params: Any) -> dict[str, Any]:

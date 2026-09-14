@@ -555,6 +555,90 @@ candidate page), `committee_id`, `committee_name`, `committee_fec_url`, then eve
 as `totals`, `receipts` (amount and `pct` per source), `coverage`, `candidate`, `committee`,
 and `small_donor_pct`; the site formats those and computes nothing.
 
+## Elections: prior result and next election (ADR 0008)
+
+### `raw.election_return_contest` (Alembic migration `0007`)
+
+Loaded by `python -m ingest.run --source mit_election_lab` from the committed MIT Election Lab
+snapshots in `data/mit_election_lab/` (no network): *U.S. House 1976–2024* (Dataverse v15.0)
+and *U.S. Senate statewide 1976–2024* (v8.0), in their original upload format. One row per
+contest, key `(office, year, state_po, district, stage, special)`: `office` is `house` or
+`senate`, `district` is the House district as published (`statewide` for the Senate), `stage`
+is lower-cased. `payload` is the contest's rows from the file verbatim (one per candidate per
+party line). The Senate payload carries `party_detailed` and `party_simplified`; the House
+payload carries `party` (`NA` for scattering and blank rows), `runoff` and `fusion_ticket`.
+`file_md5` equals the Dataverse checksum for `dataset_version`; `source_url` is the
+dataset version page; `fetched_at` is when the snapshot was downloaded. A file whose MD5 is
+already stored is not reloaded; a file whose MD5 differs from the manifest stops the run.
+
+### `seed.race_nominees`
+
+Hand-maintained opponent per tracked member whose seat is on this cycle's ballot: one row per
+race. Columns `bioguide_id`, `election_date`, `chamber`, `state_abbr`, `district` (of the race,
+blank for Senate), `nominee_name`, `nominee_party` (`D`, `R`, ...), `fec_candidate_id` (blank when
+the FEC has no record), `verified_on`, `source_url`, `note`. Tracked members only, with a
+scaling ceiling: past a handful of contested seats the field reverts to "not yet available"
+(ADR 0008).
+
+### `staging.stg_election_returns`
+
+One row per file row: typed votes, `writein`/`special`/`unofficial` booleans, lower-cased `mode`,
+and `vote_kind` from macro `election_vote_kind`: `candidate` (named, including named
+write-ins), `write_in_other` (unnamed write-ins, scattering, OTHER), `none_of_these`, `blank`
+(blank ballots, undervotes), `over` (overvotes, void, spoiled), `mixed` (one row combining blank
+and other votes).
+
+### `mart.member_prior_election`
+
+One row per tracked member: the general election that began the current term, for the seat as
+it was then (year before a January term start; `special` for a special election). Key
+`bioguide_id`.
+
+| Column | Description |
+|---|---|
+| `status` | `found`; `uncontested` (winner unopposed, no votes counted: the files carry `totalvotes` -1, so counts and shares are null); `no_contest` (no row in the snapshot); `appointed` (no election preceded the term) |
+| `chamber`, `state_abbr`, `state_name`, `district`, `senate_class` | The seat contested |
+| `election_year`, `election_date`, `special` | The contest |
+| `winner_name`, `winner_party`, `winner_party_lines`, `winner_votes`, `winner_pct` | Most votes; name as published (upper case); party `D`/`R`/`I` or the name of the largest line; every line largest first |
+| `runner_up_*` | Same for second place; null when unopposed |
+| `margin_votes`, `margin_pct` | Winner minus runner-up, in votes and points of valid votes |
+| `candidates` | Named candidates |
+| `valid_votes` | Denominator of every pct: `candidate`, `write_in_other`, `none_of_these` rows |
+| `blank_votes`, `over_votes`, `mixed_votes` | Excluded from `valid_votes` |
+| `reported_total_votes` | The file's `totalvotes`, as published; it includes blank and over votes in some contests (Vermont 2024 Senate: 372,885) and not in others (NY-8 2024 House: 223,804, blank votes excluded), so shares never use it |
+| `winner_is_member` | Winner's name contains the member's last name (a dbt test requires it) |
+| `unofficial`, `dataset_version`, `dataset_url` | MIT provenance |
+
+`source` is `mit_election_lab`; `source_url` is the Clerk of the House statistics PDF for the
+year (`https://clerk.house.gov/member_info/electionInfo/{year}/statistics{year}.pdf`), the
+publication the Lab compiles.
+
+### `mart.member_next_election`
+
+One row per tracked member. Key `bioguide_id`.
+
+| Column | Description |
+|---|---|
+| `election_year`, `election_date` | Regular general election that fills the seat when the latest term ends (term ending January 3 of Y: November of Y - 1; Tuesday after the first Monday, macro `general_election_date`) |
+| `cycle`, `on_ballot_this_cycle` | Current cycle (1788 + 2 x `current_congress`) and whether the election is in it |
+| `chamber`, `state_abbr`, `state_name`, `seat_district`, `senate_class`, `term_end_date` | The seat held |
+| `race_district`, `race_differs_from_seat` | District of the race (from the seed when it records one) |
+| `opponent_status` | `confirmed` (seed row), `not_researched` (on the ballot, no row), `not_on_ballot` |
+| `opponent_name`, `opponent_party`, `opponent_fec_candidate_id`, `opponent_fec_url`, `opponent_source_url`, `opponent_verified_on`, `opponent_note` | From `seed.race_nominees` |
+| `election_date_source_url` | 2 U.S.C. 7 |
+
+`source`, `source_url`, `fetched_at` are the term's (`legislators`). `GET /members/{id}/election`
+returns both tables with `days_away` computed on the day of the request and seat and race labels
+(`CA-6`, `Vermont`).
+
+## Prior election verification (done-when)
+
+For each tracked member, `mart.member_prior_election` must equal the Clerk of the House
+statistics for the contest vote for vote (winner and runner-up votes; blank and over votes
+where the Clerk prints them), and the shares must follow from those counts over valid votes.
+The fixture-backed API test `test_election_from_fixtures_matches_the_clerk` asserts the six
+tracked members' figures; any difference is a loader or classification defect, not a tolerance.
+
 ## Bill pages (done-when)
 
 Every row of `mart.bill` has a page, and the page never shows a blank where the source has

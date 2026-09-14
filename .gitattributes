@@ -1,5 +1,9 @@
 # Normalize line endings: store as LF, check out as LF, so files copied into Linux containers
 # and run in CI behave the same as on a Windows checkout.
 * text=auto eol=lf
+# Upstream data snapshots are committed byte for byte so their recorded checksums hold.
+data/mit_election_lab/*.csv -text
+data/mit_election_lab/*.tab -text
+data/mit_election_lab/*.tsv -text
 *.png binary
 *.jpg binary

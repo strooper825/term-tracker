@@ -55,7 +55,17 @@ def teardown_function() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    ["", "/timeline", "/feed", "/votes", "/bills", "/committees", "/key-dates", "/fundraising"],
+    [
+        "",
+        "/timeline",
+        "/feed",
+        "/votes",
+        "/bills",
+        "/committees",
+        "/key-dates",
+        "/fundraising",
+        "/election",
+    ],
 )
 def test_unknown_member_is_404(client: TestClient, path: str) -> None:
     _use_rows([])
@@ -105,6 +115,7 @@ def test_openapi_lists_every_section_6_endpoint(client: TestClient) -> None:
         "/api/v1/members/{bioguide}/committees",
         "/api/v1/members/{bioguide}/key-dates",
         "/api/v1/members/{bioguide}/fundraising",
+        "/api/v1/members/{bioguide}/election",
         "/api/v1/meta/freshness",
     }
     assert expected <= set(paths)
@@ -378,3 +389,124 @@ def test_fundraising_missing_data_keeps_the_status_and_no_zeros(
     for key in nulls:
         assert body[key] is None, key
     assert body["small_donor_pct"] is None
+
+
+NEXT_KILEY = {
+    "bioguide_id": "K000401",
+    "chamber": "house",
+    "state_abbr": "CA",
+    "state_name": "California",
+    "seat_district": 3,
+    "race_district": 6,
+    "race_differs_from_seat": True,
+    "election_year": 2026,
+    "election_date": datetime(2026, 11, 3).date(),
+    "cycle": 2026,
+    "on_ballot_this_cycle": True,
+    "opponent_status": "confirmed",
+    "opponent_name": "Richard Pan",
+    "opponent_party": "D",
+    "opponent_fec_candidate_id": "H6CA03158",
+    "opponent_fec_url": "https://www.fec.gov/data/candidate/H6CA03158/?cycle=2026&election_full=false",
+    "opponent_source_url": "https://example.test/ca-6",
+    "opponent_verified_on": datetime(2026, 9, 13).date(),
+    "opponent_note": None,
+    "election_date_source_url": "https://uscode.house.gov/2usc7",
+    "source": "legislators",
+    "source_url": "https://example.test/legislators",
+    "fetched_at": datetime(2026, 9, 13, tzinfo=UTC),
+}
+PRIOR_UNOPPOSED = {
+    "status": "found",
+    "chamber": "house",
+    "state_abbr": "CA",
+    "state_name": "California",
+    "district": 3,
+    "election_year": 2024,
+    "election_date": datetime(2024, 11, 5).date(),
+    "special": False,
+    "winner_name": "KEVIN KILEY",
+    "winner_party": "R",
+    "winner_party_lines": ["REPUBLICAN"],
+    "winner_votes": 1000,
+    "winner_pct": 100.0,
+    "runner_up_name": None,
+    "runner_up_party": None,
+    "runner_up_party_lines": None,
+    "runner_up_votes": None,
+    "runner_up_pct": None,
+    "margin_votes": 1000,
+    "margin_pct": 100.0,
+    "candidates": 1,
+    "valid_votes": 1000,
+    "blank_votes": 0,
+    "over_votes": 0,
+    "mixed_votes": 0,
+    "dataset_url": "https://example.test/mit",
+    "dataset_version": "15.0",
+    "source": "mit_election_lab",
+    "source_url": "https://clerk.house.gov/member_info/electionInfo/2024/statistics2024.pdf",
+    "fetched_at": datetime(2026, 9, 14, tzinfo=UTC),
+}
+
+
+def test_election_labels_the_race_apart_from_the_seat(client: TestClient) -> None:
+    _use_rows(
+        [{"bioguide_id": "K000401"}],
+        {
+            "mart.member_next_election": [NEXT_KILEY],
+            "mart.member_prior_election": [PRIOR_UNOPPOSED],
+        },
+    )
+    body = client.get("/api/v1/members/K000401/election").json()
+    today = datetime.now(UTC).date()
+    assert body["next"] == {
+        "election_date": "2026-11-03",
+        "election_year": 2026,
+        "cycle": 2026,
+        "on_ballot_this_cycle": True,
+        "days_away": (NEXT_KILEY["election_date"] - today).days,
+        "race_label": "CA-6",
+        "seat_label": "CA-3",
+        "race_differs_from_seat": True,
+        "date_source_url": "https://uscode.house.gov/2usc7",
+    }
+    assert body["opponent_status"] == "confirmed"
+    assert body["opponent"]["name"] == "Richard Pan"
+    assert body["prior"]["seat_label"] == "CA-3"
+    assert body["prior"]["runner_up"] is None  # unopposed
+    assert {s["source"] for s in body["sources"]} == {
+        "legislators",
+        "race_nominees_seed",
+        "mit_election_lab",
+    }
+
+
+def test_election_without_opponent_or_prior_result(client: TestClient) -> None:
+    senate = {
+        **NEXT_KILEY,
+        "chamber": "senate",
+        "state_abbr": "VT",
+        "state_name": "Vermont",
+        "seat_district": None,
+        "race_district": None,
+        "race_differs_from_seat": False,
+        "election_year": 2030,
+        "election_date": datetime(2030, 11, 5).date(),
+        "on_ballot_this_cycle": False,
+        "opponent_status": "not_on_ballot",
+        **{k: None for k in NEXT_KILEY if k.startswith("opponent_") and k != "opponent_status"},
+    }
+    _use_rows(
+        [{"bioguide_id": "S000033"}],
+        {
+            "mart.member_next_election": [senate],
+            "mart.member_prior_election": [{**PRIOR_UNOPPOSED, "status": "no_contest"}],
+        },
+    )
+    body = client.get("/api/v1/members/S000033/election").json()
+    assert body["next"]["race_label"] == "Vermont"
+    assert body["next"]["on_ballot_this_cycle"] is False
+    assert body["opponent"] is None and body["opponent_status"] == "not_on_ballot"
+    assert body["prior"] is None and body["prior_status"] == "no_contest"
+    assert [s["source"] for s in body["sources"]] == ["legislators"]

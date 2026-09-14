@@ -391,3 +391,62 @@ export interface SessionsResponse {
   sessions: CongressSession[];
   sources: SourceRef[];
 }
+
+export type OpponentStatus = 'confirmed' | 'not_researched' | 'not_on_ballot';
+export type PriorElectionStatus = 'found' | 'uncontested' | 'no_contest' | 'appointed';
+
+export interface ElectionCandidate {
+  name: string;
+  party: string | null;
+  party_lines: string[];
+  votes: number | null;
+  pct: number | null;
+}
+
+export interface PriorElection {
+  election_year: number;
+  election_date: string;
+  special: boolean;
+  seat_label: string;
+  winner: ElectionCandidate;
+  runner_up: ElectionCandidate | null;
+  margin_votes: number | null;
+  margin_pct: number | null;
+  candidates: number;
+  valid_votes: number;
+  blank_votes: number;
+  over_votes: number;
+  mixed_votes: number;
+  source_url: string;
+  dataset_url: string;
+  dataset_version: string;
+}
+
+/** GET /members/{id}/election: mart.member_next_election and mart.member_prior_election. */
+export interface ElectionResponse {
+  bioguide_id: string;
+  next: {
+    election_date: string;
+    election_year: number;
+    cycle: number;
+    on_ballot_this_cycle: boolean;
+    days_away: number;
+    race_label: string;
+    seat_label: string;
+    race_differs_from_seat: boolean;
+    date_source_url: string;
+  };
+  opponent_status: OpponentStatus;
+  opponent: {
+    name: string;
+    party: string;
+    fec_candidate_id: string | null;
+    fec_url: string | null;
+    source_url: string;
+    verified_on: string;
+    note: string | null;
+  } | null;
+  prior_status: PriorElectionStatus;
+  prior: PriorElection | null;
+  sources: SourceRef[];
+}
