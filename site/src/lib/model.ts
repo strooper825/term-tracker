@@ -778,6 +778,9 @@ export interface VoteBarModel {
 
 export interface JourneyVoteModel {
   tally: string;
+  yeaCount: number;
+  nayCount: number;
+  notVotingCount: number;
   href: string;
   linkLabel: string;
   majority: string | null;
@@ -805,12 +808,15 @@ const JOURNEY_TONE: Record<JourneyStatus, JourneyTone> = {
   pending: 'pending',
 };
 
+/* Only the two parties that organize the chamber get their party color on a vote bar (also
+   the tailwind.config.js rule: party colors never become page chrome). An Independent or other
+   letter reads in the same neutral tone as "not voting" -- distinct from the party.i badge
+   color, which is a different, member-identity context (ADR-less; see design-refactor-bills PR). */
 const PARTY_BY_LETTER: Record<string, PartyName> = {
   R: 'Republican',
   D: 'Democratic',
-  I: 'Independent',
 };
-const OTHER_PARTY_COLOR = '#8A877F';
+const OTHER_PARTY_COLOR = '#A6A39C'; // tailwind ink4, the same neutral used for "not voting"
 
 /** Element id of a roll call's row in the bill page's Roll calls card. */
 export function rollCallAnchor(chamber: string, session: number, rollNumber: number): string {
@@ -853,6 +859,9 @@ export function buildJourney(stages: JourneyStage[]): JourneyStageModel[] {
     vote: stage.vote
       ? {
           tally: `${stage.vote.yea_total}–${stage.vote.nay_total}`,
+          yeaCount: stage.vote.yea_total,
+          nayCount: stage.vote.nay_total,
+          notVotingCount: stage.vote.not_voting_total,
           href: `#${rollCallAnchor(stage.vote.chamber, stage.vote.session, stage.vote.roll_number)}`,
           linkLabel: `${stage.vote.chamber === 'house' ? 'House' : 'Senate'} roll call ${stage.vote.roll_number}`,
           majority: stage.vote.majority_label,

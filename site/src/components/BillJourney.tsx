@@ -3,79 +3,58 @@
 // bill status and predicts nothing: a stage with nothing on record reads Pending, and a failed
 // vote or a veto with nothing after it is the last stage drawn. Every label, date, tally and bar
 // width arrives from the mart through src/lib/model.ts.
-import type { JourneyStageModel, JourneyTone, VoteBarModel } from '@/lib/model';
+//
+// Two views over the same stages: a compact stepper (every stage, one line each) and a dedicated
+// vote card per chamber that actually held a recorded roll call (House vote / Senate vote).
+import type { JourneyStageModel, JourneyTone, JourneyVoteModel, VoteBarModel } from '@/lib/model';
+import { formatNumber } from '@/lib/format';
 
-const TONE: Record<JourneyTone, { dot: string; line: string; status: string }> = {
-  done: { dot: 'bg-ink2 border-ink2', line: 'border-ink2', status: 'text-ink' },
-  failed: { dot: 'bg-[#8A2F2E] border-[#8A2F2E]', line: 'border-[#8A2F2E]', status: 'text-[#8A2F2E]' },
-  neutral: { dot: 'bg-card border-ink3', line: 'border-ink3', status: 'text-ink2' },
-  pending: { dot: 'bg-card border-rule', line: 'border-rule', status: 'text-ink4' },
+const TONE: Record<JourneyTone, { text: string }> = {
+  done: { text: 'text-ink' },
+  failed: { text: 'text-[#8A2F2E]' },
+  neutral: { text: 'text-ink2' },
+  pending: { text: 'text-ink4' },
 };
 
-function VoteBars({ bars }: { bars: VoteBarModel[] }) {
-  return (
-    <div className="flex flex-col gap-[7px]">
-      {bars.map((bar) => (
-        <div key={bar.label} className="flex flex-col gap-[3px]">
-          <div className="flex justify-between items-baseline gap-2 text-meta tnum">
-            <span className="text-ink2">{bar.heading}</span>
-            <span className="text-ink3 whitespace-nowrap">{bar.breakdown}</span>
-          </div>
-          {/* The fundraising card's bar, one segment per party in party colours. Segment widths
-              are shares of Yea plus Nay, so the Yea and Nay bars share one scale. */}
-          <div
-            role="img"
-            aria-label={bar.ariaLabel}
-            className="h-1.5 bg-[#EDEBE6] rounded-[3px] overflow-hidden flex"
-          >
-            {bar.segments.map((segment) => (
-              <div
-                key={segment.party}
-                data-party={segment.party}
-                className="h-full"
-                style={{ width: `${segment.pct}%`, background: segment.color }}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Stage({ stage }: { stage: JourneyStageModel }) {
+function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }) {
   const tone = TONE[stage.tone];
+  const filled = stage.key === 'became_law' && stage.tone === 'done';
+  const primary = (
+    <>
+      <span className="font-semibold">{stage.statusLabel}</span>
+      {stage.vote && (
+        <>
+          {' '}
+          <span className="tnum">{stage.vote.tally}</span>
+        </>
+      )}
+      {stage.detail && <span className="opacity-80"> · {stage.detail}</span>}
+    </>
+  );
   return (
     <li
       data-stage={stage.key}
-      className={`min-w-0 flex flex-col gap-1.5 pl-4 pb-5 border-l-2 md:border-l-0 md:border-t-2 md:pl-0 md:pt-3 md:pb-0 md:pr-4 ${tone.line}`}
+      className={`min-w-0 flex flex-col gap-1 px-4 py-3 rounded-ctl ${
+        filled ? 'bg-ink text-[#FDFDFC]' : `bg-card ${tone.text}`
+      } ${!last ? `border-b ${filled ? 'border-ink' : 'border-ruleSoft'}` : ''}`}
     >
-      <div className="flex items-center gap-2 -ml-[21px] md:ml-0 md:-mt-[19px]">
-        <span aria-hidden className={`flex-none w-2.5 h-2.5 rounded-full border-2 ${tone.dot}`} />
-        <span className="text-label uppercase tracking-[0.05em] text-ink3 bg-card md:pr-1.5">
-          {stage.label}
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <span className="flex items-baseline gap-3 min-w-0 flex-wrap">
+          <span
+            className={`text-label uppercase tracking-[0.05em] w-[92px] flex-none ${
+              filled ? 'text-[#FDFDFC]/70' : 'text-ink3'
+            }`}
+          >
+            {stage.label}
+          </span>
+          <span className="text-sm leading-snug">{primary}</span>
         </span>
+        {stage.date && (
+          <span className="text-meta tnum opacity-80 whitespace-nowrap">{stage.date}</span>
+        )}
       </div>
-      <div className={`text-sm font-semibold ${tone.status}`}>{stage.statusLabel}</div>
-      {stage.date && <div className="text-meta text-ink3 tnum">{stage.date}</div>}
-      {stage.detail && <div className="text-meta text-ink3 leading-snug">{stage.detail}</div>}
-      {stage.vote && (
-        <div className="flex flex-col gap-2 mt-1">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <span className="text-sm font-semibold tnum">{stage.vote.tally}</span>
-            <a
-              href={stage.vote.href}
-              className="text-meta text-ink2 underline decoration-rule underline-offset-2"
-            >
-              {stage.vote.linkLabel}
-            </a>
-          </div>
-          {stage.vote.majority && <div className="text-micro text-ink4">{stage.vote.majority}</div>}
-          <VoteBars bars={stage.vote.bars} />
-        </div>
-      )}
       {stage.endsJourney && (
-        <div className="text-micro text-ink4 leading-snug">
+        <div className={`text-micro pl-[104px] leading-snug ${filled ? 'opacity-70' : 'text-ink4'}`}>
           Nothing is recorded after this vote.
         </div>
       )}
@@ -83,22 +62,148 @@ function Stage({ stage }: { stage: JourneyStageModel }) {
   );
 }
 
-export function BillJourney({ stages }: { stages: JourneyStageModel[] }) {
+export function JourneyStepper({ stages }: { stages: JourneyStageModel[] }) {
   return (
-    <section aria-labelledby="journey-title" className="border border-rule rounded-card bg-card">
-      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3 flex-wrap">
+    <section aria-labelledby="journey-title" className="border border-rule rounded-card bg-canvas">
+      <div className="px-[18px] pt-4 pb-3 flex items-baseline justify-between gap-3 flex-wrap">
         <h2 id="journey-title" className="text-card font-semibold m-0">
           Vote journey
         </h2>
         <span className="text-meta text-ink3">Recorded roll calls and enactment actions</span>
       </div>
-      <ol
-        className="m-0 list-none px-[18px] pt-5 pb-4 pl-[26px] md:pl-[18px] md:pt-7 grid grid-cols-1 md:grid-flow-col md:auto-cols-fr"
-      >
-        {stages.map((stage) => (
-          <Stage key={stage.key} stage={stage} />
+      <ol className="m-0 list-none px-3 pb-3 flex flex-col gap-px">
+        {stages.map((stage, i) => (
+          <StepperRow key={stage.key} stage={stage} last={i === stages.length - 1} />
         ))}
       </ol>
     </section>
+  );
+}
+
+function VoteBarRow({ bar }: { bar: VoteBarModel }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between items-baseline gap-2 text-sm">
+        <span className="font-semibold tnum">{bar.heading}</span>
+      </div>
+      <div
+        role="img"
+        aria-label={bar.ariaLabel}
+        className="h-2.5 bg-ruleSoft rounded-[3px] overflow-hidden flex"
+      >
+        {bar.segments.map((segment) => (
+          <div
+            key={segment.party}
+            data-party={segment.party}
+            className="h-full"
+            style={{ width: `${segment.pct}%`, background: segment.color }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-meta text-ink2">
+        {bar.segments.map((segment) => (
+          <span key={segment.party} className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="inline-block w-2 h-2 rounded-[2px]"
+              style={{ background: segment.color }}
+            />
+            {bar.label} · {segment.party} {formatNumber(segment.count)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The House Vote / Senate Vote card: the one recorded passage roll call a chamber stage reads
+ *  (ADR 0009), read large. `chamber` and `title` come from the journey stage itself. */
+function VoteCard({
+  stageKey,
+  title,
+  question,
+  date,
+  statusLabel,
+  tone,
+  vote,
+}: {
+  stageKey: string;
+  title: string;
+  question: string | null;
+  date: string | null;
+  statusLabel: string;
+  tone: JourneyTone;
+  vote: JourneyVoteModel;
+}) {
+  const resultColor = TONE[tone].text;
+  const titleId = `${stageKey}-title`;
+  return (
+    <section aria-labelledby={titleId} className="border border-rule rounded-card bg-card">
+      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 id={titleId} className="text-card font-semibold m-0">
+          {title}
+        </h2>
+        <span className="text-meta text-ink3 uppercase tracking-[0.03em]">
+          {[question, date].filter(Boolean).join(' · ')}
+        </span>
+      </div>
+      <div className="px-[18px] py-4 flex flex-col gap-4">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className={`text-stat font-semibold ${resultColor}`}>{statusLabel}</span>
+          <span className="text-stat font-semibold tnum text-ink3">{vote.tally}</span>
+          {vote.majority && <span className="text-meta text-ink4">{vote.majority}</span>}
+        </div>
+        <div className="flex flex-col gap-3">
+          {vote.bars.map((bar) => (
+            <VoteBarRow key={bar.label} bar={bar} />
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-3 pt-1 border-t border-ruleSoft">
+          {(
+            [
+              ['Yea', vote.yeaCount],
+              ['Nay', vote.nayCount],
+              ['Not voting', vote.notVotingCount],
+            ] as const
+          ).map(([label, count]) => (
+            <div key={label} className="flex flex-col gap-0.5 pt-3">
+              <span className="text-label uppercase tracking-[0.05em] text-ink3">{label}</span>
+              <span className="text-stat font-semibold tnum">{formatNumber(count)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end">
+          <a
+            href={vote.href}
+            className="text-meta text-ink2 underline decoration-rule underline-offset-2"
+          >
+            {vote.linkLabel} →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function BillJourney({ stages }: { stages: JourneyStageModel[] }) {
+  const voteStages = stages.filter(
+    (s): s is JourneyStageModel & { vote: JourneyVoteModel } => s.vote !== null,
+  );
+  return (
+    <div className="flex flex-col gap-5 min-w-0">
+      <JourneyStepper stages={stages} />
+      {voteStages.map((stage) => (
+        <VoteCard
+          key={stage.key}
+          stageKey={stage.key}
+          title={stage.label}
+          question={stage.detail}
+          date={stage.date}
+          statusLabel={stage.statusLabel}
+          tone={stage.tone}
+          vote={stage.vote}
+        />
+      ))}
+    </div>
   );
 }

@@ -178,6 +178,8 @@ export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
         </section>
 
         <main className="px-7 py-7 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-7 items-start">
+          {/* BillJourney lays out the compact stepper and, below it, one card per recorded
+              chamber vote (House vote / Senate vote). */}
           {bill.journey.length > 0 && (
             <div className="lg:col-span-2 min-w-0">
               <BillJourney stages={bill.journey} />
