@@ -3,6 +3,7 @@
 // Ported from design/src/components/ActivityTimeline.jsx.
 import { useState } from 'react';
 import { EVENT_TYPES } from '@/data/eventTypes';
+import { formatNumber } from '@/lib/format';
 import type { Week } from '@/lib/model';
 
 const H = 132;
@@ -21,24 +22,29 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
   const [hover, setHover] = useState<string | null>(null);
   const max = Math.max(1, ...weeks.map((w) => total(w)));
   const ticks = [0, Math.round(max / 2), max];
+  const typeTotal = (key: (typeof EVENT_TYPES)[number]['key']) =>
+    weeks.reduce((a, w) => a + (w.counts[key] || 0), 0);
 
   return (
     <section className="border border-rule rounded-card bg-card px-[18px] pt-[18px] pb-3.5">
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <h2 className="text-card font-semibold text-ink m-0">Legislative activity by week</h2>
-        <span className="text-meta text-ink3 tnum">events per week, by type</span>
+        <h2 className="text-[13.5px] font-semibold text-ink m-0">Activity</h2>
+        <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3">
+          Events per week, by type
+        </span>
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-2.5 my-3">
         {EVENT_TYPES.map((t) => (
-          <span key={t.key} className="flex items-center gap-1.5 text-meta text-ink2">
-            <i className="w-2 h-2 rounded-full" style={{ background: t.color }} />
-            {t.label}
+          <span key={t.key} className="flex items-center gap-1.5 text-[8.25px]">
+            <i className="w-2 h-2 rounded-full flex-none" style={{ background: t.color }} />
+            <span className="text-ink2">{t.label}</span>
+            <span className="text-ink font-semibold tnum">{formatNumber(typeTotal(t.key))}</span>
           </span>
         ))}
       </div>
 
-      <div className="h-[22px] text-meta text-ink2 tnum border-b border-ruleSoft mb-3">
+      <div className="h-[22px] text-meta text-ink2 tnum border-b border-rule mb-3">
         {hover || 'Hover a week to see its activity.'}
       </div>
 
@@ -47,7 +53,7 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
           {ticks.map((v) => (
             <span
               key={v}
-              className="absolute right-0 translate-y-1/2 text-[9.5px] text-lockInk tnum"
+              className="absolute right-0 translate-y-1/2 text-[7.5px] text-ink3 tnum"
               style={{ bottom: (v / max) * H }}
             >
               {v}
@@ -86,7 +92,10 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
           </div>
           <div className="flex gap-px mt-[7px] pt-1.5 border-t border-rule">
             {weeks.map((w) => (
-              <div key={w.label} className="flex-1 min-w-0 text-[9.5px] text-ink4 whitespace-nowrap">
+              <div
+                key={w.label}
+                className="flex-1 min-w-0 text-[7.5px] uppercase text-ink3 whitespace-nowrap"
+              >
                 {w.tick}
               </div>
             ))}

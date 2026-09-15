@@ -87,7 +87,8 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     render(dashboard());
     const election = screen.getByText('Next election').closest('section')!;
     expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
-    expect(within(election).getByText(/General election day · 51 days away/)).toBeInTheDocument();
+    expect(within(election).getByText('General election day')).toBeInTheDocument();
+    expect(within(election).getByText(/51 days away/)).toBeInTheDocument();
     expect(within(election).getByText('On the ballot')).toBeInTheDocument();
     expect(within(election).getAllByText('Not yet available')).toHaveLength(2); // opponent, rating
     const keyDates = screen.getByText('Key dates').closest('section')!;
@@ -110,15 +111,18 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Tom Cotton');
     expect(screen.getByText('Arkansas · Class 2')).toBeInTheDocument();
     expect(screen.getByText('Tracking 119th Congress')).toBeInTheDocument();
-    expect(screen.getByText('Term: Jan 3, 2021 – Jan 3, 2027 · 890 roll calls in the 119th')).toBeInTheDocument();
-    expect(screen.getByText('Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Term: Jan 3, 2021 – Jan 3, 2027 · 890 roll calls in the 119th · Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Senate Republican Conference Chair')).toBeInTheDocument(); // leadership_role
     expect(screen.getByText('State map')).toBeInTheDocument();
   });
 
   it('header: age and service line from bio and term_history; no chip without a leadership role', () => {
     render(dashboard());
-    expect(screen.getByText('Age 45 · Serving since 2019 · 4th term')).toBeInTheDocument();
+    expect(screen.getByText(/Age 45 · Serving since 2019 · 4th term/)).toBeInTheDocument();
     expect(screen.queryByText(/Caucuses with/)).not.toBeInTheDocument();
   });
 
@@ -128,7 +132,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getAllByText('INDEPENDENT').length).toBeGreaterThan(0);
     expect(screen.getByText('Caucuses with Democrats')).toBeInTheDocument(); // term.caucus
     expect(screen.getByText('Senate Democratic Outreach Chair')).toBeInTheDocument();
-    expect(screen.getByText('Age 85 · Serving since 1991 · 12th term · 4th in the Senate')).toBeInTheDocument();
+    expect(screen.getByText(/Age 85 · Serving since 1991 · 12th term · 4th in the Senate/)).toBeInTheDocument();
     expect(screen.getByText('99.87%')).toBeInTheDocument(); // member_vote_stats.party_unity_cq_pct
     expect(screen.getByText('votes with Democratic caucus')).toBeInTheDocument();
     expect(screen.getByText('Vermont · Class 1')).toBeInTheDocument();
@@ -140,7 +144,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
 
   it('first-term senator with House service reads "1st in the Senate"', () => {
     render(dashboard(SLOTKIN));
-    expect(screen.getByText('Age 50 · Serving since 2019 · 4th term · 1st in the Senate')).toBeInTheDocument();
+    expect(screen.getByText(/Age 50 · Serving since 2019 · 4th term · 1st in the Senate/)).toBeInTheDocument();
     expect(screen.getAllByText('DEMOCRATIC').length).toBeGreaterThan(0);
   });
 

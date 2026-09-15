@@ -98,10 +98,12 @@ export function ActivityFeed({
 
   return (
     <section className="border border-rule rounded-card bg-card">
-      <div className="px-[18px] pt-3.5 pb-3 border-b border-ruleSoft flex flex-col gap-[11px]">
+      <div className="px-[18px] pt-3.5 pb-3 border-b border-rule flex flex-col gap-[11px]">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-card font-semibold text-ink m-0">Activity feed</h2>
-          <span className="text-meta text-ink3">Most recent first</span>
+          <h2 className="text-[13.5px] font-semibold text-ink m-0">Record</h2>
+          <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3">
+            {totalLabel} events · most recent first
+          </span>
         </div>
 
         {/* Four controls: on a phone they sit behind a disclosure so the card keeps its shape. */}
@@ -112,9 +114,7 @@ export function ActivityFeed({
           className="md:hidden self-start flex items-center gap-1.5 text-sm border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px]"
         >
           Filters
-          {isFiltered && (
-            <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-[#1F4E9C]" />
-          )}
+          {isFiltered && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-ink2" />}
           <span aria-hidden="true" className="text-ink4">
             {filtersOpen ? '▴' : '▾'}
           </span>
@@ -131,7 +131,7 @@ export function ActivityFeed({
               }}
               placeholder="Search bills, votes, committees…"
               aria-label="Search activity"
-              className="flex-none w-full md:w-[240px] text-sm bg-card border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px] focus:border-ink3 focus:outline-none"
+              className="flex-none w-full md:w-[240px] text-[10.5px] bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
             />
             {dateRanges.length > 0 && (
               <select
@@ -141,8 +141,8 @@ export function ActivityFeed({
                   setRangeKey(e.target.value);
                   reset();
                 }}
-                className={`text-sm rounded-ctl px-2.5 py-[7px] border ${
-                  rangeKey !== ALL_DATES ? 'border-ink3 bg-[#F2F0EA]' : 'border-[#D9D6CF] bg-card'
+                className={`text-[10.5px] rounded-ctl px-[10px] py-[8px] border ${
+                  rangeKey !== ALL_DATES ? 'border-ink3 bg-[#F2F0EA]' : 'border-rule bg-card'
                 }`}
               >
                 {dateRanges.map((r) => (
@@ -183,11 +183,15 @@ export function ActivityFeed({
         </div>
 
         <div className="flex items-baseline gap-2.5 flex-wrap">
-          <span className="text-meta text-ink3 tnum">
+          <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
             {matchCount.toLocaleString('en-US')} of {totalLabel} events
           </span>
           {isFiltered && (
-            <button type="button" onClick={clear} className="text-meta text-[#1F4E9C]">
+            <button
+              type="button"
+              onClick={clear}
+              className="text-meta text-ink2 underline decoration-rule underline-offset-2"
+            >
               Clear
             </button>
           )}
@@ -206,7 +210,7 @@ export function ActivityFeed({
       <div className="relative overflow-visible md:overflow-y-auto md:max-h-[600px]">
         {filtered.slice(0, shown).map((g) => (
           <div key={g.date}>
-            <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAF9F6] border-b border-ruleSoft text-[11px] uppercase tracking-[0.07em] text-ink3 tnum">
+            <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAFAFB] border-b border-rule text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
               {g.date}
             </div>
             {g.items.map((it, i) => (
@@ -219,20 +223,22 @@ export function ActivityFeed({
                   style={{ background: EVENT_COLOR[it.type] }}
                 />
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <p className="text-base leading-snug m-0">
+                  <p className="text-[11.25px] font-semibold text-ink leading-snug m-0">
                     {it.lead && <strong className="font-semibold text-ink">{it.lead}</strong>}
                     {it.headline}
                   </p>
                   {it.secondary && (
                     <p
-                      className="text-sm text-ink3 tnum m-0 line-clamp-2"
+                      className="text-[9.75px] font-normal text-ink2 tnum m-0 line-clamp-2"
                       title={it.secondaryFull ?? it.secondary}
                     >
                       {it.secondary}
                     </p>
                   )}
                   {it.policyArea && (
-                    <p className="text-micro text-ink4 m-0">{it.policyArea}</p>
+                    <p className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 m-0">
+                      {it.policyArea}
+                    </p>
                   )}
                 </div>
                 {/* One destination per row: the bill page when the mart says there is one,
@@ -269,11 +275,11 @@ export function ActivityFeed({
             <button
               type="button"
               onClick={() => setShown((s) => s + PAGE)}
-              className="text-sm border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas hover:border-lockInk"
+              className="text-[9px] uppercase tracking-[0.05em] font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
             >
-              Load more events
+              Load more events →
             </button>
-            <span className="text-meta text-ink4 tnum">
+            <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
               Showing {matchCount} of {totalLabel} recorded events
             </span>
           </div>

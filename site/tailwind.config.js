@@ -1,7 +1,9 @@
 /** Design tokens for Term Tracker, copied from design/tailwind.config.js (Claude Design export).
  *  Only the content globs differ. Light theme only. Party colors are reserved for party badges
- *  and the member's own vote positions, never page chrome. Event-type colors stay separable
- *  under deuteranopia/protanopia and avoid collision with party red/blue.
+ *  and the member's own vote positions, never page chrome or a UI accent: red and blue mean
+ *  Republican/Yea and Democratic/Nay and nothing else. `navy` is the site's own accent (wordmark,
+ *  term-progress and fundraising bars, "Chair"/"On the ballot" emphasis); event-type colors are
+ *  a ramp on that one hue, not a separate hue per type -- see src/data/eventTypes.ts.
  */
 module.exports = {
   content: ['./src/**/*.{ts,tsx}'],
@@ -17,17 +19,18 @@ module.exports = {
         ink2: '#57564F',
         ink3: '#8A877F',
         ink4: '#A6A39C',
-        lockBg: '#F8F7F4',
-        lockRule: '#DEDCD6',
-        lockInk: '#B4B1A9',
-        party: { r: '#B9302F', d: '#1F4E9C', i: '#5F6B3A' },
+        lockBg: '#ECEEF3',
+        lockRule: '#CCD1D5',
+        lockInk: '#676E75',
+        navy: '#33477A',
+        party: { r: '#B9302F', d: '#1F4E9C', i: '#57564F' },
         partyTint: { r: '#FBF0EF', d: '#EEF3FB' },
         event: {
-          vote: '#B45309',
-          sponsor: '#0E7C66',
-          cosponsor: '#6D4AA8',
-          committee: '#4B5566',
-          speech: '#B0407A', // RESERVED for Phase 3; not rendered in v1
+          vote: '#33477A',
+          sponsor: '#4C63A0',
+          cosponsor: '#7F92C4',
+          committee: '#C2CCDF',
+          speech: '#26355E', // RESERVED for Phase 3; not rendered in v1
         },
       },
       fontFamily: { sans: ['var(--font-plex)', '"IBM Plex Sans"', 'system-ui', 'sans-serif'] },

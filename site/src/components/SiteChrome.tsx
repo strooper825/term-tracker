@@ -110,7 +110,7 @@ export function SourceLink({
       title={title}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex-none text-meta text-ink3 border border-rule rounded-chip px-1.5 py-0.5"
+      className="flex-none text-[8.25px] uppercase tracking-[0.03em] text-ink2 border border-rule rounded-chip px-2 py-1"
     >
       source ↗
     </a>
@@ -130,7 +130,7 @@ export function DetailsLink({
     <a
       href={href}
       title={title}
-      className="flex-none text-meta text-ink2 border border-rule rounded-chip px-1.5 py-0.5 hover:border-lockInk hover:bg-canvas"
+      className="flex-none text-[8.25px] uppercase tracking-[0.03em] text-ink2 border border-rule rounded-chip px-2 py-1 hover:border-lockInk hover:bg-canvas"
     >
       Details →
     </a>
