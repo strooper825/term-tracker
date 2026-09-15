@@ -34,7 +34,7 @@ function BillHeader({ bill }: { bill: BillPageModel }) {
         <Chip>{bill.congress}</Chip>
         {bill.policyArea && <Chip name="Policy area">{bill.policyArea}</Chip>}
       </div>
-      <h1 className="text-[22px] font-semibold leading-snug m-0 max-w-[70ch] -tracking-[0.015em]">
+      <h1 className="text-[22px] font-semibold text-ink leading-snug m-0 max-w-[70ch] -tracking-[0.015em]">
         {bill.title}
       </h1>
       <div className="text-sm text-ink2 flex gap-2 flex-wrap">
@@ -88,7 +88,7 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
             As of {bill.summary.asOf} · {bill.summary.stage}
           </div>
           <div
-            className="text-base leading-relaxed flex flex-col gap-2.5 [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-5 [&_ol]:m-0 [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-semibold"
+            className="text-base text-ink leading-relaxed flex flex-col gap-2.5 [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-5 [&_ol]:m-0 [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-semibold"
             // Sanitised in src/lib/model.ts: an allowlist of formatting tags, every attribute
             // dropped. The source is the CRS summary text from Congress.gov.
             dangerouslySetInnerHTML={{ __html: bill.summary.html }}
@@ -137,7 +137,7 @@ function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string }) {
             className="px-[18px] py-3 border-b border-[#F4F2ED] flex flex-col gap-1.5 scroll-mt-4"
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-semibold tnum">{row.heading}</span>
+              <span className="text-sm font-semibold text-ink tnum">{row.heading}</span>
               <SourceLink href={row.source} title="View the roll call record" />
             </div>
             {row.question && <div className="text-sm text-ink2 leading-snug">{row.question}</div>}
@@ -182,7 +182,7 @@ export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
               chamber vote (House vote / Senate vote). */}
           {bill.journey.length > 0 && (
             <div className="lg:col-span-2 min-w-0">
-              <BillJourney stages={bill.journey} />
+              <BillJourney stages={bill.journey} durationDays={bill.journeyDurationDays} />
             </div>
           )}
           <div className="flex flex-col gap-7 min-w-0">

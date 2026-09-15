@@ -136,10 +136,10 @@ describe('bill page model', () => {
     // half (33 to 0 Republican, since only Independents crossed) so D is full blue there and the
     // 2 Independent Nay votes read in the same neutral gray as "not voting" -- not a third hue.
     expect(senate.bar.segments.map((s) => [s.direction, s.party, s.count, s.pct, s.color])).toEqual([
-      ['Yea', 'R', 52, (52 / 99) * 100, '#B9302F'],
-      ['Yea', 'D', 12, (12 / 99) * 100, '#A7B9D9'],
-      ['Nay', 'D', 33, (33 / 99) * 100, '#1F4E9C'],
-      ['Nay', null, 2, (2 / 99) * 100, '#A6A39C'],
+      ['Yea', 'R', 52, (52 / 99) * 100, '#B8202F'],
+      ['Yea', 'D', 12, (12 / 99) * 100, '#ABC0DD'],
+      ['Nay', 'D', 33, (33 / 99) * 100, '#1F4F92'],
+      ['Nay', null, 2, (2 / 99) * 100, '#676E75'],
     ]);
     expect(law[4].date).toBe('Jan 29, 2025');
     expect(law[4].detail).toBe('Became Public Law No: 119-1.');
@@ -162,9 +162,9 @@ describe('bill page model', () => {
       ['Senate vote', 'Failed', 'failed', true],
     ]);
     expect(failed[1].vote?.bar.segments.map((s) => [s.direction, s.party, s.count, s.color])).toEqual([
-      ['Yea', 'D', 45, '#1F4E9C'],
-      ['Yea', null, 2, '#A6A39C'],
-      ['Nay', 'R', 53, '#B9302F'],
+      ['Yea', 'D', 45, '#1F4F92'],
+      ['Yea', null, 2, '#676E75'],
+      ['Nay', 'R', 53, '#B8202F'],
     ]);
 
     // a chamber that acted without a roll call reads neutrally and carries no bar
@@ -252,7 +252,7 @@ describe('bill page: given this API row, this text renders', () => {
 
   it('vote journey: every stage renders in the chamber-of-origin order, with tally, link and party bars', () => {
     render(page({ ...BILL, journey: LAW_JOURNEY }));
-    const journey = screen.getByLabelText('Vote journey');
+    const journey = screen.getByLabelText('Journey');
     const stages = within(journey).getAllByRole('listitem');
     expect(stages.map((li) => li.getAttribute('data-stage'))).toEqual([
       'introduced',
@@ -276,7 +276,7 @@ describe('bill page: given this API row, this text renders', () => {
     );
     expect(
       within(senateCard).getByRole('img', {
-        name: 'Yea · R 52, Yea · D 12, Nay · D 33, Nay · Other 2',
+        name: 'Yea · Republican 52, Yea · Democrat 12, Nay · Democrat 33, Nay · Independent 2',
       }),
     ).toBeInTheDocument();
 
@@ -289,7 +289,7 @@ describe('bill page: given this API row, this text renders', () => {
 
   it('vote journey: stages with no vote yet render as pending rather than being hidden', () => {
     render(page({ ...BILL, journey: PASSED_HOUSE_JOURNEY }));
-    const journey = screen.getByLabelText('Vote journey');
+    const journey = screen.getByLabelText('Journey');
     expect(within(journey).getAllByRole('listitem')).toHaveLength(5);
     expect(within(journey).getAllByText('Pending')).toHaveLength(3);
     expect(within(journey).getByText('407–0')).toBeInTheDocument();
@@ -301,7 +301,7 @@ describe('bill page: given this API row, this text renders', () => {
 
   it('vote journey: a failed passage vote is the last stage drawn', () => {
     render(page({ ...BILL, journey: FAILED_JOURNEY }));
-    const journey = screen.getByLabelText('Vote journey');
+    const journey = screen.getByLabelText('Journey');
     expect(within(journey).getAllByRole('listitem')).toHaveLength(2);
     expect(within(journey).getByText('Failed')).toBeInTheDocument();
     expect(within(journey).getByText('47–53')).toBeInTheDocument();
@@ -317,12 +317,12 @@ describe('bill page: given this API row, this text renders', () => {
     expect(document.getElementById('roll-call-house-2-295')).toHaveTextContent(
       'House roll call 295 · Jan 14, 2026',
     );
-    expect(screen.getByLabelText('Vote journey')).toBeInTheDocument();
+    expect(screen.getByLabelText('Journey')).toBeInTheDocument();
   });
 
   it('an amendment renders no vote journey', () => {
     render(page(AMENDMENT));
-    expect(screen.queryByLabelText('Vote journey')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Journey')).not.toBeInTheDocument();
   });
 
   it('renders the empty states instead of blank sections', () => {
