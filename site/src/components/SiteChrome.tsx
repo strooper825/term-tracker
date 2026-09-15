@@ -16,7 +16,9 @@ export function SiteHeader({ active }: { active: string }) {
   return (
     <header className="flex items-center justify-between gap-6 px-7 py-3.5 border-b border-rule">
       <div className="flex items-baseline gap-2">
-        <span className="text-[13px] font-bold uppercase tracking-[0.14em]">Term Tracker</span>
+        <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
+          Term Tracker
+        </span>
         <span className="text-[10px] uppercase tracking-[0.08em] text-ink4 border border-rule rounded-chip px-1.5 py-px">
           working name
         </span>
@@ -33,12 +35,15 @@ export function SiteHeader({ active }: { active: string }) {
 export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
     <footer className="border-t border-rule px-7 pt-5 pb-7 flex flex-col gap-1.5">
-      <p className="text-meta text-ink3 m-0">
+      <p className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 m-0">
         Data from Congress.gov, Senate.gov, the FEC, and the unitedstates/congress-legislators
         project.
         {lastUpdated ? ` Last updated ${lastUpdated}.` : ' Last update time not recorded.'}
       </p>
-      <a href={`${REPO_URL}/blob/main/docs/data-dictionary.md`} className="text-meta">
+      <a
+        href={`${REPO_URL}/blob/main/docs/data-dictionary.md`}
+        className="text-[8.25px] uppercase tracking-[0.03em] text-ink3"
+      >
         Data dictionary ↗
       </a>
     </footer>
@@ -69,12 +74,22 @@ export function Breadcrumb({ name, trail = MEMBERS_ROOT }: { name: string; trail
 }
 
 /* Always renders the party WORD, never color alone. */
-export function PartyBadge({ party, size = 'md' }: { party: PartyName; size?: 'sm' | 'md' }) {
-  const cls =
-    size === 'sm' ? 'text-[9px] px-1.5 tracking-[0.05em]' : 'text-[11px] px-[7px] tracking-[0.06em]';
+export function PartyBadge({
+  party,
+  size = 'md',
+}: {
+  party: PartyName;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  const cls = {
+    sm: 'text-[9px] px-1.5 py-0.5 tracking-[0.05em]',
+    md: 'text-[11px] px-[7px] py-0.5 tracking-[0.06em]',
+    // The member card's own-row badge (Members index): bigger padding, not just bigger text.
+    lg: 'text-[7.5px] px-[7px] py-[5px] tracking-[0.08em]',
+  }[size];
   return (
     <span
-      className={`${cls} py-0.5 font-semibold text-white rounded-chip whitespace-nowrap`}
+      className={`${cls} font-semibold text-white rounded-chip whitespace-nowrap`}
       style={{ background: PARTY_COLOR[party] }}
     >
       {party.toUpperCase()}
