@@ -26,7 +26,7 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
             {model.stats.map((s) => (
               <div key={s.label} className="flex flex-col gap-0.5 min-w-0" title={s.title}>
                 <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
-                <div className="text-[17px] font-semibold tnum -tracking-[0.01em]">{s.value}</div>
+                <div className="text-[17px] font-semibold text-ink tnum -tracking-[0.01em]">{s.value}</div>
                 {s.note && <div className="text-micro text-ink4 tnum">{s.note}</div>}
               </div>
             ))}

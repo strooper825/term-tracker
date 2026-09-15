@@ -66,7 +66,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
               key={`${row.name} ${row.date}`}
               className="flex justify-between items-baseline gap-3 px-[18px] py-2 border-b border-[#F4F2ED]"
             >
-              <span className="min-w-0 text-sm leading-snug">
+              <span className="min-w-0 text-sm text-ink leading-snug">
                 {row.href ? (
                   <a href={row.href} className="underline decoration-rule underline-offset-2">
                     {row.name}
@@ -120,7 +120,7 @@ export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: str
                 style={{ background: EVENT_COLOR.committee }}
               />
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <p className="text-base leading-snug m-0">{item.text}</p>
+                <p className="text-base text-ink leading-snug m-0">{item.text}</p>
                 {item.meta && <p className="text-sm text-ink3 m-0">{item.meta}</p>}
               </div>
             </div>

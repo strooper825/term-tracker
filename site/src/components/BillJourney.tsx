@@ -164,7 +164,7 @@ function VoteCard({
           ).map(([label, count]) => (
             <div key={label} className="flex flex-col gap-0.5 pt-3">
               <span className="text-label uppercase tracking-[0.05em] text-ink3">{label}</span>
-              <span className="text-stat font-semibold tnum">{formatNumber(count)}</span>
+              <span className="text-stat font-semibold text-ink tnum">{formatNumber(count)}</span>
             </div>
           ))}
         </div>

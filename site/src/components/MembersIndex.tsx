@@ -108,7 +108,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
   return (
     <>
       <section className="px-7 pt-7 flex flex-col gap-1">
-        <h1 className="text-name font-semibold m-0">Members of the {congressLabel}</h1>
+        <h1 className="text-name font-semibold text-ink m-0">Members of the {congressLabel}</h1>
         <p className="text-sm text-ink3 tnum m-0">{members.length} tracked members · more coming</p>
       </section>
 
@@ -171,7 +171,11 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
                 {list.length} of {members.length} members
               </span>
               {isFiltered && (
-                <button type="button" onClick={clear} className="text-meta text-[#1F4E9C]">
+                <button
+                  type="button"
+                  onClick={clear}
+                  className="text-meta text-ink2 underline decoration-rule underline-offset-2"
+                >
                   Clear
                 </button>
               )}

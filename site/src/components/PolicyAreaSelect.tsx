@@ -77,7 +77,7 @@ export function PolicyAreaSelect({
             <button
               type="button"
               onClick={onClear}
-              className="w-full text-left text-meta text-[#1F4E9C] px-3 py-1.5 hover:bg-canvas"
+              className="w-full text-left text-meta text-ink2 underline decoration-rule underline-offset-2 px-3 py-1.5 hover:bg-canvas"
             >
               Clear policy areas
             </button>

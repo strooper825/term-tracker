@@ -16,14 +16,15 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
             key={c.name}
             className="flex justify-between items-start gap-2.5 px-[18px] py-2.5 border-t border-[#F4F2ED]"
           >
-            <span className="text-sm leading-snug">{c.name}</span>
+            <span className="text-sm text-ink leading-snug">{c.name}</span>
+            {/* Chair is a role, not a party signal, so it reads as a filled dark chip -- the
+                same emphasis treatment as the journey's "Became law" stage -- never a color. */}
             <span
-              className="flex-none text-label uppercase rounded-chip px-1.5 py-0.5 mt-px border"
-              style={
+              className={`flex-none text-label uppercase rounded-chip px-1.5 py-0.5 mt-px border ${
                 chair
-                  ? { color: '#8A2F2E', background: '#FBF0EF', borderColor: '#F0DBDA' }
-                  : { color: '#57564F', background: '#F6F5F2', borderColor: '#E6E4DF' }
-              }
+                  ? 'text-[#FDFDFC] bg-ink border-ink'
+                  : 'text-ink2 bg-[#F6F5F2] border-rule'
+              }`}
             >
               {c.role}
             </span>
@@ -49,7 +50,7 @@ export function KeyDatesCard({ dates }: { dates: KeyDateRow[] }) {
               <span className="w-px flex-1 bg-rule" />
             </div>
             <div className="pb-4 flex flex-col gap-0.5">
-              <div className="text-sm font-semibold tnum">{d.date}</div>
+              <div className="text-sm font-semibold text-ink tnum">{d.date}</div>
               <div className="text-sm text-ink3 leading-snug">{d.label}</div>
             </div>
           </div>
@@ -72,7 +73,7 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
       <h2 className="text-[13px] font-semibold text-ink m-0 mb-3">Next election</h2>
       {election ? (
         <>
-          <div className="text-[22px] font-semibold tnum -tracking-[0.015em]">{election.date}</div>
+          <div className="text-[22px] font-semibold text-ink tnum -tracking-[0.015em]">{election.date}</div>
           <div className="text-sm text-ink3 mt-0.5">
             {election.kind}
             {election.daysAway >= 0 ? ` · ${election.daysAway} days away` : ` · ${-election.daysAway} days ago`}

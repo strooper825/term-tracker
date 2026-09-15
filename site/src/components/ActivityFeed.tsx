@@ -112,9 +112,7 @@ export function ActivityFeed({
           className="md:hidden self-start flex items-center gap-1.5 text-sm border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px]"
         >
           Filters
-          {isFiltered && (
-            <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-[#1F4E9C]" />
-          )}
+          {isFiltered && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-ink2" />}
           <span aria-hidden="true" className="text-ink4">
             {filtersOpen ? '▴' : '▾'}
           </span>
@@ -187,7 +185,11 @@ export function ActivityFeed({
             {matchCount.toLocaleString('en-US')} of {totalLabel} events
           </span>
           {isFiltered && (
-            <button type="button" onClick={clear} className="text-meta text-[#1F4E9C]">
+            <button
+              type="button"
+              onClick={clear}
+              className="text-meta text-ink2 underline decoration-rule underline-offset-2"
+            >
               Clear
             </button>
           )}
@@ -219,7 +221,7 @@ export function ActivityFeed({
                   style={{ background: EVENT_COLOR[it.type] }}
                 />
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <p className="text-base leading-snug m-0">
+                  <p className="text-base text-ink leading-snug m-0">
                     {it.lead && <strong className="font-semibold text-ink">{it.lead}</strong>}
                     {it.headline}
                   </p>

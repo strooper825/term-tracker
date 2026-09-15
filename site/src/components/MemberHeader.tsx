@@ -19,7 +19,7 @@ export function MemberHeader({ member }: { member: MemberHeaderModel }) {
       )}
       <div className="flex flex-col gap-[7px] min-w-0">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <h1 className="text-name font-semibold m-0">{member.name}</h1>
+          <h1 className="text-name font-semibold text-ink m-0">{member.name}</h1>
           <PartyBadge party={member.party} />
           {member.caucusNote && <span className="text-meta text-ink3">{member.caucusNote}</span>}
           {member.leadershipTitle && (
@@ -53,7 +53,7 @@ export function StatStrip({ stats }: { stats: Stat[] }) {
           className="px-4 py-3.5 border-r border-b border-ruleSoft flex flex-col gap-[5px]"
         >
           <div className="text-label uppercase text-ink3 leading-tight min-h-[26px]">{s.label}</div>
-          <div className="text-stat font-semibold tnum">{s.value}</div>
+          <div className="text-stat font-semibold text-ink tnum">{s.value}</div>
           <div className="text-meta text-ink3 tnum">{s.note}</div>
         </div>
       ))}
