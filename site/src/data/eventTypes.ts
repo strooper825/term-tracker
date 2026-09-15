@@ -1,11 +1,15 @@
 // v1 event types: exactly four. Floor speech is Phase 3; see tailwind.config.js.
+// A single-hue ramp on the site's own navy accent (#33477A -- the wordmark, term-progress bar,
+// fundraising bars, and "Chair"/"On the ballot" emphasis all use the same color), darkest for
+// the most frequent type. Not a hue per type: party red/blue still carries party meaning only
+// (see PARTY_COLOR below), and this ramp never appears on a badge or chip.
 export type EventKey = 'vote' | 'sponsor' | 'cosponsor' | 'committee';
 
 export const EVENT_TYPES: { key: EventKey; label: string; color: string }[] = [
-  { key: 'vote', label: 'Floor vote', color: '#B45309' },
-  { key: 'sponsor', label: 'Bill sponsored', color: '#0E7C66' },
-  { key: 'cosponsor', label: 'Bill cosponsored', color: '#6D4AA8' },
-  { key: 'committee', label: 'Committee action', color: '#4B5566' },
+  { key: 'vote', label: 'Floor vote', color: '#33477A' },
+  { key: 'sponsor', label: 'Bill sponsored', color: '#4C63A0' },
+  { key: 'cosponsor', label: 'Bill cosponsored', color: '#7F92C4' },
+  { key: 'committee', label: 'Committee action', color: '#C2CCDF' },
 ];
 
 export const EVENT_COLOR: Record<EventKey, string> = Object.fromEntries(
@@ -22,8 +26,10 @@ export const EVENT_TYPE_FROM_MART: Record<string, EventKey> = {
 
 export type PartyName = 'Republican' | 'Democratic' | 'Independent';
 
+// Red and blue carry party meaning; a member outside the two-party system reads in the same
+// dark neutral as page text, not a third hue.
 export const PARTY_COLOR: Record<PartyName, string> = {
   Republican: '#B9302F',
   Democratic: '#1F4E9C',
-  Independent: '#5F6B3A',
+  Independent: '#57564F',
 };
