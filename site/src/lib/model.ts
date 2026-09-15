@@ -2,12 +2,7 @@
  *  Nothing here computes a statistic; it formats, labels, groups, and fills empty weeks.
  *  Every displayed number traces back to a named mart column (see docs/data-dictionary.md). */
 
-import {
-  EVENT_TYPE_FROM_MART,
-  PARTY_COLOR,
-  type EventKey,
-  type PartyName,
-} from '@/data/eventTypes';
+import { EVENT_TYPE_FROM_MART, type EventKey, type PartyName } from '@/data/eventTypes';
 import {
   addDays,
   billPath,
@@ -756,6 +751,8 @@ export interface BillPageModel {
   rollCallsMeta: string;
   /** Shown stages of mart.bill_journey_stage; empty for amendments. */
   journey: JourneyStageModel[];
+  /** Days between the first and last shown journey stage's dates; null with fewer than two. */
+  journeyDurationDays: number | null;
 }
 
 export type JourneyTone = 'done' | 'failed' | 'neutral' | 'pending';
@@ -769,8 +766,16 @@ export interface VoteSegmentModel {
   /** Share of the vote total (yea + nay + present + not voting): one bar, one scale. */
   pct: number;
   color: string;
-  /** Legend row text, e.g. "Yea · R 215". */
+  /** Full sentence for the bar's aria-label, e.g. "Yea · Republican 215". */
   label: string;
+  /** Legend row text before the count, e.g. "Yea · Republican", "Not voting". */
+  legendLabel: string;
+  /** Inline label drawn in white on the segment itself, abbreviated to fit: "215 YEA · R". Only
+   *  rendered when the segment is a leader and wide enough. */
+  barLabel: string;
+  /** The larger of R/D within this direction: the only segment wide enough to carry its own
+   *  inline label on the bar (Bill Detail Redesign mockup). */
+  isLeader: boolean;
 }
 
 /** One bar for the whole vote -- Yea then Nay then Not voting, left to right -- rather than a
@@ -781,6 +786,7 @@ export interface VoteBarModel {
 }
 
 export interface JourneyVoteModel {
+  chamber: 'house' | 'senate';
   tally: string;
   yeaCount: number;
   nayCount: number;
@@ -788,6 +794,10 @@ export interface JourneyVoteModel {
   href: string;
   linkLabel: string;
   majority: string | null;
+  /** A tied vote that passed can only have passed on the Vice President's constitutional
+   *  tie-breaking vote (Senate only; the House has no equivalent mechanism). Derived from the
+   *  tally already on the row, not a new data source. */
+  tiebreak: boolean;
   bar: VoteBarModel;
 }
 
@@ -820,22 +830,32 @@ const JOURNEY_TONE: Record<JourneyStatus, JourneyTone> = {
    gets a lighter tint of its own color, so a large majority and a small crossover read at a
    glance without a legend (see design-refactor-bills PR, and the "Bill Detail Redesign" mockup
    this reproduces). */
-const RED = PARTY_COLOR.Republican;
-const RED_TINT = '#E3A9AC';
-const BLUE = PARTY_COLOR.Democratic;
-const BLUE_TINT = '#A7B9D9';
-const NEUTRAL = '#A6A39C'; // tailwind ink4, shared by "not voting" and any non-R/D position
+const RED = '#B8202F';
+const RED_TINT = '#E3A5AB';
+const BLUE = '#1F4F92';
+const BLUE_TINT = '#ABC0DD';
+const NEUTRAL = '#676E75'; // shared by "not voting" and any non-R/D position on the bar
+const PARTY_WORD: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' };
 
 /** Element id of a roll call's row in the bill page's Roll calls card. */
 export function rollCallAnchor(chamber: string, session: number, rollNumber: number): string {
   return `roll-call-${chamber}-${session}-${rollNumber}`;
 }
 
+/** The word for the bar's non-R/D bucket: the one other letter's full party name (congressional
+ *  vote records realistically carry only R, D and I), or "Other" when more than one is mixed
+ *  together. */
+function otherPartyWord(otherParties: { party: string; count: number }[]): string {
+  const distinct = otherParties.filter((p) => p.count > 0);
+  if (distinct.length === 1) return PARTY_WORD[distinct[0].party] ?? distinct[0].party;
+  return 'Other';
+}
+
 function directionSegments(
   direction: 'Yea' | 'Nay',
   rCount: number,
   dCount: number,
-  otherCount: number,
+  otherParties: { party: string; count: number }[],
   total: number,
 ): VoteSegmentModel[] {
   const rLeads = rCount >= dCount;
@@ -848,7 +868,10 @@ function directionSegments(
       count: rCount,
       pct: (rCount / total) * 100,
       color: rLeads ? RED : RED_TINT,
-      label: `${direction} · R ${formatNumber(rCount)}`,
+      label: `${direction} · Republican ${formatNumber(rCount)}`,
+      legendLabel: `${direction} · Republican`,
+      barLabel: `${formatNumber(rCount)} ${direction.toUpperCase()} · R`,
+      isLeader: rLeads,
     });
   }
   if (dCount > 0) {
@@ -859,10 +882,15 @@ function directionSegments(
       count: dCount,
       pct: (dCount / total) * 100,
       color: rLeads ? BLUE_TINT : BLUE,
-      label: `${direction} · D ${formatNumber(dCount)}`,
+      label: `${direction} · Democrat ${formatNumber(dCount)}`,
+      legendLabel: `${direction} · Democrat`,
+      barLabel: `${formatNumber(dCount)} ${direction.toUpperCase()} · D`,
+      isLeader: !rLeads,
     });
   }
+  const otherCount = otherParties.reduce((sum, p) => sum + p.count, 0);
   if (otherCount > 0) {
+    const word = otherPartyWord(otherParties);
     segments.push({
       key: `${direction}-other`,
       direction,
@@ -870,7 +898,10 @@ function directionSegments(
       count: otherCount,
       pct: (otherCount / total) * 100,
       color: NEUTRAL,
-      label: `${direction} · Other ${formatNumber(otherCount)}`,
+      label: `${direction} · ${word} ${formatNumber(otherCount)}`,
+      legendLabel: `${direction} · ${word}`,
+      barLabel: `${formatNumber(otherCount)} ${direction.toUpperCase()} · ${word}`,
+      isLeader: false,
     });
   }
   return segments;
@@ -884,14 +915,14 @@ function voteBar(vote: PassageVote): VoteBarModel {
   const total = vote.yea_total + vote.nay_total + vote.present_total + vote.not_voting_total;
   const count = (party: string, direction: 'yea' | 'nay') =>
     vote.parties.find((p) => p.party === party)?.[direction] ?? 0;
-  const otherCount = (direction: 'yea' | 'nay') =>
+  const otherParties = (direction: 'yea' | 'nay') =>
     vote.parties
       .filter((p) => p.party !== 'R' && p.party !== 'D')
-      .reduce((sum, p) => sum + p[direction], 0);
+      .map((p) => ({ party: p.party, count: p[direction] }));
 
   const segments = [
-    ...directionSegments('Yea', count('R', 'yea'), count('D', 'yea'), otherCount('yea'), total),
-    ...directionSegments('Nay', count('R', 'nay'), count('D', 'nay'), otherCount('nay'), total),
+    ...directionSegments('Yea', count('R', 'yea'), count('D', 'yea'), otherParties('yea'), total),
+    ...directionSegments('Nay', count('R', 'nay'), count('D', 'nay'), otherParties('nay'), total),
   ];
   const notVoting = vote.not_voting_total + vote.present_total;
   if (notVoting > 0) {
@@ -903,9 +934,21 @@ function voteBar(vote: PassageVote): VoteBarModel {
       pct: (notVoting / total) * 100,
       color: NEUTRAL,
       label: `Not voting ${formatNumber(notVoting)}`,
+      legendLabel: 'Not voting',
+      barLabel: `${formatNumber(notVoting)} NOT VOTING`,
+      isLeader: false,
     });
   }
   return { segments, ariaLabel: segments.map((s) => s.label).join(', ') };
+}
+
+/** Calendar days between the first and last shown stage's dates ("Bill Detail Redesign" mockup
+ *  header, e.g. "45 days"); null when fewer than two stages carry a date. Pure arithmetic on
+ *  dates the journey already has, not a new figure from the mart. */
+function journeyDurationDays(stages: JourneyStage[]): number | null {
+  const dates = stages.map((s) => s.date).filter((d): d is string => d !== null);
+  if (dates.length < 2) return null;
+  return daysBetween(parseDate(dates[0]), parseDate(dates[dates.length - 1]));
 }
 
 /** The vote journey from GET /bills/{congress}/{type}/{number} `journey`: labels, statuses,
@@ -922,6 +965,7 @@ export function buildJourney(stages: JourneyStage[]): JourneyStageModel[] {
     endsJourney: stage.ends_journey,
     vote: stage.vote
       ? {
+          chamber: stage.vote.chamber === 'house' ? 'house' : 'senate',
           tally: `${stage.vote.yea_total}–${stage.vote.nay_total}`,
           yeaCount: stage.vote.yea_total,
           nayCount: stage.vote.nay_total,
@@ -931,13 +975,17 @@ export function buildJourney(stages: JourneyStage[]): JourneyStageModel[] {
           href: `#${rollCallAnchor(stage.vote.chamber, stage.vote.session, stage.vote.roll_number)}`,
           linkLabel: `${stage.vote.chamber === 'house' ? 'House' : 'Senate'} roll call ${stage.vote.roll_number}`,
           majority: stage.vote.majority_label,
+          // The Senate breaks a tie with the Vice President's constitutional vote; the House has
+          // no equivalent, so a tied House vote can only be a tied failure, never "VP tiebreak".
+          tiebreak:
+            stage.vote.chamber === 'senate' &&
+            stage.vote.passed &&
+            stage.vote.yea_total === stage.vote.nay_total,
           bar: voteBar(stage.vote),
         }
       : null,
   }));
 }
-
-const PARTY_WORD: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' };
 
 /** "R-WI-1" for a representative, "R-AR" for a senator, "" when the source says neither. */
 export function memberMeta(
@@ -1091,5 +1139,6 @@ export function buildBillPage(detail: BillDetail): BillPageModel {
     rollCalls: rollCallRows(detail),
     rollCallsMeta: listMeta(detail.roll_call_count, 'most recent first'),
     journey: buildJourney(detail.journey),
+    journeyDurationDays: journeyDurationDays(detail.journey),
   };
 }
