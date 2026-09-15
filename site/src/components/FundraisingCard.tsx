@@ -13,7 +13,7 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
       className="border border-rule rounded-card bg-card p-4 min-h-[150px] flex flex-col gap-3.5"
     >
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="fundraising-title" className="text-sm font-semibold m-0">
+        <h2 id="fundraising-title" className="text-sm font-semibold text-ink m-0">
           Fundraising
         </h2>
         <span className="text-meta text-ink3 tnum">{model.cycleLabel}</span>

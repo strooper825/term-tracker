@@ -100,7 +100,7 @@ export function ActivityFeed({
     <section className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-3.5 pb-3 border-b border-ruleSoft flex flex-col gap-[11px]">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-card font-semibold m-0">Activity feed</h2>
+          <h2 className="text-card font-semibold text-ink m-0">Activity feed</h2>
           <span className="text-meta text-ink3">Most recent first</span>
         </div>
 

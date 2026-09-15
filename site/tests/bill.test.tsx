@@ -131,14 +131,15 @@ describe('bill page model', () => {
     expect(senate.tally).toBe('64–35');
     expect(senate.href).toBe('#roll-call-senate-1-7');
     expect(senate.linkLabel).toBe('Senate roll call 7');
-    expect(senate.bars.map((b) => [b.heading, b.breakdown])).toEqual([
-      ['Yea 64', 'R 52 · D 12'],
-      ['Nay 35', 'D 33 · I 2'],
-    ]);
-    // party colours, widths straight from the mart's share of Yea plus Nay
-    expect(senate.bars[0].segments.map((s) => [s.party, s.pct, s.color])).toEqual([
-      ['R', 52.53, '#B9302F'],
-      ['D', 12.12, '#1F4E9C'],
+    // one bar for the whole vote: Yea by party, then Nay by party, then not voting (none here).
+    // R leads the Yea half (52 to 12) so it gets full red and D a lighter tint; D leads the Nay
+    // half (33 to 0 Republican, since only Independents crossed) so D is full blue there and the
+    // 2 Independent Nay votes read in the same neutral gray as "not voting" -- not a third hue.
+    expect(senate.bar.segments.map((s) => [s.direction, s.party, s.count, s.pct, s.color])).toEqual([
+      ['Yea', 'R', 52, (52 / 99) * 100, '#B9302F'],
+      ['Yea', 'D', 12, (12 / 99) * 100, '#A7B9D9'],
+      ['Nay', 'D', 33, (33 / 99) * 100, '#1F4E9C'],
+      ['Nay', null, 2, (2 / 99) * 100, '#A6A39C'],
     ]);
     expect(law[4].date).toBe('Jan 29, 2025');
     expect(law[4].detail).toBe('Became Public Law No: 119-1.');
@@ -160,7 +161,11 @@ describe('bill page model', () => {
       ['Introduced', 'Introduced', 'done', false],
       ['Senate vote', 'Failed', 'failed', true],
     ]);
-    expect(failed[1].vote?.bars.map((b) => b.breakdown)).toEqual(['D 45 · I 2', 'R 53']);
+    expect(failed[1].vote?.bar.segments.map((s) => [s.direction, s.party, s.count, s.color])).toEqual([
+      ['Yea', 'D', 45, '#1F4E9C'],
+      ['Yea', null, 2, '#A6A39C'],
+      ['Nay', 'R', 53, '#B9302F'],
+    ]);
 
     // a chamber that acted without a roll call reads neutrally and carries no bar
     const noRollCall = buildJourney([
@@ -256,16 +261,30 @@ describe('bill page: given this API row, this text renders', () => {
       'to_president',
       'became_law',
     ]);
+    // the compact stepper carries the outcome and tally for every stage
     expect(within(stages[1]).getByText('64–35')).toBeInTheDocument();
-    expect(within(stages[1]).getByRole('link', { name: 'Senate roll call 7' })).toHaveAttribute(
+    expect(within(stages[2]).getByText('263–156')).toBeInTheDocument();
+    expect(within(stages[4]).getByText('Enacted')).toBeInTheDocument();
+    expect(within(stages[4]).getByText(/Became Public Law No: 119-1\./)).toBeInTheDocument();
+
+    // the party bar and the roll-call link live in the dedicated vote card for each chamber, one
+    // bar for the whole vote rather than a bar per direction
+    const senateCard = screen.getByLabelText('Senate vote');
+    expect(within(senateCard).getByRole('link', { name: /Senate roll call 7/ })).toHaveAttribute(
       'href',
       '#roll-call-senate-1-7',
     );
-    expect(within(stages[1]).getByRole('img', { name: 'Yea 64: R 52 · D 12' })).toBeInTheDocument();
-    expect(within(stages[1]).getByRole('img', { name: 'Nay 35: D 33 · I 2' })).toBeInTheDocument();
-    expect(within(stages[2]).getByText('263–156')).toBeInTheDocument();
-    expect(within(stages[4]).getByText('Enacted')).toBeInTheDocument();
-    expect(within(stages[4]).getByText('Became Public Law No: 119-1.')).toBeInTheDocument();
+    expect(
+      within(senateCard).getByRole('img', {
+        name: 'Yea · R 52, Yea · D 12, Nay · D 33, Nay · Other 2',
+      }),
+    ).toBeInTheDocument();
+
+    const houseCard = screen.getByLabelText('House vote');
+    expect(within(houseCard).getByRole('link', { name: /House roll call 23/ })).toHaveAttribute(
+      'href',
+      '#roll-call-house-1-23',
+    );
   });
 
   it('vote journey: stages with no vote yet render as pending rather than being hidden', () => {
@@ -274,7 +293,10 @@ describe('bill page: given this API row, this text renders', () => {
     expect(within(journey).getAllByRole('listitem')).toHaveLength(5);
     expect(within(journey).getAllByText('Pending')).toHaveLength(3);
     expect(within(journey).getByText('407–0')).toBeInTheDocument();
-    expect(within(journey).getByText('2/3 required')).toBeInTheDocument();
+    const houseCard = screen.getByLabelText('House vote');
+    expect(within(houseCard).getByText('2/3 required')).toBeInTheDocument();
+    // only the chamber that actually held a recorded vote gets a card
+    expect(screen.queryByLabelText('Senate vote')).not.toBeInTheDocument();
   });
 
   it('vote journey: a failed passage vote is the last stage drawn', () => {

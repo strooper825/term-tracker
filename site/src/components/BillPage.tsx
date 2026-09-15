@@ -77,7 +77,7 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
   return (
     <section aria-labelledby="summary-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3">
-        <h2 id="summary-title" className="text-card font-semibold m-0">
+        <h2 id="summary-title" className="text-card font-semibold text-ink m-0">
           Summary
         </h2>
         <span className="text-meta text-ink3">Congressional Research Service</span>
@@ -120,7 +120,7 @@ function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string }) {
   return (
     <section aria-labelledby="rollcalls-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3">
-        <h2 id="rollcalls-title" className="text-card font-semibold m-0">
+        <h2 id="rollcalls-title" className="text-card font-semibold text-ink m-0">
           Roll calls
         </h2>
         <span className="text-meta text-ink3 tnum">{meta}</span>
@@ -178,6 +178,8 @@ export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
         </section>
 
         <main className="px-7 py-7 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-7 items-start">
+          {/* BillJourney lays out the compact stepper and, below it, one card per recorded
+              chamber vote (House vote / Senate vote). */}
           {bill.journey.length > 0 && (
             <div className="lg:col-span-2 min-w-0">
               <BillJourney stages={bill.journey} />
