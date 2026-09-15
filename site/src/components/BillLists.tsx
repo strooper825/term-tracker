@@ -31,7 +31,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
     <section aria-labelledby="cosponsors-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex flex-col gap-2.5">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 id="cosponsors-title" className="text-card font-semibold m-0">
+          <h2 id="cosponsors-title" className="text-card font-semibold text-ink m-0">
             Cosponsors
           </h2>
           <span className="text-meta text-ink3 tnum">{cosponsors.meta}</span>
@@ -97,7 +97,7 @@ export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: str
   return (
     <section aria-labelledby="actions-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-3.5 pb-3 border-b border-ruleSoft flex items-center justify-between gap-3">
-        <h2 id="actions-title" className="text-card font-semibold m-0">
+        <h2 id="actions-title" className="text-card font-semibold text-ink m-0">
           Action history
         </h2>
         <span className="text-meta text-ink3 tnum">{meta}</span>

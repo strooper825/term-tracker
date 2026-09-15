@@ -6,7 +6,7 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
   return (
     <section className="border border-rule rounded-card bg-card">
       <div className="flex items-baseline justify-between px-[18px] pt-4 pb-[11px]">
-        <h2 className="text-[13px] font-semibold m-0">Committees</h2>
+        <h2 className="text-[13px] font-semibold text-ink m-0">Committees</h2>
         <span className="text-meta text-ink3 tnum">{committees.length}</span>
       </div>
       {committees.map((c) => {
@@ -40,7 +40,7 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
 export function KeyDatesCard({ dates }: { dates: KeyDateRow[] }) {
   return (
     <section className="border border-rule rounded-card bg-card px-[18px] pt-4 pb-[18px]">
-      <h2 className="text-[13px] font-semibold m-0 mb-3.5">Key dates</h2>
+      <h2 className="text-[13px] font-semibold text-ink m-0 mb-3.5">Key dates</h2>
       <div className="flex flex-col">
         {dates.map((d) => (
           <div key={`${d.date} ${d.label}`} className="flex gap-3">
@@ -69,7 +69,7 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
   );
   return (
     <section className="border border-rule rounded-card bg-card px-[18px] pt-4 pb-[18px]">
-      <h2 className="text-[13px] font-semibold m-0 mb-3">Next election</h2>
+      <h2 className="text-[13px] font-semibold text-ink m-0 mb-3">Next election</h2>
       {election ? (
         <>
           <div className="text-[22px] font-semibold tnum -tracking-[0.015em]">{election.date}</div>

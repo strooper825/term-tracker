@@ -761,17 +761,21 @@ export interface BillPageModel {
 export type JourneyTone = 'done' | 'failed' | 'neutral' | 'pending';
 
 export interface VoteSegmentModel {
-  party: string;
+  key: string;
+  direction: 'Yea' | 'Nay' | 'Not voting';
+  /** null for the non-R/D bucket, which reads in the neutral "not voting" tone, not a third party color. */
+  party: 'R' | 'D' | null;
   count: number;
-  /** mart.bill_passage_vote party share of Yea plus Nay, used as the segment width */
+  /** Share of the vote total (yea + nay + present + not voting): one bar, one scale. */
   pct: number;
   color: string;
+  /** Legend row text, e.g. "Yea · R 215". */
+  label: string;
 }
 
+/** One bar for the whole vote -- Yea then Nay then Not voting, left to right -- rather than a
+ *  bar per direction, so the chamber's split reads as a single line (see design-refactor-bills). */
 export interface VoteBarModel {
-  label: 'Yea' | 'Nay';
-  heading: string;
-  breakdown: string;
   segments: VoteSegmentModel[];
   ariaLabel: string;
 }
@@ -784,7 +788,7 @@ export interface JourneyVoteModel {
   href: string;
   linkLabel: string;
   majority: string | null;
-  bars: VoteBarModel[];
+  bar: VoteBarModel;
 }
 
 export interface JourneyStageModel {
@@ -808,40 +812,100 @@ const JOURNEY_TONE: Record<JourneyStatus, JourneyTone> = {
   pending: 'pending',
 };
 
-/* Only the two parties that organize the chamber get their party color on a vote bar (also
-   the tailwind.config.js rule: party colors never become page chrome). An Independent or other
-   letter reads in the same neutral tone as "not voting" -- distinct from the party.i badge
-   color, which is a different, member-identity context (ADR-less; see design-refactor-bills PR). */
-const PARTY_BY_LETTER: Record<string, PartyName> = {
-  R: 'Republican',
-  D: 'Democratic',
-};
-const OTHER_PARTY_COLOR = '#A6A39C'; // tailwind ink4, the same neutral used for "not voting"
+/* Only the two parties that organize the chamber get their own color on the vote bar (also the
+   tailwind.config.js rule: party colors never become page chrome). Everyone else -- Independents,
+   any other letter -- reads in the same neutral gray as "not voting", not a third hue: distinct
+   from the party.i badge color, which is a different, member-identity context. Within a
+   direction (Yea or Nay), whichever of R/D cast more votes gets its full party color; the other
+   gets a lighter tint of its own color, so a large majority and a small crossover read at a
+   glance without a legend (see design-refactor-bills PR, and the "Bill Detail Redesign" mockup
+   this reproduces). */
+const RED = PARTY_COLOR.Republican;
+const RED_TINT = '#E3A9AC';
+const BLUE = PARTY_COLOR.Democratic;
+const BLUE_TINT = '#A7B9D9';
+const NEUTRAL = '#A6A39C'; // tailwind ink4, shared by "not voting" and any non-R/D position
 
 /** Element id of a roll call's row in the bill page's Roll calls card. */
 export function rollCallAnchor(chamber: string, session: number, rollNumber: number): string {
   return `roll-call-${chamber}-${session}-${rollNumber}`;
 }
 
-function voteBars(vote: PassageVote): VoteBarModel[] {
-  return (['Yea', 'Nay'] as const).map((label) => {
-    const yea = label === 'Yea';
-    const total = yea ? vote.yea_total : vote.nay_total;
-    const parties = vote.parties.filter((p) => (yea ? p.yea : p.nay) > 0);
-    const breakdown = parties.map((p) => `${p.party} ${yea ? p.yea : p.nay}`).join(' · ');
-    return {
-      label,
-      heading: `${label} ${formatNumber(total)}`,
-      breakdown,
-      segments: parties.map((p) => ({
-        party: p.party,
-        count: yea ? p.yea : p.nay,
-        pct: (yea ? p.yea_pct : p.nay_pct) ?? 0,
-        color: PARTY_BY_LETTER[p.party] ? PARTY_COLOR[PARTY_BY_LETTER[p.party]] : OTHER_PARTY_COLOR,
-      })),
-      ariaLabel: breakdown ? `${label} ${total}: ${breakdown}` : `${label} ${total}`,
-    };
-  });
+function directionSegments(
+  direction: 'Yea' | 'Nay',
+  rCount: number,
+  dCount: number,
+  otherCount: number,
+  total: number,
+): VoteSegmentModel[] {
+  const rLeads = rCount >= dCount;
+  const segments: VoteSegmentModel[] = [];
+  if (rCount > 0) {
+    segments.push({
+      key: `${direction}-R`,
+      direction,
+      party: 'R',
+      count: rCount,
+      pct: (rCount / total) * 100,
+      color: rLeads ? RED : RED_TINT,
+      label: `${direction} · R ${formatNumber(rCount)}`,
+    });
+  }
+  if (dCount > 0) {
+    segments.push({
+      key: `${direction}-D`,
+      direction,
+      party: 'D',
+      count: dCount,
+      pct: (dCount / total) * 100,
+      color: rLeads ? BLUE_TINT : BLUE,
+      label: `${direction} · D ${formatNumber(dCount)}`,
+    });
+  }
+  if (otherCount > 0) {
+    segments.push({
+      key: `${direction}-other`,
+      direction,
+      party: null,
+      count: otherCount,
+      pct: (otherCount / total) * 100,
+      color: NEUTRAL,
+      label: `${direction} · Other ${formatNumber(otherCount)}`,
+    });
+  }
+  return segments;
+}
+
+/** One bar for the whole vote: Yea (by party), then Nay (by party), then Not voting, each
+ *  segment's width its share of the vote total. Counts are mart.bill_passage_vote columns; the
+ *  shares are computed here (there is no mart column at this grain), the same category of
+ *  frontend arithmetic as every other width-from-a-count bar on the site. */
+function voteBar(vote: PassageVote): VoteBarModel {
+  const total = vote.yea_total + vote.nay_total + vote.present_total + vote.not_voting_total;
+  const count = (party: string, direction: 'yea' | 'nay') =>
+    vote.parties.find((p) => p.party === party)?.[direction] ?? 0;
+  const otherCount = (direction: 'yea' | 'nay') =>
+    vote.parties
+      .filter((p) => p.party !== 'R' && p.party !== 'D')
+      .reduce((sum, p) => sum + p[direction], 0);
+
+  const segments = [
+    ...directionSegments('Yea', count('R', 'yea'), count('D', 'yea'), otherCount('yea'), total),
+    ...directionSegments('Nay', count('R', 'nay'), count('D', 'nay'), otherCount('nay'), total),
+  ];
+  const notVoting = vote.not_voting_total + vote.present_total;
+  if (notVoting > 0) {
+    segments.push({
+      key: 'not-voting',
+      direction: 'Not voting',
+      party: null,
+      count: notVoting,
+      pct: (notVoting / total) * 100,
+      color: NEUTRAL,
+      label: `Not voting ${formatNumber(notVoting)}`,
+    });
+  }
+  return { segments, ariaLabel: segments.map((s) => s.label).join(', ') };
 }
 
 /** The vote journey from GET /bills/{congress}/{type}/{number} `journey`: labels, statuses,
@@ -861,11 +925,13 @@ export function buildJourney(stages: JourneyStage[]): JourneyStageModel[] {
           tally: `${stage.vote.yea_total}–${stage.vote.nay_total}`,
           yeaCount: stage.vote.yea_total,
           nayCount: stage.vote.nay_total,
-          notVotingCount: stage.vote.not_voting_total,
+          // folded with `present`, same as the bar's own not-voting segment (both are 0 for
+          // nearly every passage vote; see mart.bill_passage_vote in the data dictionary)
+          notVotingCount: stage.vote.not_voting_total + stage.vote.present_total,
           href: `#${rollCallAnchor(stage.vote.chamber, stage.vote.session, stage.vote.roll_number)}`,
           linkLabel: `${stage.vote.chamber === 'house' ? 'House' : 'Senate'} roll call ${stage.vote.roll_number}`,
           majority: stage.vote.majority_label,
-          bars: voteBars(stage.vote),
+          bar: voteBar(stage.vote),
         }
       : null,
   }));

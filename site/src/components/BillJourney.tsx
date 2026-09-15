@@ -66,7 +66,7 @@ export function JourneyStepper({ stages }: { stages: JourneyStageModel[] }) {
   return (
     <section aria-labelledby="journey-title" className="border border-rule rounded-card bg-canvas">
       <div className="px-[18px] pt-4 pb-3 flex items-baseline justify-between gap-3 flex-wrap">
-        <h2 id="journey-title" className="text-card font-semibold m-0">
+        <h2 id="journey-title" className="text-card font-semibold text-ink m-0">
           Vote journey
         </h2>
         <span className="text-meta text-ink3">Recorded roll calls and enactment actions</span>
@@ -80,35 +80,35 @@ export function JourneyStepper({ stages }: { stages: JourneyStageModel[] }) {
   );
 }
 
-function VoteBarRow({ bar }: { bar: VoteBarModel }) {
+/** The whole vote as one bar -- Yea segments, then Nay, then Not voting -- so the chamber's
+ *  split reads as a single line rather than two bars that each stop partway across the card. */
+function VoteBar({ bar }: { bar: VoteBarModel }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between items-baseline gap-2 text-sm">
-        <span className="font-semibold tnum">{bar.heading}</span>
-      </div>
+    <div className="flex flex-col gap-2">
       <div
         role="img"
         aria-label={bar.ariaLabel}
-        className="h-2.5 bg-ruleSoft rounded-[3px] overflow-hidden flex"
+        className="h-3 bg-ruleSoft rounded-[3px] overflow-hidden flex"
       >
         {bar.segments.map((segment) => (
           <div
-            key={segment.party}
-            data-party={segment.party}
+            key={segment.key}
+            data-party={segment.party ?? 'other'}
+            data-direction={segment.direction}
             className="h-full"
             style={{ width: `${segment.pct}%`, background: segment.color }}
           />
         ))}
       </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-meta text-ink2">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink2">
         {bar.segments.map((segment) => (
-          <span key={segment.party} className="flex items-center gap-1.5">
+          <span key={segment.key} className="flex items-center gap-1.5">
             <span
               aria-hidden
               className="inline-block w-2 h-2 rounded-[2px]"
               style={{ background: segment.color }}
             />
-            {bar.label} · {segment.party} {formatNumber(segment.count)}
+            {segment.label}
           </span>
         ))}
       </div>
@@ -140,7 +140,7 @@ function VoteCard({
   return (
     <section aria-labelledby={titleId} className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3 flex-wrap">
-        <h2 id={titleId} className="text-card font-semibold m-0">
+        <h2 id={titleId} className="text-card font-semibold text-ink m-0">
           {title}
         </h2>
         <span className="text-meta text-ink3 uppercase tracking-[0.03em]">
@@ -153,11 +153,7 @@ function VoteCard({
           <span className="text-stat font-semibold tnum text-ink3">{vote.tally}</span>
           {vote.majority && <span className="text-meta text-ink4">{vote.majority}</span>}
         </div>
-        <div className="flex flex-col gap-3">
-          {vote.bars.map((bar) => (
-            <VoteBarRow key={bar.label} bar={bar} />
-          ))}
-        </div>
+        <VoteBar bar={vote.bar} />
         <div className="grid grid-cols-3 gap-3 pt-1 border-t border-ruleSoft">
           {(
             [

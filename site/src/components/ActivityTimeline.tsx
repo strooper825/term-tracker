@@ -25,7 +25,7 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
   return (
     <section className="border border-rule rounded-card bg-card px-[18px] pt-[18px] pb-3.5">
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <h2 className="text-card font-semibold m-0">Legislative activity by week</h2>
+        <h2 className="text-card font-semibold text-ink m-0">Legislative activity by week</h2>
         <span className="text-meta text-ink3 tnum">events per week, by type</span>
       </div>
 
