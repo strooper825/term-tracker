@@ -28,15 +28,15 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
   return (
     <section className="border border-rule rounded-card bg-card px-[18px] pt-[18px] pb-3.5">
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <h2 className="text-[13.5px] font-semibold text-ink m-0">Activity</h2>
-        <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3">
+        <h2 className="text-heading font-semibold text-ink m-0">Activity</h2>
+        <span className="text-label uppercase text-ink3">
           Events per week, by type
         </span>
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-2.5 my-3">
         {EVENT_TYPES.map((t) => (
-          <span key={t.key} className="flex items-center gap-1.5 text-[8.25px]">
+          <span key={t.key} className="flex items-center gap-1.5 text-label">
             <i className="w-2 h-2 rounded-full flex-none" style={{ background: t.color }} />
             <span className="text-ink2">{t.label}</span>
             <span className="text-ink font-semibold tnum">{formatNumber(typeTotal(t.key))}</span>
@@ -53,7 +53,7 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
           {ticks.map((v) => (
             <span
               key={v}
-              className="absolute right-0 translate-y-1/2 text-[7.5px] text-ink3 tnum"
+              className="absolute right-0 translate-y-1/2 text-micro text-ink3 tnum"
               style={{ bottom: (v / max) * H }}
             >
               {v}
@@ -94,7 +94,7 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
             {weeks.map((w) => (
               <div
                 key={w.label}
-                className="flex-1 min-w-0 text-[7.5px] uppercase text-ink3 whitespace-nowrap"
+                className="flex-1 min-w-0 text-micro uppercase text-ink3 whitespace-nowrap"
               >
                 {w.tick}
               </div>

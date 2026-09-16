@@ -19,11 +19,11 @@ export function SiteHeader({ active }: { active: string }) {
         <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
           Term Tracker
         </span>
-        <span className="text-[10px] uppercase tracking-[0.08em] text-ink4 border border-rule rounded-chip px-1.5 py-px">
+        <span className="text-label uppercase text-ink4 border border-rule rounded-chip px-1.5 py-px">
           working name
         </span>
       </div>
-      <nav className="flex gap-[22px] text-sm">
+      <nav className="flex gap-[22px] text-body">
         {link('/members', 'Members')}
         {link(`${REPO_URL}/blob/main/docs/PLAN.md`, 'About')}
         {link(`${REPO_URL}/blob/main/docs/data-dictionary.md`, 'Data')}
@@ -35,14 +35,14 @@ export function SiteHeader({ active }: { active: string }) {
 export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
     <footer className="border-t border-rule px-7 pt-5 pb-7 flex flex-col gap-1.5">
-      <p className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 m-0">
+      <p className="text-meta text-ink3 m-0">
         Data from Congress.gov, Senate.gov, the FEC, and the unitedstates/congress-legislators
         project.
         {lastUpdated ? ` Last updated ${lastUpdated}.` : ' Last update time not recorded.'}
       </p>
       <a
         href={`${REPO_URL}/blob/main/docs/data-dictionary.md`}
-        className="text-[8.25px] uppercase tracking-[0.03em] text-ink3"
+        className="text-label uppercase text-ink3"
       >
         Data dictionary ↗
       </a>
@@ -82,10 +82,10 @@ export function PartyBadge({
   size?: 'sm' | 'md' | 'lg';
 }) {
   const cls = {
-    sm: 'text-[9px] px-1.5 py-0.5 tracking-[0.05em]',
-    md: 'text-[11px] px-[7px] py-0.5 tracking-[0.06em]',
+    sm: 'text-label px-1.5 py-0.5',
+    md: 'text-label px-[7px] py-0.5',
     // The member card's own-row badge (Members index): bigger padding, not just bigger text.
-    lg: 'text-[7.5px] px-[7px] py-[5px] tracking-[0.08em]',
+    lg: 'text-label px-[7px] py-[5px]',
   }[size];
   return (
     <span
@@ -110,7 +110,7 @@ export function SourceLink({
       title={title}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex-none text-[8.25px] uppercase tracking-[0.03em] text-ink2 border border-rule rounded-chip px-2 py-1"
+      className="flex-none text-label uppercase text-ink2 border border-rule rounded-chip px-2 py-1"
     >
       source ↗
     </a>
@@ -130,7 +130,7 @@ export function DetailsLink({
     <a
       href={href}
       title={title}
-      className="flex-none text-[8.25px] uppercase tracking-[0.03em] text-ink2 border border-rule rounded-chip px-2 py-1 hover:border-lockInk hover:bg-canvas"
+      className="flex-none text-label uppercase text-ink2 border border-rule rounded-chip px-2 py-1 hover:border-lockInk hover:bg-canvas"
     >
       Details →
     </a>

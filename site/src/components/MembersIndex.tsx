@@ -39,18 +39,18 @@ function MemberCard({ member }: { member: IndexRow }) {
           <div className="w-[35px] h-[35px] rounded-full bg-[#DEDCD6] border border-rule flex-none" />
         )}
         <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-[12.75px] font-semibold leading-snug">{member.name}</span>
+          <span className="text-base font-semibold leading-snug">{member.name}</span>
           <PartyBadge party={member.party} size="lg" />
-          <span className="text-[9px] text-ink3">{member.seatShort}</span>
+          <span className="text-meta text-ink3">{member.seatShort}</span>
         </div>
       </div>
       <div className="grid grid-cols-3 border-t border-rule pt-[11px]">
         {stats.map((s) => (
           <div key={s.label} className="flex flex-col gap-1">
-            <span className="text-[7.5px] uppercase tracking-[0.22em] text-ink3 leading-tight">
+            <span className="text-label uppercase text-ink3 leading-tight">
               {s.label}
             </span>
-            <span className="text-[15px] font-semibold text-ink tnum">{s.value}</span>
+            <span className="text-stat font-semibold text-ink tnum leading-none">{s.value}</span>
           </div>
         ))}
       </div>
@@ -98,7 +98,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
 
   const group = (label: string, children: React.ReactNode) => (
     <div className="flex items-center gap-[7px]">
-      <span className="text-[7.5px] uppercase tracking-[0.22em] text-ink3">{label}</span>
+      <span className="text-label uppercase text-ink3">{label}</span>
       <div className="flex gap-1.5 flex-wrap">{children}</div>
     </div>
   );
@@ -113,18 +113,18 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
     <>
       <section className="px-7 pt-7 flex items-start justify-between gap-6 flex-wrap">
         <div className="flex flex-col gap-1">
-          <h1 className="text-[25.5px] font-semibold text-ink m-0">
+          <h1 className="text-title font-semibold text-ink m-0">
             Members of the {congressLabel}
           </h1>
-          <p className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum m-0">
+          <p className="text-label uppercase text-ink3 tnum m-0">
             {members.length} tracked members · more coming
           </p>
         </div>
         <div className="flex gap-9">
           {headerStats.map((s) => (
             <div key={s.label} className="flex flex-col gap-0.5">
-              <span className="text-[7.5px] uppercase tracking-[0.22em] text-ink3">{s.label}</span>
-              <span className="text-[15px] font-semibold text-ink tnum">{s.value}</span>
+              <span className="text-label uppercase text-ink3">{s.label}</span>
+              <span className="text-stat font-semibold text-ink tnum leading-none">{s.value}</span>
             </div>
           ))}
         </div>
@@ -140,14 +140,14 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search by name or state…"
                 aria-label="Search members"
-                className="flex-1 basis-64 min-w-[200px] text-[10.5px] bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
+                className="flex-1 basis-64 min-w-[200px] text-body bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
               />
-              <label className="flex items-center gap-[7px] text-[7.5px] uppercase tracking-[0.22em] text-ink3 flex-none border border-rule rounded-ctl pl-[10px] pr-2 py-[8px]">
+              <label className="flex items-center gap-[7px] text-label uppercase text-ink3 flex-none border border-rule rounded-ctl pl-[10px] pr-2 py-[8px]">
                 Sort
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as Sort)}
-                  className="text-[10.5px] normal-case tracking-normal text-ink bg-card"
+                  className="text-body normal-case tracking-normal text-ink bg-card"
                 >
                   {SORTS.map((s) => (
                     <option key={s} value={s}>
@@ -187,7 +187,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
             </div>
           </div>
           <div className="px-[18px] py-3 flex items-baseline gap-2.5">
-            <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
+            <span className="text-label uppercase text-ink3 tnum">
               {list.length} of {members.length} members
             </span>
             {isFiltered && (
@@ -209,7 +209,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
 
           {list.length === 0 && (
             <div className="px-[18px] py-12 flex flex-col items-center gap-3 text-center">
-              <p className="text-sm text-ink2 m-0">
+              <p className="text-body text-ink2 m-0">
                 {needle
                   ? `No members match “${q.trim()}”.`
                   : 'No members in the selected chambers and parties.'}
@@ -217,7 +217,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
               <button
                 type="button"
                 onClick={clear}
-                className="text-sm border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas"
+                className="text-body border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas"
               >
                 Clear filters
               </button>

@@ -204,9 +204,9 @@ describe('bill page: given this API row, this text renders', () => {
     const heading = screen.getByRole('heading', { level: 1 });
     const header = heading.parentElement!; // the chip row and the title, not the breadcrumb
     const label = within(header).getByText('H.R. 5269');
-    expect(heading.className).toContain('text-[22px]');
-    expect(label.className).toContain('text-card');
-    expect(heading.className).not.toContain('text-card');
+    expect(heading.className).toContain('text-title');
+    expect(label.className).toContain('text-heading');
+    expect(heading.className).not.toContain('text-heading');
     // the policy area says what it is rather than standing alone as a bare keyword
     expect(screen.getByText('Policy area')).toBeInTheDocument();
     expect(screen.getByText('Policy area').parentElement).toHaveTextContent(

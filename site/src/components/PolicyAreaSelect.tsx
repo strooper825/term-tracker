@@ -56,7 +56,7 @@ export function PolicyAreaSelect({
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => onOpenChange(!open)}
-        className={`flex items-center gap-1.5 text-sm border rounded-ctl px-2.5 py-[7px] max-w-[220px] ${
+        className={`flex items-center gap-1.5 text-body border rounded-ctl px-2.5 py-[7px] max-w-[220px] ${
           selected.size > 0 ? 'border-ink3 bg-[#F2F0EA]' : 'border-[#D9D6CF] bg-card'
         }`}
       >
@@ -91,7 +91,7 @@ export function PolicyAreaSelect({
                 role="option"
                 aria-selected={on}
                 onClick={() => onToggle(area.name)}
-                className="w-full flex items-baseline justify-between gap-3 text-left text-sm px-3 py-1.5 hover:bg-canvas"
+                className="w-full flex items-baseline justify-between gap-3 text-left text-body px-3 py-1.5 hover:bg-canvas"
               >
                 <span className="flex items-baseline gap-2 min-w-0">
                   <span

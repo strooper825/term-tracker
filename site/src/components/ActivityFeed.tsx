@@ -100,8 +100,8 @@ export function ActivityFeed({
     <section className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-3.5 pb-3 border-b border-rule flex flex-col gap-[11px]">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[13.5px] font-semibold text-ink m-0">Record</h2>
-          <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3">
+          <h2 className="text-heading font-semibold text-ink m-0">Record</h2>
+          <span className="text-label uppercase text-ink3">
             {totalLabel} events · most recent first
           </span>
         </div>
@@ -111,7 +111,7 @@ export function ActivityFeed({
           type="button"
           aria-expanded={filtersOpen}
           onClick={() => setFiltersOpen((v) => !v)}
-          className="md:hidden self-start flex items-center gap-1.5 text-sm border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px]"
+          className="md:hidden self-start flex items-center gap-1.5 text-body border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px]"
         >
           Filters
           {isFiltered && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-ink2" />}
@@ -131,7 +131,7 @@ export function ActivityFeed({
               }}
               placeholder="Search bills, votes, committees…"
               aria-label="Search activity"
-              className="flex-none w-full md:w-[240px] text-[10.5px] bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
+              className="flex-none w-full md:w-[240px] text-body bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
             />
             {dateRanges.length > 0 && (
               <select
@@ -141,7 +141,7 @@ export function ActivityFeed({
                   setRangeKey(e.target.value);
                   reset();
                 }}
-                className={`text-[10.5px] rounded-ctl px-[10px] py-[8px] border ${
+                className={`text-body rounded-ctl px-[10px] py-[8px] border ${
                   rangeKey !== ALL_DATES ? 'border-ink3 bg-[#F2F0EA]' : 'border-rule bg-card'
                 }`}
               >
@@ -183,7 +183,7 @@ export function ActivityFeed({
         </div>
 
         <div className="flex items-baseline gap-2.5 flex-wrap">
-          <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
+          <span className="text-label uppercase text-ink3 tnum">
             {matchCount.toLocaleString('en-US')} of {totalLabel} events
           </span>
           {isFiltered && (
@@ -210,7 +210,7 @@ export function ActivityFeed({
       <div className="relative overflow-visible md:overflow-y-auto md:max-h-[600px]">
         {filtered.slice(0, shown).map((g) => (
           <div key={g.date}>
-            <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAFAFB] border-b border-rule text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
+            <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAFAFB] border-b border-rule text-label uppercase text-ink3 tnum">
               {g.date}
             </div>
             {g.items.map((it, i) => (
@@ -223,20 +223,20 @@ export function ActivityFeed({
                   style={{ background: EVENT_COLOR[it.type] }}
                 />
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <p className="text-[11.25px] font-semibold text-ink leading-snug m-0">
+                  <p className="text-base font-semibold text-ink leading-snug m-0">
                     {it.lead && <strong className="font-semibold text-ink">{it.lead}</strong>}
                     {it.headline}
                   </p>
                   {it.secondary && (
                     <p
-                      className="text-[9.75px] font-normal text-ink2 tnum m-0 line-clamp-2"
+                      className="text-meta font-normal text-ink2 tnum m-0 line-clamp-2"
                       title={it.secondaryFull ?? it.secondary}
                     >
                       {it.secondary}
                     </p>
                   )}
                   {it.policyArea && (
-                    <p className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 m-0">
+                    <p className="text-label uppercase text-ink3 m-0">
                       {it.policyArea}
                     </p>
                   )}
@@ -255,7 +255,7 @@ export function ActivityFeed({
 
         {matchCount === 0 && (
           <div className="px-[18px] py-11 flex flex-col items-center gap-3 text-center">
-            <p className="text-sm text-ink2 m-0">
+            <p className="text-body text-ink2 m-0">
               {needle
                 ? `No events match “${q.trim()}” in the selected filters.`
                 : 'No events match the selected filters.'}
@@ -263,7 +263,7 @@ export function ActivityFeed({
             <button
               type="button"
               onClick={clear}
-              className="text-sm border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas"
+              className="text-body border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas"
             >
               Clear filters
             </button>
@@ -275,11 +275,11 @@ export function ActivityFeed({
             <button
               type="button"
               onClick={() => setShown((s) => s + PAGE)}
-              className="text-[9px] uppercase tracking-[0.05em] font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
+              className="text-label uppercase font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
             >
               Load more events →
             </button>
-            <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
+            <span className="text-label uppercase text-ink3 tnum">
               Showing {matchCount} of {totalLabel} recorded events
             </span>
           </div>
