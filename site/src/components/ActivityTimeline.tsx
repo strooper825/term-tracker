@@ -17,6 +17,23 @@ const describe = (w: Week) => {
   return `Week of ${w.label} — ${n} ${n === 1 ? 'event' : 'events'}${parts ? ' · ' + parts : ''}`;
 };
 
+/* buildWeeks() spaces axis labels MIN_TICK_GAP_WEEKS apart assuming a desktop-width column,
+   so on a narrow phone screen the columns are too thin for consecutive labels ("Jan 2025",
+   "Mar") not to run together. Below the md breakpoint, only every other label renders -- the
+   full set still exists in the DOM's weeks data (and each bar's hover title), just not drawn
+   -- roughly doubling the gap between labels without touching buildWeeks() or the desktop
+   layout, which already had room. */
+function labelsHiddenOnMobile(weeks: Week[]): Set<string> {
+  const hidden = new Set<string>();
+  let seq = 0;
+  for (const w of weeks) {
+    if (!w.tick) continue;
+    if (seq % 2 === 1) hidden.add(w.label);
+    seq++;
+  }
+  return hidden;
+}
+
 /* One column per week for the whole range; must fit with no horizontal scroll. */
 export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
   const [hover, setHover] = useState<string | null>(null);
@@ -24,6 +41,7 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
   const ticks = [0, Math.round(max / 2), max];
   const typeTotal = (key: (typeof EVENT_TYPES)[number]['key']) =>
     weeks.reduce((a, w) => a + (w.counts[key] || 0), 0);
+  const hiddenOnMobile = labelsHiddenOnMobile(weeks);
 
   return (
     <section className="border border-rule rounded-card bg-card px-[18px] pt-[18px] pb-3.5">
@@ -94,7 +112,9 @@ export function ActivityTimeline({ weeks }: { weeks: Week[] }) {
             {weeks.map((w) => (
               <div
                 key={w.label}
-                className="flex-1 min-w-0 text-[7.5px] uppercase text-ink3 whitespace-nowrap"
+                className={`flex-1 min-w-0 text-[7.5px] uppercase text-ink3 whitespace-nowrap ${
+                  hiddenOnMobile.has(w.label) ? 'hidden md:block' : ''
+                }`}
               >
                 {w.tick}
               </div>
