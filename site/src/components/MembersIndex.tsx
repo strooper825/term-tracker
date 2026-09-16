@@ -33,26 +33,24 @@ function MemberCard({ member }: { member: IndexRow }) {
             src={member.photoUrl}
             alt=""
             referrerPolicy="no-referrer"
-            className="w-[46px] h-[46px] rounded-full object-cover bg-[#DEDCD6] border border-[#D3D0C9] flex-none"
+            className="w-[35px] h-[35px] rounded-full object-cover bg-[#DEDCD6] border border-rule flex-none"
           />
         ) : (
-          <div className="w-[46px] h-[46px] rounded-full bg-[#DEDCD6] border border-[#D3D0C9] flex-none" />
+          <div className="w-[35px] h-[35px] rounded-full bg-[#DEDCD6] border border-rule flex-none" />
         )}
         <div className="flex flex-col gap-1.5 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px] font-semibold">{member.name}</span>
-            <PartyBadge party={member.party} size="sm" />
-          </div>
-          <span className="text-sm text-ink3">{member.seatShort}</span>
+          <span className="text-[12.75px] font-semibold leading-snug">{member.name}</span>
+          <PartyBadge party={member.party} size="lg" />
+          <span className="text-[9px] text-ink3">{member.seatShort}</span>
         </div>
       </div>
-      <div className="grid grid-cols-3 border-t border-ruleSoft pt-[11px]">
+      <div className="grid grid-cols-3 border-t border-rule pt-[11px]">
         {stats.map((s) => (
-          <div key={s.label} className="flex flex-col gap-0.5">
-            <span className="text-base font-semibold tnum">{s.value}</span>
-            <span className="text-[10px] uppercase tracking-[0.06em] text-ink4 leading-tight">
+          <div key={s.label} className="flex flex-col gap-1">
+            <span className="text-[7.5px] uppercase tracking-[0.22em] text-ink3 leading-tight">
               {s.label}
             </span>
+            <span className="text-[15px] font-semibold text-ink tnum">{s.value}</span>
           </div>
         ))}
       </div>
@@ -100,21 +98,41 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
 
   const group = (label: string, children: React.ReactNode) => (
     <div className="flex items-center gap-[7px]">
-      <span className="text-label uppercase text-ink4">{label}</span>
+      <span className="text-[7.5px] uppercase tracking-[0.22em] text-ink3">{label}</span>
       <div className="flex gap-1.5 flex-wrap">{children}</div>
     </div>
   );
 
+  const headerStats = [
+    { label: 'House', value: counts.chamber['House'] || 0 },
+    { label: 'Senate', value: counts.chamber['Senate'] || 0 },
+    { label: 'Tracked', value: members.length },
+  ];
+
   return (
     <>
-      <section className="px-7 pt-7 flex flex-col gap-1">
-        <h1 className="text-name font-semibold m-0">Members of the {congressLabel}</h1>
-        <p className="text-sm text-ink3 tnum m-0">{members.length} tracked members · more coming</p>
+      <section className="px-7 pt-7 flex items-start justify-between gap-6 flex-wrap">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[25.5px] font-semibold text-ink m-0">
+            Members of the {congressLabel}
+          </h1>
+          <p className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum m-0">
+            {members.length} tracked members · more coming
+          </p>
+        </div>
+        <div className="flex gap-9">
+          {headerStats.map((s) => (
+            <div key={s.label} className="flex flex-col gap-0.5">
+              <span className="text-[7.5px] uppercase tracking-[0.22em] text-ink3">{s.label}</span>
+              <span className="text-[15px] font-semibold text-ink tnum">{s.value}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="px-7 pt-5 pb-7">
         <div className="border border-rule rounded-card bg-card">
-          <div className="px-[18px] pt-3.5 pb-3 border-b border-ruleSoft flex flex-col gap-[11px]">
+          <div className="px-[18px] pt-4 pb-[15px] border-b border-rule flex flex-col gap-[15px]">
             <div className="flex items-center gap-3 flex-wrap">
               <input
                 type="search"
@@ -122,14 +140,14 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search by name or state…"
                 aria-label="Search members"
-                className="flex-1 basis-64 min-w-[200px] text-sm bg-card border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px] focus:border-ink3 focus:outline-none"
+                className="flex-1 basis-64 min-w-[200px] text-[10.5px] bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
               />
-              <label className="flex items-center gap-[7px] text-meta text-ink3 flex-none">
+              <label className="flex items-center gap-[7px] text-[7.5px] uppercase tracking-[0.22em] text-ink3 flex-none border border-rule rounded-ctl pl-[10px] pr-2 py-[8px]">
                 Sort
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as Sort)}
-                  className="text-sm bg-card border border-[#D9D6CF] rounded-ctl px-2 py-1.5"
+                  className="text-[10.5px] normal-case tracking-normal text-ink bg-card"
                 >
                   {SORTS.map((s) => (
                     <option key={s} value={s}>
@@ -152,6 +170,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
                   />
                 )),
               )}
+              <span aria-hidden className="w-px h-[16.5px] bg-rule flex-none" />
               {group(
                 'Party',
                 PARTIES.map((p) => (
@@ -166,19 +185,23 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
                 )),
               )}
             </div>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-meta text-ink3 tnum">
-                {list.length} of {members.length} members
-              </span>
-              {isFiltered && (
-                <button type="button" onClick={clear} className="text-meta text-[#1F4E9C]">
-                  Clear
-                </button>
-              )}
-            </div>
+          </div>
+          <div className="px-[18px] py-3 flex items-baseline gap-2.5">
+            <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
+              {list.length} of {members.length} members
+            </span>
+            {isFiltered && (
+              <button
+                type="button"
+                onClick={clear}
+                className="text-meta text-ink2 underline decoration-rule underline-offset-2"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
-          <div className="p-[18px] grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="p-[18px] grid grid-cols-1 lg:grid-cols-3 gap-5">
             {list.map((m) => (
               <MemberCard key={m.bioguideId} member={m} />
             ))}
