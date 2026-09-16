@@ -6,9 +6,8 @@
 //
 // Two views over the same stages: a compact stepper (every stage, one line each) and a dedicated
 // vote card per chamber that actually held a recorded roll call (House vote / Senate vote).
-// Layout, type sizes and colors here are read directly off the "Bill Detail Redesign" mockup
-// (Claude Design export), not approximated -- see the design-refactor-complete PR notes for the
-// point-for-point extraction this was built from.
+// Layout and colors were read directly off the "Bill Detail Redesign" mockup; type sizes now pull
+// from the site's shared scale (tailwind.config.js) instead -- see design-audit-cleanup.
 import type { JourneyStageModel, JourneyTone, JourneyVoteModel, VoteBarModel } from '@/lib/model';
 import { formatNumber } from '@/lib/format';
 
@@ -19,29 +18,24 @@ const TONE: Record<JourneyTone, { text: string }> = {
   pending: { text: 'text-ink4' },
 };
 
-/* The mockup's small-caps row/column labels ("INTRODUCED", "YEA") are letter-spaced far wider
-   than any tracking already in use elsewhere on the site, so it gets its own utility rather than
-   reusing tracking-[0.05em]. */
-const WIDE_CAPS = 'uppercase tracking-[0.22em]';
-
 function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }) {
   const tone = TONE[stage.tone];
   const filled = stage.key === 'became_law' && stage.tone === 'done';
   const primary = (
     <>
-      <span className={`font-semibold ${filled ? 'text-[14.25px]' : 'text-[12.75px]'}`}>
+      <span className={`font-semibold ${filled ? 'text-heading' : 'text-base'}`}>
         {stage.statusLabel}
       </span>
       {stage.vote && (
         <>
           {' '}
-          <span className={`text-[11.25px] tnum ${filled ? 'text-white/70' : 'text-ink2'}`}>
+          <span className={`text-body tnum ${filled ? 'text-white/70' : 'text-ink2'}`}>
             {stage.vote.tally}
           </span>
         </>
       )}
       {stage.detail && (
-        <span className={`text-[11.25px] ${filled ? 'text-white/70' : 'text-ink2'}`}>
+        <span className={`text-body ${filled ? 'text-white/70' : 'text-ink2'}`}>
           {' '}
           · {stage.detail}
         </span>
@@ -51,15 +45,15 @@ function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }
   return (
     <li data-stage={stage.key} className="relative">
       <div
-        className={`min-w-0 flex flex-col gap-1 px-4 py-[11px] rounded-ctl border ${
+        className={`min-w-0 flex flex-col gap-1.5 px-4 py-3 rounded-ctl border ${
           filled ? 'bg-[#2B3238] border-[#2B3238] text-white' : `bg-card border-rule ${tone.text}`
         }`}
       >
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
           <span className="flex items-baseline gap-3 min-w-0 flex-wrap">
             <span
-              className={`text-[7.5px] ${WIDE_CAPS} w-[110px] flex-none ${
-                filled ? 'text-white/60' : 'text-ink3'
+              className={`text-label uppercase w-[112px] flex-none ${
+                filled ? 'text-white/70' : 'text-ink2'
               }`}
             >
               {stage.label}
@@ -68,14 +62,14 @@ function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }
           </span>
           {stage.date && (
             <span
-              className={`text-[9px] tnum whitespace-nowrap ${filled ? 'text-white/60' : 'text-ink3'}`}
+              className={`text-meta tnum whitespace-nowrap ${filled ? 'text-white/60' : 'text-ink3'}`}
             >
               {stage.date}
             </span>
           )}
         </div>
         {stage.endsJourney && (
-          <div className={`text-[9px] pl-[110px] leading-snug ${filled ? 'text-white/60' : 'text-ink4'}`}>
+          <div className={`text-meta pl-[112px] leading-snug ${filled ? 'text-white/60' : 'text-ink4'}`}>
             Nothing is recorded after this vote.
           </div>
         )}
@@ -83,7 +77,7 @@ function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }
       {!last && (
         <span
           aria-hidden
-          className="absolute left-[36px] -bottom-[15px] text-[10.5px] text-ink3 leading-none"
+          className="absolute left-[38px] -bottom-[16px] text-meta text-ink3 leading-none"
         >
           ↓
         </span>
@@ -102,10 +96,10 @@ export function JourneyStepper({
   return (
     <section aria-labelledby="journey-title" className="border border-rule rounded-card bg-[#ECEEF0]">
       <div className="px-6 pt-5 pb-3 flex items-baseline justify-between gap-3 flex-wrap">
-        <h2 id="journey-title" className="text-[16.5px] font-semibold text-ink m-0">
+        <h2 id="journey-title" className="text-heading font-semibold text-ink m-0">
           Journey
         </h2>
-        <span className="text-[8.25px] uppercase tracking-[0.05em] text-ink3">
+        <span className="text-meta text-ink3">
           Recorded roll calls and enactment actions
           {durationDays !== null && ` · ${formatNumber(durationDays)} days`}
         </span>
@@ -142,7 +136,7 @@ function VoteBar({ bar }: { bar: VoteBarModel }) {
             style={{ width: `${segment.pct}%`, background: segment.color }}
           >
             {segment.isLeader && segment.pct >= 14 && (
-              <span className="text-[9.75px] font-semibold text-white whitespace-nowrap px-[9px] tnum">
+              <span className="text-meta font-semibold text-white whitespace-nowrap px-[9px] tnum">
                 {segment.barLabel}
               </span>
             )}
@@ -150,12 +144,12 @@ function VoteBar({ bar }: { bar: VoteBarModel }) {
         ))}
       </div>
       <div className="h-px bg-rule" />
-      <div className="flex flex-wrap gap-x-5 gap-y-[7px]">
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
         {bar.segments.map((segment) => (
-          <span key={segment.key} className="flex items-center gap-[7px] text-[8.25px]">
+          <span key={segment.key} className="flex items-center gap-2 text-meta">
             <span
               aria-hidden
-              className="inline-block w-[8px] h-[8px] rounded-[2px] flex-none"
+              className="inline-block w-[10px] h-[10px] rounded-[2px] flex-none"
               style={{ background: segment.color }}
             />
             <span className="text-ink2">{segment.legendLabel}</span>
@@ -192,19 +186,19 @@ function VoteCard({
     <section aria-labelledby={titleId} className="border border-rule rounded-card bg-card">
       <div className="px-6 pt-5 pb-5 flex flex-col gap-4">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
-          <h2 id={titleId} className="text-[16.5px] font-semibold text-ink m-0">
+          <h2 id={titleId} className="text-heading font-semibold text-ink m-0">
             {title}
           </h2>
-          <span className="text-[8.25px] uppercase tracking-[0.05em] text-ink3">
+          <span className="text-meta text-ink3">
             {[question, date].filter(Boolean).join(' · ')}
           </span>
         </div>
 
         <div className="flex items-baseline gap-2.5 flex-wrap">
-          <span className={`text-[22.5px] font-black leading-none ${resultColor}`}>{statusLabel}</span>
-          <span className="text-[15px] text-ink2 tnum leading-none">{vote.tally}</span>
-          {vote.tiebreak && <span className="text-[10.5px] text-ink2">VP tiebreak</span>}
-          {vote.majority && <span className="text-[10.5px] text-ink2">{vote.majority}</span>}
+          <span className={`text-display font-black ${resultColor}`}>{statusLabel}</span>
+          <span className="text-heading font-medium text-ink2 tnum">{vote.tally}</span>
+          {vote.tiebreak && <span className="text-meta text-ink2">VP tiebreak</span>}
+          {vote.majority && <span className="text-meta text-ink2">{vote.majority}</span>}
         </div>
 
         <VoteBar bar={vote.bar} />
@@ -218,9 +212,9 @@ function VoteCard({
                 ['Not voting', vote.notVotingCount, 'text-ink3'],
               ] as const
             ).map(([label, count, valueColor]) => (
-              <div key={label} className="flex flex-col gap-0.5">
-                <span className={`text-[7.5px] ${WIDE_CAPS} text-ink3`}>{label}</span>
-                <span className={`text-[15px] font-semibold tnum ${valueColor}`}>
+              <div key={label} className="flex flex-col gap-1">
+                <span className="text-label uppercase text-ink2">{label}</span>
+                <span className={`text-stat font-semibold tnum leading-none ${valueColor}`}>
                   {formatNumber(count)}
                 </span>
               </div>
@@ -228,7 +222,7 @@ function VoteCard({
           </div>
           <a
             href={vote.href}
-            className="text-[9px] uppercase tracking-[0.05em] font-semibold text-ink underline decoration-[#C9CED2] underline-offset-4"
+            className="text-label uppercase font-semibold text-ink underline decoration-[#C9CED2] underline-offset-4"
           >
             {vote.linkLabel} →
           </a>

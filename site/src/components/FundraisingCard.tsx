@@ -13,39 +13,43 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
       className="border border-rule rounded-card bg-card p-4 min-h-[150px] flex flex-col gap-3.5"
     >
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="fundraising-title" className="text-[12px] font-semibold text-ink m-0">
+        <h2 id="fundraising-title" className="text-heading font-semibold text-ink m-0">
           Fundraising
         </h2>
-        <span className="text-[8.25px] uppercase tracking-[0.03em] text-ink3 tnum">
+        <span className="text-label uppercase text-ink3 tnum">
           {model.cycleLabel}
         </span>
       </div>
 
       {model.filed ? (
         <>
-          <div className="grid grid-cols-3 gap-x-3 gap-y-2.5">
+          <div className="flex flex-col gap-2.5">
             {model.stats.map((s) => (
-              <div key={s.label} className="flex flex-col gap-0.5 min-w-0" title={s.title}>
-                <div className="text-[7.5px] uppercase tracking-[0.22em] text-ink3 leading-tight">
-                  {s.label}
+              <div
+                key={s.label}
+                className="flex items-baseline justify-between gap-3"
+                title={s.title}
+              >
+                <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="text-stat font-semibold text-ink tnum leading-none whitespace-nowrap">
+                    {s.value}
+                  </span>
+                  {s.note && <span className="text-meta text-ink3 tnum whitespace-nowrap">{s.note}</span>}
                 </div>
-                <div className="text-[15px] font-semibold text-ink tnum -tracking-[0.01em]">
-                  {s.value}
-                </div>
-                {s.note && <div className="text-[8.25px] text-ink3 tnum">{s.note}</div>}
               </div>
             ))}
           </div>
 
           <div className="flex flex-col gap-[7px]">
-            <div className="text-[7.5px] uppercase tracking-[0.03em] text-ink3 leading-tight">
+            <div className="text-label uppercase text-ink3 leading-tight">
               Where the money came from · share of total raised
             </div>
             {model.shares.map((row) => (
               <div key={row.label} className="flex flex-col gap-[3px]">
-                <div className="flex justify-between items-baseline gap-2 text-[9.75px] tnum">
+                <div className="flex justify-between items-baseline gap-2 text-meta tnum">
                   <span className="text-ink min-w-0 leading-snug">{row.label}</span>
-                  <span className="flex-none whitespace-nowrap text-[9px]">
+                  <span className="flex-none whitespace-nowrap">
                     <span className="text-ink2">{row.amount}</span>
                     <span className="text-ink3"> · </span>
                     <span className="text-ink font-semibold">{row.pctLabel}</span>
@@ -54,17 +58,17 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
                 <div className="h-1.5 bg-[#ECEEF3] rounded-[3px] overflow-hidden">
                   <div className="h-full bg-navy" style={{ width: `${row.pct}%` }} />
                 </div>
-                {row.note && <div className="text-[7.5px] text-ink3 leading-snug">{row.note}</div>}
+                {row.note && <div className="text-micro text-ink3 leading-snug">{row.note}</div>}
               </div>
             ))}
           </div>
         </>
       ) : (
-        <p className="text-sm text-ink3 leading-snug m-0 flex-1">{model.message}</p>
+        <p className="text-body text-ink3 leading-snug m-0 flex-1">{model.message}</p>
       )}
 
       <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-        <div className="text-[7.5px] uppercase tracking-[0.03em] text-ink3 leading-snug tnum min-w-0">
+        <div className="text-label uppercase text-ink3 leading-snug tnum min-w-0">
           {model.footer.map((line) => (
             <div key={line}>{line}</div>
           ))}

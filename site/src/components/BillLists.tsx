@@ -15,7 +15,7 @@ function MoreButton({ label, onClick }: { label: string; onClick: () => void }) 
       <button
         type="button"
         onClick={onClick}
-        className="text-sm border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas hover:border-lockInk"
+        className="text-body border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas hover:border-lockInk"
       >
         {label}
       </button>
@@ -31,7 +31,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
     <section aria-labelledby="cosponsors-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex flex-col gap-2.5">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 id="cosponsors-title" className="text-card font-semibold text-ink m-0">
+          <h2 id="cosponsors-title" className="text-heading font-semibold text-ink m-0">
             Cosponsors
           </h2>
           <span className="text-meta text-ink3 tnum">{cosponsors.meta}</span>
@@ -41,13 +41,13 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
             {cosponsors.chips.map((chip) => (
               <span
                 key={chip.label}
-                className="text-label uppercase tracking-[0.05em] text-ink2 bg-[#F6F5F2] border border-rule rounded-chip px-1.5 py-0.5 tnum"
+                className="text-label uppercase text-ink2 bg-[#F6F5F2] border border-rule rounded-chip px-1.5 py-0.5 tnum"
               >
                 {chip.label}
               </span>
             ))}
             {cosponsors.withdrawn > 0 && (
-              <span className="text-label uppercase tracking-[0.05em] text-ink3 border border-dashed border-rule rounded-chip px-1.5 py-0.5 tnum">
+              <span className="text-label uppercase text-ink3 border border-dashed border-rule rounded-chip px-1.5 py-0.5 tnum">
                 {cosponsors.withdrawn} withdrawn
               </span>
             )}
@@ -56,7 +56,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
       </div>
 
       {cosponsors.total === 0 ? (
-        <p className="text-sm text-ink3 px-[18px] py-4 m-0">
+        <p className="text-body text-ink3 px-[18px] py-4 m-0">
           No member has cosponsored this measure.
         </p>
       ) : (
@@ -66,7 +66,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
               key={`${row.name} ${row.date}`}
               className="flex justify-between items-baseline gap-3 px-[18px] py-2 border-b border-[#F4F2ED]"
             >
-              <span className="min-w-0 text-sm leading-snug">
+              <span className="min-w-0 text-body leading-snug">
                 {row.href ? (
                   <a href={row.href} className="underline decoration-rule underline-offset-2">
                     {row.name}
@@ -97,17 +97,17 @@ export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: str
   return (
     <section aria-labelledby="actions-title" className="border border-rule rounded-card bg-card">
       <div className="px-[18px] pt-3.5 pb-3 border-b border-ruleSoft flex items-center justify-between gap-3">
-        <h2 id="actions-title" className="text-card font-semibold text-ink m-0">
+        <h2 id="actions-title" className="text-heading font-semibold text-ink m-0">
           Action history
         </h2>
         <span className="text-meta text-ink3 tnum">{meta}</span>
       </div>
       {groups.length === 0 && (
-        <p className="text-sm text-ink3 px-[18px] py-4 m-0">No actions recorded yet.</p>
+        <p className="text-body text-ink3 px-[18px] py-4 m-0">No actions recorded yet.</p>
       )}
       {visible.map((group) => (
         <div key={group.date}>
-          <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAF9F6] border-b border-ruleSoft text-[11px] uppercase tracking-[0.07em] text-ink3 tnum">
+          <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAF9F6] border-b border-ruleSoft text-label uppercase text-ink3 tnum">
             {group.date}
           </div>
           {group.items.map((item, i) => (
@@ -121,7 +121,7 @@ export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: str
               />
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                 <p className="text-base leading-snug m-0">{item.text}</p>
-                {item.meta && <p className="text-sm text-ink3 m-0">{item.meta}</p>}
+                {item.meta && <p className="text-body text-ink3 m-0">{item.meta}</p>}
               </div>
             </div>
           ))}

@@ -21,7 +21,7 @@ export function FilterChip({
       disabled={empty}
       onClick={onToggle}
       aria-pressed={on}
-      className="flex-none inline-flex items-center gap-[7px] text-[9px] whitespace-nowrap rounded-ctl px-[10px] py-[6px] border disabled:cursor-default hover:enabled:border-ink"
+      className="flex-none inline-flex items-center gap-[7px] text-label whitespace-nowrap rounded-ctl px-[10px] py-[6px] border disabled:cursor-default hover:enabled:border-ink"
       style={{
         color: fg,
         background: empty ? '#FAFAFB' : '#FFFFFF',
