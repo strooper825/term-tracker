@@ -12,9 +12,10 @@ XML), and `fec` (OpenFEC: principal campaign committee totals, current cycle) lo
 [docs/data-dictionary.md](docs/data-dictionary.md); the API serves every Phase 1 endpoint
 from plan section 6 (`/members`, `/members/{id}`, `/timeline`, `/feed`, `/votes`, `/bills`,
 `/committees`, `/key-dates`, `/meta/freshness`) plus `/members/{id}/fundraising`, `/bills`,
-`/bills/{congress}/{type}/{number}`, and `/meta/sessions`, documented at `/docs`. Twelve members
+`/bills/{congress}/{type}/{number}`, and `/meta/sessions`, documented at `/docs`. Twenty members
 are tracked (`dbt/seeds/tracked_members.csv`): Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries,
-Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff.
+Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna,
+Ocasio-Cortez, M. Johnson, Perry.
 `/members/{id}` carries biography (birthday, age, gender, name parts), the full terms
 history with "serving since" and term counts, leadership roles, and external ids
 (OpenSecrets, Wikipedia, Ballotpedia, C-SPAN, Vote Smart, Wikidata, LIS).
@@ -79,15 +80,15 @@ python -m ingest.run --source fec
 
 The last command needs `FEC_API_KEY` in `.env`, the `tracked_members` seed, and the
 `legislators` source loaded first (it reads each member's FEC candidate ids from
-`raw.legislator`). It makes about four requests per member (41 for the twelve, in a few
+`raw.legislator`). It makes about four requests per member (68 for the twenty, in a few
 seconds) against OpenFEC's limit of 1,000 per hour and 60 per minute, and re-fetches
 everything each run. The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the
 `tracked_members` seed in the database (run the dbt command below once first). For the
-twelve tracked members it makes about 6,740 requests on a first load (3,041 distinct bills
-and amendments: member legislation plus the bills every roll call references; 89 minutes on
-2026-09-16, including two long-tenured members whose full sponsorship/cosponsorship history
-is paginated before filtering to the current Congress) and considerably less on a nightly
-run once everything is unchanged, throttled to 5,000 per hour; add `--full-refresh` to
+twenty tracked members it makes about 9,385 requests on a first load (4,581 distinct bills
+and amendments: member legislation plus the bills every roll call references; about 2 hours
+on 2026-09-16, including several long-tenured members whose full sponsorship/cosponsorship
+history is paginated before filtering to the current Congress) and considerably less on a
+nightly run once everything is unchanged, throttled to 5,000 per hour; add `--full-refresh` to
 re-fetch every actions and cosponsors list regardless of Congress.gov `updateDate`.
 
 ```bash

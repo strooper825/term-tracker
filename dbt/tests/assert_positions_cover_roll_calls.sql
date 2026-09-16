@@ -4,6 +4,12 @@
 -- was lost or overwritten (for example by trimmed test fixtures loaded into a live database).
 -- Members with no position at all in a chamber and Congress are left out so a fixture-only
 -- database, where the vote fixtures cover only some tracked members, still passes.
+--
+-- Exception: the sitting Speaker of the House (ADR 0010). House Rule I, clause 7 excuses the
+-- Speaker from voting "except when such vote would be decisive," and the Clerk's roll simply
+-- omits the Speaker's name on a roll call he does not join, rather than recording Not Voting.
+-- His shortfall is therefore not a lost member list, and is excluded here rather than papered
+-- over with an invented Not Voting row.
 with expected as (
     select
         t.bioguide_id,
@@ -15,6 +21,12 @@ with expected as (
         on r.chamber = t.chamber
         and r.vote_date >= t.start_date
         and r.vote_date < t.end_date
+    where not exists (
+        select 1 from {{ ref('leadership_role') }} as lr
+        where lr.bioguide_id = t.bioguide_id
+        and lr.title = 'Speaker of the House'
+        and lr.is_current
+    )
     group by 1, 2, 3
 ),
 

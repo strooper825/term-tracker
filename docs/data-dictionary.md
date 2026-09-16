@@ -136,8 +136,8 @@ documented 1,000 per hour; the client throttles on both.
 | Table | Key | Description |
 |---|---|---|
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
-| `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twelve members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff. |
-| `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
+| `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
+| `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
 
 ## Staging views (`staging` schema, dbt)
 
@@ -463,6 +463,14 @@ it is loading the trimmed test fixtures into a live database, which the test sui
 (see `tests/conftest.py`); `docs/verification-notes.md` records the instance that prompted
 both. A member seated after the first roll call of a Congress legitimately has fewer positions
 than `roll_calls`, and the test allows that by counting from the term start.
+
+The other known way is holding the Speakership: House Rule I excuses the Speaker from voting,
+and the Clerk's roll omits his name rather than recording Not Voting on a roll call he does not
+join, so his `positions` legitimately falls short of `roll_calls` (ADR 0010). The test exempts
+whoever currently holds `leadership_role.title = 'Speaker of the House'`; his `attendance_pct`
+is still `votes_cast / positions` as for anyone else, which reads as 100 percent because
+`positions` already excludes the roll calls he skipped, so it is not comparable to another
+member's attendance figure.
 
 ### `mart.key_date`
 

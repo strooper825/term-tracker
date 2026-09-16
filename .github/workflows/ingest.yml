@@ -36,7 +36,10 @@ jobs:
   ingest:
     name: migrate -> seed -> ingest -> dbt build -> freshness check
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Raised from 90 after the twenty-member expansion: a local first-load run for all twenty
+    # tracked members took 2h02m (122 minutes), up from 89 minutes at twelve members; the plan's
+    # open item on a batching plan for further growth (docs/PLAN.md section 12) still applies.
+    timeout-minutes: 180
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
