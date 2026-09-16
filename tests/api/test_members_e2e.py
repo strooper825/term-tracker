@@ -13,15 +13,27 @@ from ingest.sources import legislators as src
 pytestmark = [pytest.mark.integration, pytest.mark.dbt]
 
 
-SIX = {"S001213", "C001095", "S000033", "S001208", "K000401", "J000294"}
+TRACKED_IN_FIXTURES = {
+    "S001213",
+    "C001095",
+    "S000033",
+    "S001208",
+    "K000401",
+    "J000294",
+    "B001230",  # Baldwin: in raw and, since the twelve-member expansion, also tracked
+}
 
 
-def test_members_returns_the_six_tracked_members(built_mart: None, client: TestClient) -> None:
+def test_members_returns_the_tracked_members_in_the_fixtures(
+    built_mart: None, client: TestClient
+) -> None:
     response = client.get("/api/v1/members")
     assert response.status_code == 200
     body = response.json()
     members = {m["bioguide_id"]: m for m in body["members"]}
-    assert set(members) == SIX  # B001230 is in raw but not tracked
+    # dbt build seeds the real seed.tracked_members (twelve members); only the ones also
+    # present in the trimmed raw.legislator fixture reach the mart, which is this set.
+    assert set(members) == TRACKED_IN_FIXTURES
 
     steil = members["S001213"]
     assert steil["name"]["official_full"] == "Bryan Steil"
@@ -84,6 +96,16 @@ def test_members_returns_the_six_tracked_members(built_mart: None, client: TestC
     kiley = members["K000401"]
     assert (kiley["party"], kiley["caucus"]) == ("Independent", "Republican")
     assert members["J000294"]["name"]["middle"] == "S."
+
+    baldwin = members["B001230"]
+    assert baldwin["party"] == "Democrat" and baldwin["caucus"] is None
+    assert baldwin["seat"]["label"] == "Wisconsin (Class 1)"
+    assert baldwin["term"] == {
+        "congress": 119,
+        "start_date": "2025-01-03",
+        "end_date": "2031-01-03",
+        "party": "Democrat",
+    }
 
     assert body["sources"], "every response carries sources[]"
     assert all(s["source_url"].startswith(src.BASE_URL) for s in body["sources"])

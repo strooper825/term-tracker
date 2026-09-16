@@ -31,7 +31,7 @@ def test_roll_calls_from_both_chambers(built_mart: None, migrated_engine: Engine
     assert str(senate_1["vote_date"]) == "2025-01-09"
     assert senate_1["question"] == "On Cloture on the Motion to Proceed S. 5"
     assert (senate_1["bill_type"], senate_1["bill_number"]) == ("s", "5")
-    assert senate_1["member_total"] == 6  # trimmed fixture: five senators plus Sanders
+    assert senate_1["member_total"] == 6  # trimmed fixture: four senators plus Sanders and Baldwin
     house_240 = next(
         r for r in rows if (r["chamber"], r["session"], r["roll_number"]) == ("house", 1, 240)
     )
@@ -51,10 +51,12 @@ def test_member_votes_are_tracked_members_with_normalised_positions(
     by_member: dict[str, list[dict]] = {}
     for r in rows:
         by_member.setdefault(r["bioguide_id"], []).append(r)
-    # Sanders and Kiley are in the vote fixtures (ADR 0005 coverage); Slotkin and Jeffries are not
-    assert set(by_member) == {"S001213", "C001095", "S000033", "K000401"}
+    # Sanders, Kiley, and (since the twelve-member expansion) Baldwin are in the vote fixtures
+    # (ADR 0005 coverage for Sanders/Kiley); Slotkin and Jeffries are not
+    assert set(by_member) == {"S001213", "C001095", "S000033", "K000401", "B001230"}
     assert len(by_member["S001213"]) == 5 and len(by_member["C001095"]) == 3
     assert len(by_member["S000033"]) == 3 and len(by_member["K000401"]) == 5
+    assert len(by_member["B001230"]) == 3
     absent = next(r for r in by_member["S001213"] if (r["session"], r["roll_number"]) == (1, 353))
     assert (absent["position"], absent["voted"]) == ("Not Voting", False)
 
@@ -69,6 +71,8 @@ def test_member_votes_are_tracked_members_with_normalised_positions(
     for r in by_member["C001095"]:
         assert r["chamber"] == "senate" and r["position"] == r["position_raw"]
     assert sum(1 for r in by_member["C001095"] if not r["voted"]) == 1
+    for r in by_member["B001230"]:
+        assert r["chamber"] == "senate" and r["position"] == r["position_raw"] and r["voted"]
 
 
 def test_attendance_query_shape(built_mart: None, migrated_engine: Engine) -> None:
@@ -85,6 +89,7 @@ def test_attendance_query_shape(built_mart: None, migrated_engine: Engine) -> No
         """,
     )
     assert {r["bioguide_id"]: r["positions"] for r in rows} == {
+        "B001230": 3,
         "C001095": 3,
         "K000401": 5,
         "S000033": 3,
