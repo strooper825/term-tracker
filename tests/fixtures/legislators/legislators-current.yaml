@@ -1,7 +1,9 @@
 # Trimmed from https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml
-# retrieved 2026-09-13. Seven members (the six tracked ones plus Tammy Baldwin, who is in raw but not
-# tracked); per-term contact details (address, office, phone, fax, contact_form, rss_url) are removed;
-# nothing else is altered.
+# retrieved 2026-09-13. Seven members: the original six tracked ones plus Tammy Baldwin, added
+# here to prove the mart filters raw.legislator down to seed.tracked_members even when raw has
+# an extra row -- since the twelve-member expansion (docs/PLAN.md), Baldwin is also tracked, so
+# all seven in this file are now tracked; per-term contact details (address, office, phone, fax,
+# contact_form, rss_url) are removed, nothing else is altered.
 - id:
     bioguide: B001230
     thomas: 01558
