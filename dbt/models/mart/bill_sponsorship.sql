@@ -4,6 +4,12 @@
 -- A member who cosponsors, withdraws, and cosponsors the same bill again has more than one
 -- entry in the cosponsors list, so the join takes their most recent stint; without that the
 -- member would gain a second row here and be counted twice (ADR 0007).
+--
+-- A cosponsor-role row from the member's own list with no match yet in the bill's own
+-- cosponsors list is dropped rather than kept with a null date (ADR 0011): the member's list
+-- and the bill's list are two different endpoints, refetched on different schedules, and a
+-- very recent cosponsorship can appear on the former before the bill's updateDate ticks and
+-- the latter is re-fetched. The row reappears once that happens.
 with cosponsorships as (
     select distinct on (congress, bill_type, bill_number, bioguide_id) *
     from {{ ref('stg_bill_cosponsors') }}
@@ -33,3 +39,4 @@ left join cosponsorships as c
     on ml.role = 'cosponsor'
     and c.congress = ml.congress and c.bill_type = ml.bill_type and c.bill_number = ml.bill_number
     and c.bioguide_id = ml.bioguide_id
+where ml.role = 'sponsor' or c.bioguide_id is not null

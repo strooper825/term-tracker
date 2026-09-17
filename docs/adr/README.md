@@ -15,6 +15,7 @@ also recorded here once made.
 - [0007. A member can cosponsor the same bill twice](0007-repeat-cosponsorship.md)
 - [0009. Bill vote journey: completed records only, not a bill status](0009-bill-vote-journey.md)
 - [0010. The Speaker of the House is exempt from assert_positions_cover_roll_calls](0010-speaker-vote-coverage.md)
+- [0011. A cosponsor row waits for the bill's own cosponsors list, not the member's list alone](0011-cosponsorship-date-lag.md)
 
 ## Format
 
