@@ -10,7 +10,7 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
   return (
     <section
       aria-labelledby="fundraising-title"
-      className="border border-rule rounded-card bg-card p-4 min-h-[150px] flex flex-col gap-3.5"
+      className="border border-rule rounded-card bg-card p-4 min-h-[150px] flex flex-col gap-3.5 overflow-hidden"
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="fundraising-title" className="text-heading font-semibold text-ink m-0">
@@ -27,11 +27,11 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
             {model.stats.map((s) => (
               <div
                 key={s.label}
-                className="flex items-baseline justify-between gap-3"
+                className="flex items-baseline justify-between gap-3 flex-wrap"
                 title={s.title}
               >
                 <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
-                <div className="flex items-baseline gap-2 min-w-0">
+                <div className="flex items-baseline gap-2 flex-wrap justify-end min-w-0">
                   <span className="text-stat font-semibold text-ink tnum leading-none whitespace-nowrap">
                     {s.value}
                   </span>

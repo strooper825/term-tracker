@@ -1,22 +1,17 @@
 // MemberHeader, StatStrip, TermProgress: ported from design/src/components.
 import type { MemberHeaderModel, Stat, TermModel } from '@/lib/model';
 import { formatNumber } from '@/lib/format';
+import { MemberPhoto } from './MemberPhoto';
 import { PartyBadge } from './SiteChrome';
 
 export function MemberHeader({ member }: { member: MemberHeaderModel }) {
   return (
     <div className="flex items-start gap-[18px] flex-wrap">
-      {member.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={member.photoUrl}
-          alt=""
-          referrerPolicy="no-referrer"
-          className="w-16 h-16 rounded-full object-cover border border-rule flex-none bg-[#DEDCD6]"
-        />
-      ) : (
-        <div className="w-16 h-16 rounded-full bg-[#DEDCD6] border border-rule flex-none" />
-      )}
+      <MemberPhoto
+        photoUrl={member.photoUrl}
+        bioguideId={member.bioguideId}
+        className="w-16 h-16 rounded-full"
+      />
       <div className="flex flex-col gap-[7px] min-w-0">
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="text-title font-semibold text-ink m-0">{member.name}</h1>
