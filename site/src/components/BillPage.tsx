@@ -1,9 +1,11 @@
 // Bill detail page (/bills/{congress}/{type}/{number}). Server component: every prop is built
-// at build time in src/lib/model.ts from GET /bills/{congress}/{type}/{number}, and the two
-// client islands only collapse long lists.
-import type { BillPageModel, RollCallRow } from '@/lib/model';
+// at build time in src/lib/model.ts from GET /bills/{congress}/{type}/{number}, and the three
+// client islands (BillActions, BillCosponsors, RollCallCard) only collapse, filter, and expand
+// already-embedded lists.
+import type { BillPageModel } from '@/lib/model';
 import { BillJourney } from './BillJourney';
 import { BillActions, BillCosponsors } from './BillLists';
+import { RollCallCard } from './RollCallCard';
 import { Breadcrumb, SiteFooter, SiteHeader, SourceLink } from './SiteChrome';
 
 export interface BillPageProps {
@@ -111,53 +113,6 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
         </div>
       ) : (
         <p className="text-body text-ink3 leading-snug px-[18px] py-4 m-0">{bill.summaryEmpty}</p>
-      )}
-    </section>
-  );
-}
-
-function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string }) {
-  return (
-    <section aria-labelledby="rollcalls-title" className="border border-rule rounded-card bg-card">
-      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex items-baseline justify-between gap-3">
-        <h2 id="rollcalls-title" className="text-heading font-semibold text-ink m-0">
-          Roll calls
-        </h2>
-        <span className="text-meta text-ink3 tnum">{meta}</span>
-      </div>
-      {rows.length === 0 ? (
-        <p className="text-body text-ink3 px-[18px] py-4 m-0">
-          No recorded roll call has named this measure.
-        </p>
-      ) : (
-        rows.map((row) => (
-          <div
-            key={row.anchor}
-            id={row.anchor}
-            className="px-[18px] py-3 border-b border-[#F4F2ED] flex flex-col gap-1.5 scroll-mt-4"
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-base font-semibold text-ink tnum">{row.heading}</span>
-              <SourceLink href={row.source} title="View the roll call record" />
-            </div>
-            {row.question && <div className="text-body text-ink2 leading-snug">{row.question}</div>}
-            <div className="text-meta text-ink3 tnum">
-              <span className="text-ink font-semibold">{row.tally}</span> · {row.detail}
-            </div>
-            {row.positions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-0.5">
-                {row.positions.map((p) => (
-                  <span
-                    key={p.name}
-                    className="text-label uppercase border border-rule rounded-chip px-1.5 py-0.5 text-ink2"
-                  >
-                    {p.name}: <span className="text-ink font-semibold">{p.position}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))
       )}
     </section>
   );

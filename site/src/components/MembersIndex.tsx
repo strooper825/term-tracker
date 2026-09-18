@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { PARTY_COLOR, type PartyName } from '@/data/eventTypes';
 import type { Chamber, IndexRow } from '@/lib/model';
 import { FilterChip } from './FilterChip';
+import { MemberPhoto } from './MemberPhoto';
 import { PartyBadge } from './SiteChrome';
 
 export const CHAMBERS: Chamber[] = ['House', 'Senate'];
@@ -27,17 +28,11 @@ function MemberCard({ member }: { member: IndexRow }) {
       className="flex flex-col gap-3 border border-rule rounded-card bg-card p-4 text-ink no-underline hover:border-lockInk hover:bg-[#FCFBF9]"
     >
       <div className="flex items-start gap-3">
-        {member.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={member.photoUrl}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="w-[35px] h-[35px] rounded-full object-cover bg-[#DEDCD6] border border-rule flex-none"
-          />
-        ) : (
-          <div className="w-[35px] h-[35px] rounded-full bg-[#DEDCD6] border border-rule flex-none" />
-        )}
+        <MemberPhoto
+          photoUrl={member.photoUrl}
+          bioguideId={member.bioguideId}
+          className="w-[35px] h-[35px] rounded-full"
+        />
         <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-base font-semibold leading-snug">{member.name}</span>
           <PartyBadge party={member.party} size="lg" />
