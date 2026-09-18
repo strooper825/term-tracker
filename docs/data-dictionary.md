@@ -402,6 +402,13 @@ Natural key `(bioguide_id, congress, bill_type, bill_number, role)`; `role` is `
 cosponsors endpoint) for a cosponsor. `is_original_cosponsor` and `withdrawn_date` apply to
 cosponsors only.
 
+A cosponsor row requires a match in the bill's own cosponsors list, not only the member's
+personal list: the two are separate Congress.gov endpoints on separate refresh schedules, so a
+very recent cosponsorship can show up on the member's list a run or more before the bill's own
+list catches up. Rather than a row with a null `date`, that cosponsorship is simply absent from
+`mart.bill_sponsorship` until the bill's list agrees (ADR 0011); this is the same snapshot lag
+the count-matching tolerance below already tolerates, surfacing one join earlier.
+
 ### `mart.bill_action`
 
 Natural key `(congress, bill_type, bill_number, action_date, action_hash)`. Columns
