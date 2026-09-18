@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { BillPage } from '@/components/BillPage';
-import { buildBillPage, buildJourney, memberMeta, sanitizeSummaryHtml } from '@/lib/model';
+import {
+  buildBillPage,
+  buildJourney,
+  memberMeta,
+  rollCallPositionSummary,
+  sanitizeSummaryHtml,
+} from '@/lib/model';
 import {
   AMENDMENT,
   BILL,
@@ -114,6 +120,28 @@ describe('bill page model', () => {
     expect(m.rollCalls[0].positions.map((p) => `${p.name} ${p.position}`)).toEqual([
       'Bryan Steil Yea',
       'Hakeem Jeffries Nay',
+    ]);
+  });
+
+  it('roll call position summary buckets by direction, then by party letter', () => {
+    const positions = [
+      { party: 'Republican', position: 'Yea' },
+      { party: 'Republican', position: 'Yea' },
+      { party: 'Democrat', position: 'Yea' },
+      { party: 'Independent', position: 'Yea' },
+      { party: 'Democrat', position: 'Nay' },
+      { party: 'Republican', position: 'Not Voting' },
+    ];
+    expect(rollCallPositionSummary(positions)).toEqual([
+      { label: 'Yea', text: 'R 2 · D 1 · I 1' },
+      { label: 'Nay', text: 'D 1' },
+      { label: 'Not voting', text: 'R 1' },
+    ]);
+  });
+
+  it('a direction with no positions is left out of the summary entirely', () => {
+    expect(rollCallPositionSummary([{ party: 'Republican', position: 'Yea' }])).toEqual([
+      { label: 'Yea', text: 'R 1' },
     ]);
   });
 
@@ -355,6 +383,75 @@ describe('bill page: given this API row, this text renders', () => {
     expect(within(cosponsors).queryByText('Member 15')).not.toBeInTheDocument();
     fireEvent.click(within(cosponsors).getByRole('button', { name: 'Show all 20' }));
     expect(within(cosponsors).getByText('Member 15')).toBeInTheDocument();
+  });
+
+  function manyPositionsBill(positions: { name: string; party: string; position: string }[]) {
+    return {
+      ...BILL,
+      roll_calls: [
+        {
+          ...BILL.roll_calls[0],
+          tracked_positions: positions.map((p, i) => ({
+            bioguide_id: `X${i}`,
+            name: p.name,
+            party: p.party,
+            position: p.position,
+          })),
+        },
+      ],
+    };
+  }
+
+  const TWELVE_POSITIONS = [
+    { name: 'Member 0', party: 'Republican', position: 'Yea' },
+    { name: 'Member 1', party: 'Republican', position: 'Yea' },
+    { name: 'Member 2', party: 'Republican', position: 'Yea' },
+    { name: 'Member 3', party: 'Republican', position: 'Yea' },
+    { name: 'Member 4', party: 'Democrat', position: 'Yea' },
+    { name: 'Member 5', party: 'Democrat', position: 'Yea' },
+    { name: 'Member 6', party: 'Democrat', position: 'Yea' },
+    { name: 'Member 7', party: 'Independent', position: 'Yea' },
+    { name: 'Member 8', party: 'Independent', position: 'Yea' },
+    { name: 'Member 9', party: 'Republican', position: 'Nay' },
+    { name: 'Member 10', party: 'Democrat', position: 'Nay' },
+    { name: 'Search Target', party: 'Independent', position: 'Not Voting' },
+  ];
+
+  it('a long roll call position list shows a party summary, collapses, and expands', () => {
+    render(page(manyPositionsBill(TWELVE_POSITIONS)));
+    const rollcalls = screen.getByLabelText('Roll calls');
+    expect(within(rollcalls).getByText('R 4 · D 3 · I 2')).toBeInTheDocument();
+    expect(within(rollcalls).getByText('R 1 · D 1')).toBeInTheDocument();
+    expect(within(rollcalls).getByText('I 1')).toBeInTheDocument();
+    expect(within(rollcalls).getByText('Member 0:', { exact: false })).toBeInTheDocument();
+    expect(within(rollcalls).queryByText('Search Target:', { exact: false })).not.toBeInTheDocument();
+    fireEvent.click(within(rollcalls).getByRole('button', { name: 'Show all 12' }));
+    expect(within(rollcalls).getByText('Search Target:', { exact: false })).toBeInTheDocument();
+    fireEvent.click(within(rollcalls).getByRole('button', { name: 'Show fewer' }));
+    expect(within(rollcalls).queryByText('Search Target:', { exact: false })).not.toBeInTheDocument();
+  });
+
+  it('searching a long roll call list filters regardless of the collapsed state', () => {
+    render(page(manyPositionsBill(TWELVE_POSITIONS)));
+    const rollcalls = screen.getByLabelText('Roll calls');
+    const search = within(rollcalls).getByLabelText('Search this roll call by name');
+    fireEvent.change(search, { target: { value: 'target' } });
+    expect(within(rollcalls).getByText('Search Target:', { exact: false })).toBeInTheDocument();
+    expect(within(rollcalls).queryByText('Member 0:', { exact: false })).not.toBeInTheDocument();
+    fireEvent.change(search, { target: { value: 'zzz-nomatch' } });
+    expect(within(rollcalls).getByText(/No tracked member matches/)).toBeInTheDocument();
+  });
+
+  it('a short roll call position list has no search box, summary, or expand button', () => {
+    render(page(BILL));
+    const rollcalls = screen.getByLabelText('Roll calls');
+    expect(
+      within(rollcalls).queryByLabelText('Search this roll call by name'),
+    ).not.toBeInTheDocument();
+    expect(within(rollcalls).queryByRole('button', { name: /Show all/ })).not.toBeInTheDocument();
+    expect(within(rollcalls).queryByText(/Yea:/)).not.toBeInTheDocument();
+    // the flat chip list from before still renders exactly as it did
+    expect(within(rollcalls).getByText('Bryan Steil:', { exact: false })).toBeInTheDocument();
   });
 
   it('breadcrumb walks Members, the sponsor, then the bill', () => {

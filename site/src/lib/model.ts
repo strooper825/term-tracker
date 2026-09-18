@@ -716,6 +716,11 @@ export interface CosponsorsModel {
   withdrawn: number;
 }
 
+export interface PositionSummaryLine {
+  label: string;
+  text: string;
+}
+
 export interface RollCallRow {
   /** Element id of the row, which the vote journey links to. */
   anchor: string;
@@ -724,7 +729,37 @@ export interface RollCallRow {
   tally: string;
   detail: string;
   positions: { name: string; party: string | null; position: string }[];
+  /** Party breakdown of `positions` ("Yea: R 5 · D 3"), for the card once the chip list is
+   *  long enough that reading every chip stops being the fastest way to answer "which way did
+   *  it split" (RollCallCard). Empty when there are no positions. */
+  positionSummary: PositionSummaryLine[];
   source: string;
+}
+
+const PARTY_LETTER: Record<PartyName, string> = { Republican: 'R', Democratic: 'D', Independent: 'I' };
+
+/** Compact party breakdown of a roll call's tracked-member positions, e.g. "Yea: R 5 · D 3 · I 2".
+ *  A plain count line in the card's existing navy-monochrome palette, not the whole-chamber vote
+ *  bar's party colors (see VoteBar in BillJourney.tsx) -- with a dozen or so tracked members a
+ *  proportional bar would be mostly unreadable slivers, so this stays text. */
+export function rollCallPositionSummary(
+  positions: { party: string | null; position: string }[],
+): PositionSummaryLine[] {
+  const buckets: Record<string, Partial<Record<string, number>>> = { Yea: {}, Nay: {}, 'Not voting': {} };
+  for (const p of positions) {
+    const label = p.position === 'Yea' ? 'Yea' : p.position === 'Nay' ? 'Nay' : 'Not voting';
+    const letter = PARTY_LETTER[partyName(p.party)];
+    buckets[label][letter] = (buckets[label][letter] ?? 0) + 1;
+  }
+  return (['Yea', 'Nay', 'Not voting'] as const)
+    .map((label) => ({
+      label,
+      text: ['R', 'D', 'I']
+        .filter((letter) => (buckets[label][letter] ?? 0) > 0)
+        .map((letter) => `${letter} ${buckets[label][letter]}`)
+        .join(' · '),
+    }))
+    .filter((line) => line.text !== '');
 }
 
 export interface BillPageModel {
@@ -1086,6 +1121,7 @@ function rollCallRows(detail: BillDetail): RollCallRow[] {
       party: p.party,
       position: p.position,
     })),
+    positionSummary: rollCallPositionSummary(r.tracked_positions),
     source: r.source_url,
   }));
 }
