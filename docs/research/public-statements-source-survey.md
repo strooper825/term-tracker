@@ -179,6 +179,72 @@ to the nightly job's existing ~1,900 Congress.gov bill-detail requests and its 1
 two per member, since only the first listing page needs checking for anything posted since the
 last run), still small against the current nightly footprint.
 
+## 6. Extrapolating Tier 1 to the full 535 (2026-09-17 addendum)
+
+The intended UI splits by tier: Tier 1 gets a scrolling, searchable feed (full text, so it's
+worth searching over and worth trusting as "live"); everything else gets a link-out to the
+official press page rather than a half-built panel. That makes "how many of the 535 are Tier 1"
+the number that actually sizes the feature, not just the 20 tracked members. Two things had to be
+checked before answering: whether the crowdsourced `congress-legislators` YAML's `rss_url` field
+(the source this pipeline already ingests, `raw.legislator.payload`) could stand in for a live
+check, and, since it couldn't, what a real random sample says.
+
+**The `rss_url` field is not usable as a shortcut.** Parsed directly from
+`legislators-current.yaml` (539 current members, the same file `ingest/sources/legislators.py`
+loads): 159 of 539 (124 House, 35 Senate) have a non-empty `rss_url` in their current term. But
+checking it against the 20 tracked members we'd already verified live showed it has no
+predictive value: McConnell's listed URL (`.../public/?a=rss.feed`) is the exact pattern his
+`robots.txt` now excludes and 404s; Murphy's listed URL is a 2012 news article on
+`theday.com`, not his own site; and it's silent (`None`) for Slotkin, Ossoff, and Mike Johnson's
+speaker.gov feed — three of our five cleanest, freshest, currently-working feeds. The field
+reflects whatever a contributor found whenever they last edited that member's entry, which for
+many offices predates their current CMS by years. **Every candidate needed a live fetch; there
+was no way to shortcut this with existing data.**
+
+**Method.** Drew a reproducible random sample (Python `random.seed(20260917)`) of 20 Senators and
+25 Representatives from the 515 untracked members, stratified by chamber only (the `rss_url` flag
+turned out not to correlate with anything, so stratifying on it would have been misleading). Four
+agents live-checked all 45 — official press page, common feed paths, and for any feed found,
+full-text (`content:encoded`) presence and freshness against the live listing — using the same
+three-way classification as the main survey plus a "Flawed" middle tier for feeds that exist but
+fail on scope, staleness, or emptiness.
+
+**Results**, combined with the 20 already verified (65 members checked total, ~12% of Congress):
+
+| | Clean (Tier 1) | Flawed | None | n |
+|---|---|---|---|---|
+| Senate | 6 (20.0%) | 4 | 20 | 30 |
+| House | 2 (5.7%) | 19 | 14 | 35 |
+| **Total** | **8 (12.3%)** | 23 | 34 | 65 |
+
+Weighted by actual chamber size (100 Senate, 435 House): **Senate ≈ 20 of 100, House ≈ 25 of 435,
+for roughly 45 of 535 (≈8%) meeting the Tier 1 bar today.** Sample sizes are modest enough that
+the honest range is wider — call it **35–70 members (7–13%)** rather than a point estimate; the
+Senate figure in particular rests on only 30 observations.
+
+**The tracked 20 overstate the rate — don't use it to size the feature.** The tracked list's
+implied Tier 1 rate (2 of 10 House members, both leadership: Jeffries, the Speaker) is more than
+triple the random-sample House rate (5.7%). Leadership and other high-profile offices run better
+comms infrastructure than a typical seat; a v1 built only against the tracked 20 would look more
+feed-friendly than Congress actually is.
+
+**Two more flaw modes showed up at this scale**, beyond the stale/sitewide/wrong-content ones the
+main survey found:
+- **Structurally valid but empty**: Schmitt's and Lankford's Senate feeds parse as RSS 2.0 with a
+  `content` namespace declared, but contain zero `<item>` elements — worse than stale, since a
+  naive nightly job would read "office posted nothing" rather than "feed is broken."
+- **Wrong content type entirely**: Subramanyam's `/rss.xml` is a photo-gallery feed; Onder's is a
+  newsletter feed. The URL pattern that works for one office's press releases is a different
+  content type for another's, even on similar-looking sites.
+
+**Good news for the link-out plan**: most of the "None" members (11 of 14 in the House sample, 13
+of 20 in the Senate sample) have clean, fresh, actively-maintained press pages — they simply don't
+expose a feed at any common path. Linking to those pages for everyone outside Tier 1 isn't a
+fallback to a worse source, it's linking to the same quality of official page Tier 1 members have,
+just not in a machine-readable shape. That supports scoping the UI exactly as proposed: a real
+scrolling/searchable feed for the ~45 Tier 1 members, a plain link-out for the rest, and no
+attempt to force Tier 2/3 data into the same feed component.
+
 ## What this survey did not re-litigate
 
 X/Twitter (no free API tier as of 2026) and Meta/Facebook's Graph API (App Review required to
