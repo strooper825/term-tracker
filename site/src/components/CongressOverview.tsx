@@ -1,7 +1,7 @@
 // Congress overview page (/congress). Server component: every prop is built at build time in
 // src/lib/congress.ts from GET /api/v1/congress/overview. Three parts, in order: chamber
 // composition for all 535 seats, legislative activity, and the bills that passed both chambers.
-// The last two cover every bill in the database, whoever sponsored it.
+// The last two cover every bill loaded, whoever sponsored it.
 import { PARTY_COLOR } from '@/data/eventTypes';
 import type { ChamberBar, CompositionSegment, CongressModel, StatCell } from '@/lib/congress';
 import { PassedBothTable } from './PassedBothTable';
@@ -144,17 +144,13 @@ function PassedBothCard({ model }: { model: CongressModel }) {
   const { passedBoth } = model;
   return (
     <section aria-labelledby="passed-title" className="border border-rule rounded-card bg-card">
-      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex flex-col gap-2">
+      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft">
         <div className="flex items-baseline gap-x-2.5 gap-y-1 flex-wrap">
           <h2 id="passed-title" className="text-heading font-semibold text-ink m-0">
             Passed both chambers
           </h2>
-          <span className="text-label uppercase text-ink2 bg-lockBg border border-rule rounded-chip px-2 py-0.5 tnum">
-            {passedBoth.chip}
-          </span>
           <span className="text-label uppercase text-ink3 tnum">{passedBoth.meta}</span>
         </div>
-        <p className="text-meta text-ink3 m-0 max-w-[80ch]">{passedBoth.scope}</p>
       </div>
       <div className="px-[18px] py-4">
         <PassedBothTable rows={passedBoth.rows} />
@@ -184,27 +180,13 @@ function ActivityCard({ model }: { model: CongressModel }) {
   const { activity } = model;
   return (
     <section aria-labelledby="activity-title" className="border border-rule rounded-card bg-card">
-      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex flex-col gap-2">
+      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft">
         <div className="flex items-baseline justify-between gap-x-4 gap-y-1 flex-wrap">
-          <div className="flex items-baseline gap-x-2.5 gap-y-1 flex-wrap">
-            <h2 id="activity-title" className="text-heading font-semibold text-ink m-0">
-              {activity.heading}
-            </h2>
-            <span className="text-label uppercase text-ink2 bg-lockBg border border-rule rounded-chip px-2 py-0.5 tnum">
-              {activity.chip}
-            </span>
-          </div>
+          <h2 id="activity-title" className="text-heading font-semibold text-ink m-0">
+            {activity.heading}
+          </h2>
           <span className="text-meta text-ink3 tnum">{activity.meta}</span>
         </div>
-        <p className="text-meta text-ink3 m-0 max-w-[80ch]">
-          {activity.scope}{' '}
-          <a
-            href={activity.trackedHref}
-            className="text-ink2 underline decoration-rule underline-offset-2 whitespace-nowrap"
-          >
-            {activity.trackedLabel} →
-          </a>
-        </p>
       </div>
       <div className="px-[18px] py-4">
         <StatGrid stats={activity.stats} />
