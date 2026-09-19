@@ -16,6 +16,14 @@ select
     t.value ->> 'state_rank' as state_rank,
     t.value ->> 'how' as how,
     t.value ->> 'end-type' as end_type,
+    -- the office contact block; the source leaves a key out rather than writing null
+    nullif(t.value ->> 'url', '') as website_url,
+    nullif(t.value ->> 'phone', '') as phone,
+    nullif(t.value ->> 'fax', '') as fax,
+    nullif(t.value ->> 'office', '') as office,
+    nullif(t.value ->> 'address', '') as address,
+    nullif(t.value ->> 'contact_form', '') as contact_form_url,
+    nullif(t.value ->> 'rss_url', '') as rss_url,
     'legislators' as source,
     l.source_url,
     l.fetched_at

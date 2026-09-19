@@ -18,6 +18,7 @@ from api.schemas.member import (
     BillItem,
     BillsResponse,
     CommitteesResponse,
+    ContactResponse,
     FecCandidateRef,
     FecCommitteeRef,
     FeedItem,
@@ -130,6 +131,15 @@ FUNDRAISING_SQL = text(
     WHERE bioguide_id = :bioguide
     ORDER BY cycle DESC
     LIMIT 1
+    """
+)
+
+CONTACT_SQL = text(
+    """
+    SELECT website_url, contact_form_url, phone, fax, office, address, rss_url,
+           source, source_url, fetched_at
+    FROM mart.member_contact
+    WHERE bioguide_id = :bioguide
     """
 )
 
@@ -390,6 +400,20 @@ def member_committees(
         for row in rows
     ]
     return CommitteesResponse(bioguide_id=bioguide, items=items, sources=_sources(rows))
+
+
+@router.get("/contact", response_model=ContactResponse, summary="How to reach the member")
+def member_contact(
+    bioguide: str, session: Annotated[Session, Depends(get_session)]
+) -> ContactResponse:
+    _summary(session, bioguide)
+    row = session.execute(CONTACT_SQL, {"bioguide": bioguide}).mappings().first()
+    fields = ("website_url", "contact_form_url", "phone", "fax", "office", "address", "rss_url")
+    return ContactResponse(
+        bioguide_id=bioguide,
+        **{f: row[f] if row else None for f in fields},
+        sources=_sources([row]) if row else [],
+    )
 
 
 @router.get("/key-dates", response_model=KeyDatesResponse, summary="Calendar events for the member")

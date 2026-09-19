@@ -28,6 +28,7 @@ import type {
   BillRollCall,
   BillSummaryVersion,
   CommitteeAssignment,
+  ContactResponse,
   CongressSession,
   FeedItem,
   FreshnessResponse,
@@ -500,6 +501,48 @@ export function buildRecord(detail: MemberDetail): RecordModel {
       note: t.state + (t.chamber === 'house' && t.district !== null ? `-${t.district || 'AL'}` : ''),
     })),
   };
+}
+
+export interface ContactRow {
+  label: string;
+  value: string;
+  /** What the value links to: a web page, or tel:. Absent for plain text. */
+  href?: string;
+}
+
+export interface ContactModel {
+  /** Ways to reach the office: website, contact form, phone, fax. */
+  reach: ContactRow[];
+  /** Where the office is: building and room, mailing address. */
+  visit: ContactRow[];
+  sourceUrl: string | null;
+}
+
+/** "https://www.boozman.senate.gov/public" -> "boozman.senate.gov/public" */
+function displayUrl(url: string): string {
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+}
+
+/** The Contact tab from mart.member_contact, or null when the source has nothing for the member,
+ *  in which case the tab is shown as not yet published. Values are the source's, unaltered
+ *  beyond dropping the scheme from a displayed web address. */
+export function buildContact(c: ContactResponse): ContactModel | null {
+  const reach: ContactRow[] = [];
+  if (c.website_url) reach.push({ label: 'Website', value: displayUrl(c.website_url), href: c.website_url });
+  if (c.contact_form_url) {
+    reach.push({ label: 'Contact form', value: displayUrl(c.contact_form_url), href: c.contact_form_url });
+  }
+  if (c.phone) {
+    const digits = c.phone.replace(/\D/g, '');
+    // a ten-digit US number dials as +1; anything else is passed through as digits
+    reach.push({ label: 'Phone', value: c.phone, href: `tel:${digits.length === 10 ? '+1' : ''}${digits}` });
+  }
+  if (c.fax) reach.push({ label: 'Fax', value: c.fax });
+  const visit: ContactRow[] = [];
+  if (c.office) visit.push({ label: 'Office', value: c.office });
+  if (c.address) visit.push({ label: 'Mailing address', value: c.address });
+  if (reach.length === 0 && visit.length === 0) return null;
+  return { reach, visit, sourceUrl: c.sources[0]?.source_url ?? null };
 }
 
 export function buildKeyDates(dates: KeyDate[]): KeyDateRow[] {

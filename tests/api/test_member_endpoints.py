@@ -55,7 +55,17 @@ def teardown_function() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    ["", "/timeline", "/feed", "/votes", "/bills", "/committees", "/key-dates", "/fundraising"],
+    [
+        "",
+        "/timeline",
+        "/feed",
+        "/votes",
+        "/bills",
+        "/committees",
+        "/contact",
+        "/key-dates",
+        "/fundraising",
+    ],
 )
 def test_unknown_member_is_404(client: TestClient, path: str) -> None:
     _use_rows([])
@@ -103,6 +113,7 @@ def test_openapi_lists_every_section_6_endpoint(client: TestClient) -> None:
         "/api/v1/members/{bioguide}/votes",
         "/api/v1/members/{bioguide}/bills",
         "/api/v1/members/{bioguide}/committees",
+        "/api/v1/members/{bioguide}/contact",
         "/api/v1/members/{bioguide}/key-dates",
         "/api/v1/members/{bioguide}/fundraising",
         "/api/v1/meta/freshness",

@@ -4,6 +4,7 @@
 // tab is one function here, so a section can grow without touching the others.
 import type {
   CommitteeRow,
+  ContactModel,
   DateRange,
   ElectionModel,
   FundraisingModel,
@@ -15,6 +16,7 @@ import type {
   TermModel,
   VoteRow,
 } from '@/lib/model';
+import { ContactTab } from './ContactCards';
 import { FundraisingCard } from './FundraisingCard';
 import { MemberFacts, MemberHeader, StatStrip, TermProgress } from './MemberHeader';
 import { MemberTabs, type TabSpec } from './MemberTabs';
@@ -35,6 +37,8 @@ export interface DashboardProps {
   record: RecordModel;
   election: ElectionModel | null;
   committees: CommitteeRow[];
+  /** Null when the source has no contact information: the tab is then not yet published. */
+  contact: ContactModel | null;
   keyDates: KeyDateRow[];
   fundraising: FundraisingModel;
   lastUpdated: string | null;
@@ -81,6 +85,19 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
   return [
     { id: 'activity', label: 'Congress activity', content: <CongressActivityTab {...props} /> },
     { id: 'election', label: 'Election', content: <ElectionTab {...props} /> },
+    props.contact
+      ? { id: 'contact', label: 'Contact', content: <ContactTab contact={props.contact} /> }
+      : {
+          id: 'contact',
+          label: 'Contact',
+          locked: true,
+          content: (
+            <LockedTabPanel
+              title="Contact"
+              desc="Office phone, address and contact form for this member."
+            />
+          ),
+        },
     {
       id: 'stock-trades',
       label: 'Stock trades',
