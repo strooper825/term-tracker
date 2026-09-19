@@ -10,7 +10,7 @@ or changes a table (docs/PLAN.md, section 11).
 | `raw` | `ingest/` | Source payloads as JSONB plus extracted natural-key columns. One table per source entity. |
 | `staging` | dbt | Typed, renamed views over `raw` (`stg_*`). |
 | `mart` | dbt | Tables the API reads. Every mart table carries `source`, `source_url`, `fetched_at`. |
-| `seed` | dbt seeds | Hand-maintained inputs: `fips`, `tracked_members`. |
+| `seed` | dbt seeds | Hand-maintained inputs: `fips`, `tracked_members`, `key_dates`, `composition_seats`. |
 | `meta` | `ingest/` and Alembic | Operational metadata about the pipeline itself. |
 
 Alembic's own `alembic_version` table lives in `public`.
@@ -138,6 +138,7 @@ documented 1,000 per hour; the client throttles on both.
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
 | `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
+| `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
 ## Staging views (`staging` schema, dbt)
 
@@ -659,3 +660,62 @@ vote of a Congress is loaded. `GET /api/v1/meta/sessions` returns it.
 
 Weekly buckets (`week_start`, Monday) per member and `event_type`, built from `member_feed`:
 `events`, `first_event_date`, `last_event_date`.
+
+## Congress overview (`/congress`, ADR 0012 and 0013)
+
+`GET /api/v1/congress/overview` returns all of it; the page renders these columns and computes
+nothing. Two scopes, kept apart on the page by a scope-change divider: **composition** covers all
+535 seats and is hand-maintained; everything else counts only the tracked members.
+
+### `mart.chamber_composition`
+
+One row per chamber and party group that holds seats (a group with none, such as Senate vacancies,
+has no row). Columns `chamber`, `party_group`, `party_label`, `seats`, `chamber_seats`,
+`seat_pct` (share of the chamber, what the stacked bar's width is), `caucus_with`, `sort_order`,
+`as_of`, and `source`/`source_url`/`fetched_at` (the Clerk of the House or Senate.gov page, and
+the seed's as-of date). Source: `seed.composition_seats`.
+
+### `mart.chamber_majority`
+
+One row per chamber: `chamber_seats`, `seated`, `vacant`, the Congress-wide `congress_seats`,
+`congress_seated`, `congress_vacant`, `majority_threshold` (chamber seats / 2 + 1: 218 and 51,
+unchanged by vacancies), `republican_caucus` and `democratic_caucus` (independents counted with the
+party they caucus with, as in ADR 0005), `majority_party`, `majority_letter` (`R`, `D`, null on a
+tie) and `majority_margin`. Seeded 2026-09-19: House R +5 (219 to 214), Senate R +6 (53 to 47).
+
+### `mart.congress_tracked_bill`
+
+One row per bill (kind `bill`) a tracked member sponsored: 702 on 2026-09-19. Amendments,
+cosponsored-only bills and roll-call-only bills are excluded.
+
+| Column | Description |
+|---|---|
+| `congress`, `bill_type`, `bill_number`, `label`, `title`, `origin_chamber`, `congress_gov_url` | The bill |
+| `measure_type` | `house_bill` (hr), `senate_bill` (s), `joint_resolution` (hjres, sjres), `other` (hres, sres, hconres, sconres) |
+| `house_status`, `senate_status` | The vote-journey stage status (ADR 0009) |
+| `passed_house`, `passed_senate` | A passage roll call read `passed`, or the Library of Congress recorded "Passed/agreed to in House" (action code `8000`) or "... in Senate" (`17000`). The codes cover voice votes and unanimous consent. All 445 passage roll calls carry the matching action (checked 2026-09-19) |
+| `passed_a_chamber`, `passed_both_chambers` | Either chamber; both chambers of a two-chamber type (never `hres` or `sres`) |
+| `became_law`, `public_law_number` | Journey stage `became_law` is `complete`; the number is parsed from `Became Public Law No: 119-38.` |
+| `vetoed`, `veto_overridden` | An E30000 "Vetoed by President" action; vetoed and also became law |
+| `outcome` | `law`, `vetoed`, `overridden`, `adopted` (a concurrent resolution that cleared both chambers, no President stage), `pending` (bill or joint resolution that cleared both, not yet law or vetoed); null otherwise |
+| `outcome_date` | Law date, veto date, or the date the second chamber passed it |
+| `still_in_committee` | No vote stage past Introduced and no Calendars, Floor, Discharge, President, BecameLaw, ResolvingDifferences or Veto action. A derivation from action types, not a Congress.gov status |
+| `house_yea`, `house_nay`, `senate_yea`, `senate_nay` | The latest passage roll call in the chamber; null when it left none |
+
+### `mart.congress_overview`
+
+One row. `congress`, `congress_start`, `congress_end`, `tracked_members`, `tracked_house`,
+`tracked_senate` (from `mart.member_summary`, not hardcoded); `bills_introduced`,
+`introduced_house`, `introduced_senate` (by chamber of origin); `passed_chamber` and its
+`_house_origin` / `_senate_origin` split (distinct bills, so the halves sum to the total);
+`became_law`, `became_law_pct`; `vetoed`, `vetoed_overridden`, `vetoed_not_overridden`;
+`roll_call_votes` and its house/senate split (votes cast by tracked members, `member_vote.voted`,
+not roll calls held); `committee_actions` (`member_feed`, `committee_action`); `resolutions`
+(joint resolutions plus other); `still_in_committee` and `_pct`; `passed_both`,
+`passed_both_enacted`, `passed_both_adopted`, `passed_both_vetoed`. Percentages are rounded to
+one decimal. `assert_congress_overview_consistent` checks the splits against their totals.
+
+### `mart.congress_overview_type`
+
+One row per measure type (`house_bill`, `senate_bill`, `joint_resolution`, `other`) with `bills`
+and `bill_pct` (share of bills introduced, what the measure-type bar's width is).

@@ -52,3 +52,32 @@ seeds:
           - accepted_values: { arguments: { values: ["congress", "chamber", "state", "member"] } }
       - name: source_url
         tests: [not_null]
+
+  - name: composition_seats
+    description: >
+      Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012), one row per
+      chamber and party group. No ingested source lists vacancies, so this is typed by hand from
+      the Clerk of the House and Senate.gov and cross-checked against raw.legislator by the
+      warning test assert_composition_matches_legislators. Provenance is the dbt vars
+      composition_as_of, composition_house_source_url and composition_senate_source_url.
+    config:
+      column_types:
+        chamber: text
+        party_group: text
+        seats: integer
+        caucus_with: text
+    columns:
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: party_group
+        tests:
+          - accepted_values:
+              arguments: { values: ["republican", "democratic", "independent", "vacant"] }
+      - name: seats
+        tests: [not_null]
+      - name: caucus_with
+        tests:
+          - accepted_values:
+              arguments: { values: ["republican", "democratic"], quote: true }
+              config: { where: "caucus_with is not null" }

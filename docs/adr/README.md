@@ -16,6 +16,8 @@ also recorded here once made.
 - [0009. Bill vote journey: completed records only, not a bill status](0009-bill-vote-journey.md)
 - [0010. The Speaker of the House is exempt from assert_positions_cover_roll_calls](0010-speaker-vote-coverage.md)
 - [0011. A cosponsor row waits for the bill's own cosponsors list, not the member's list alone](0011-cosponsorship-date-lag.md)
+- [0012. Chamber composition is a hand-maintained seed, cross-checked against congress-legislators](0012-chamber-composition-seed.md)
+- [0013. Congress overview: what the tracked-member figures count](0013-congress-overview-definitions.md)
 
 ## Format
 

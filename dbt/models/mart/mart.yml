@@ -386,3 +386,58 @@ models:
         tests: [not_null]
       - name: is_shown
         tests: [not_null]
+
+  - name: chamber_composition
+    description: >
+      Party split of each chamber, one row per chamber and party group with seats (ADR 0012).
+      Hand-maintained seed; seat_pct is what the stacked bar's width is drawn from.
+    columns:
+      - name: chamber
+        tests: [not_null]
+      - name: party_group
+        tests: [not_null]
+      - name: seats
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: chamber_majority
+    description: >
+      One row per chamber: seated and vacant seats, the majority threshold, the seats caucusing
+      with each party, and the margin (ADR 0012).
+    columns:
+      - name: chamber
+        tests: [unique, not_null]
+      - name: majority_threshold
+        tests: [not_null]
+
+  - name: congress_tracked_bill
+    description: >
+      One row per bill a tracked member sponsored, with the outcome facts the Congress overview
+      counts (ADR 0013).
+    columns:
+      - name: label
+        tests: [not_null]
+      - name: measure_type
+        tests:
+          - accepted_values:
+              arguments: { values: ["house_bill", "senate_bill", "joint_resolution", "other"] }
+      - name: outcome
+        tests:
+          - accepted_values:
+              arguments: { values: ["law", "vetoed", "overridden", "adopted", "pending"] }
+              config: { where: "outcome is not null" }
+
+  - name: congress_overview
+    description: "One row, every aggregate figure on /congress below the scope-change divider."
+    columns:
+      - name: bills_introduced
+        tests: [not_null]
+      - name: tracked_members
+        tests: [not_null]
+
+  - name: congress_overview_type
+    description: Bills the tracked members introduced by measure type, with the bar's shares.
+    columns:
+      - name: measure_type
+        tests: [unique, not_null]

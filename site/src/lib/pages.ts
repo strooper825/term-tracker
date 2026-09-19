@@ -1,5 +1,6 @@
 /** Assemble page props from the API at build time (server side only). */
 import { api } from './api';
+import { buildCongressModel, type CongressModel } from './congress';
 import { formatNumber, ordinal } from './format';
 import {
   buildBillPage,
@@ -42,6 +43,14 @@ export async function indexPageProps(): Promise<{
     congressLabel: tracked ? `${ordinal(tracked)} Congress` : 'Congress',
     lastUpdated: lastUpdated(freshness),
   };
+}
+
+export async function congressPageProps(): Promise<{
+  model: CongressModel;
+  lastUpdated: string | null;
+}> {
+  const [overview, freshness] = await Promise.all([api.congressOverview(), api.freshness()]);
+  return { model: buildCongressModel(overview), lastUpdated: lastUpdated(freshness) };
 }
 
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {

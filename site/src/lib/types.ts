@@ -441,3 +441,99 @@ export interface SessionsResponse {
   sessions: CongressSession[];
   sources: SourceRef[];
 }
+
+/** GET /api/v1/congress/overview (api/schemas/congress.py). */
+export interface PartyGroup {
+  party_group: 'republican' | 'democratic' | 'independent' | 'vacant';
+  label: string;
+  seats: number;
+  seat_pct: number;
+  caucus_with: 'republican' | 'democratic' | null;
+}
+
+export interface ChamberComposition {
+  chamber: 'house' | 'senate';
+  seats: number;
+  seated: number;
+  vacant: number;
+  majority_threshold: number;
+  republican_caucus: number;
+  democratic_caucus: number;
+  majority_party: string | null;
+  majority_letter: 'R' | 'D' | null;
+  majority_margin: number;
+  groups: PartyGroup[];
+  source_url: string;
+}
+
+export interface OverviewActivity {
+  tracked_members: number;
+  tracked_house: number;
+  tracked_senate: number;
+  bills_introduced: number;
+  introduced_house: number;
+  introduced_senate: number;
+  passed_chamber: number;
+  passed_chamber_house_origin: number;
+  passed_chamber_senate_origin: number;
+  became_law: number;
+  became_law_pct: number | null;
+  vetoed: number;
+  vetoed_overridden: number;
+  vetoed_not_overridden: number;
+  roll_call_votes: number;
+  roll_call_votes_house: number;
+  roll_call_votes_senate: number;
+  committee_actions: number;
+  resolutions: number;
+  still_in_committee: number;
+  still_in_committee_pct: number | null;
+}
+
+export interface OverviewMeasureType {
+  measure_type: 'house_bill' | 'senate_bill' | 'joint_resolution' | 'other';
+  label: string;
+  short_label: string;
+  bills: number;
+  bill_pct: number | null;
+}
+
+export interface PassedBothItem {
+  congress: number;
+  bill_type: string;
+  bill_number: string;
+  label: string;
+  title: string | null;
+  outcome: 'law' | 'vetoed' | 'overridden' | 'adopted' | 'pending' | null;
+  public_law_number: string | null;
+  outcome_date: string | null;
+  house_yea: number | null;
+  house_nay: number | null;
+  senate_yea: number | null;
+  senate_nay: number | null;
+  congress_gov_url: string;
+}
+
+export interface CongressOverviewResponse {
+  congress: number;
+  congress_start: string;
+  congress_end: string;
+  composition: {
+    as_of: string;
+    seats: number;
+    seated: number;
+    vacant: number;
+    chambers: ChamberComposition[];
+  };
+  activity: OverviewActivity;
+  measure_types: OverviewMeasureType[];
+  passed_both: {
+    total: number;
+    enacted: number;
+    adopted: number;
+    vetoed: number;
+    items: PassedBothItem[];
+  };
+  generated_at: string;
+  sources: SourceRef[];
+}
