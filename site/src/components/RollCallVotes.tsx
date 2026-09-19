@@ -10,15 +10,15 @@ import { DetailsLink, SourceLink } from './SiteChrome';
 const PAGE = 10;
 const POSITIONS: VotePosition[] = ['Yea', 'Nay', 'Present', 'Not Voting'];
 
-/* Party colors are reserved for party badges and vote positions in the design tokens, but a
-   position chip here is a neutral ramp on the site's own navy: filled for Yea, outlined for
-   Nay, so the two read apart without borrowing red or blue. */
+/* Red and blue are reserved for party badges and a member's own vote positions (see
+   tailwind.config.js): Yea is red and Nay blue, the pairing the design tokens already name.
+   Present and Not Voting stay neutral. */
 function PositionChip({ position }: { position: VotePosition }) {
   const cls =
     position === 'Yea'
-      ? 'text-white bg-navy border-navy'
+      ? 'text-white bg-party-r border-party-r'
       : position === 'Nay'
-        ? 'text-ink bg-card border-ink'
+        ? 'text-white bg-party-d border-party-d'
         : 'text-ink3 bg-card border-rule';
   return (
     <span

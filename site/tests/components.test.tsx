@@ -101,7 +101,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
     expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
-    for (const title of ['Stock trades', 'Public statements', 'Consistency']) {
+    for (const title of ['Stock trades', 'Public statements', 'Constituency']) {
       expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeInTheDocument();
       expect(screen.getByRole('region', { hidden: true, name: `${title} (not yet published)` })).toBeInTheDocument();
     }
@@ -244,7 +244,7 @@ describe('member tabs', () => {
       'Election',
       'Stock trades' + 'Soon',
       'Public statements' + 'Soon',
-      'Consistency' + 'Soon',
+      'Constituency' + 'Soon',
     ]);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'panel-activity');
@@ -286,7 +286,7 @@ describe('member tabs', () => {
     expect(screen.getByRole('tab', { name: 'Election' })).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Election' }), { key: 'ArrowLeft' });
     fireEvent.keyDown(screen.getAllByRole('tab')[0], { key: 'ArrowLeft' });
-    expect(screen.getByRole('tab', { name: /Consistency/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Constituency/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('a locked tab says it is not published yet', () => {

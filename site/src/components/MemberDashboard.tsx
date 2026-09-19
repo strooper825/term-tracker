@@ -98,10 +98,10 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
       ),
     },
     {
-      id: 'consistency',
-      label: 'Consistency',
+      id: 'constituency',
+      label: 'Constituency',
       locked: true,
-      content: <LockedTabPanel title="Consistency" desc="This section has not been published yet." />,
+      content: <LockedTabPanel title="Constituency" desc="This section has not been published yet." />,
     },
   ];
 }
