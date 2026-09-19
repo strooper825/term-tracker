@@ -23,7 +23,15 @@ class ChamberComposition(BaseModel):
     seats: int
     seated: int
     vacant: int
-    majority_threshold: int = Field(description="Seats for a majority: chamber seats / 2 + 1")
+    majority_threshold: int = Field(
+        description=(
+            "Seats to control the chamber: seats / 2 + 1, or seats / 2 in the Senate for the "
+            "Vice President's party (ADR 0014)"
+        )
+    )
+    tiebreak_letter: str | None = Field(
+        description="Senate only: the Vice President's party letter (ADR 0014)"
+    )
     majority_pct: float = Field(description="Where the majority line falls along the bar, in %")
     republican_caucus: int
     democratic_caucus: int

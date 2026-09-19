@@ -1,7 +1,21 @@
 -- One row per chamber: seats, seated and vacant, the majority threshold, and who leads (ADR 0012).
 -- Independents count with the party they caucus with, the same rule ADR 0005 uses for party
 -- unity. The threshold is the constitutional count, chamber seats / 2 + 1 (218 of 435, 51 of
--- 100), and does not move while seats are vacant.
+-- 100), and does not move while seats are vacant. The Senate is the exception (ADR 0014): the Vice
+-- President votes only to break a tie, so the party that holds the office controls the chamber
+-- with half the seats (50) while the other party needs 51. The Vice President's party is the dbt
+-- var senate_vp_party, hand-maintained beside the composition seed.
+{% set threshold %}
+    case
+        when chamber = 'senate'
+            and (
+                ('{{ var("senate_vp_party") }}' = 'republican' and republican_caucus > democratic_caucus)
+                or ('{{ var("senate_vp_party") }}' = 'democratic' and democratic_caucus > republican_caucus)
+            )
+            then chamber_seats / 2
+        else chamber_seats / 2 + 1
+    end
+{% endset %}
 with seated as (
     select
         chamber,
@@ -32,9 +46,11 @@ select
     sum(chamber_seats) over () as congress_seats,
     sum(seated) over () as congress_seated,
     sum(coalesce(vacant, 0)) over () as congress_vacant,
-    chamber_seats / 2 + 1 as majority_threshold,
+    {{ threshold }} as majority_threshold,
+    -- Senate only: the Vice President's party letter, who breaks ties
+    case when chamber = 'senate' then upper(left('{{ var("senate_vp_party") }}', 1)) end as tiebreak_letter,
     -- where the majority line falls along the bar, as a share of the chamber's seats
-    round(100.0 * (chamber_seats / 2 + 1) / chamber_seats, 2) as majority_pct,
+    round(100.0 * ({{ threshold }}) / chamber_seats, 2) as majority_pct,
     coalesce(republican_caucus, 0) as republican_caucus,
     coalesce(democratic_caucus, 0) as democratic_caucus,
     case

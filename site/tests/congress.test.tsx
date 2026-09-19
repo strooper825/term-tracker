@@ -65,10 +65,11 @@ describe('congress overview: given these mart rows, this text renders', () => {
     const house = document.querySelector('[data-majority-marker="house"]') as HTMLElement;
     const senate = document.querySelector('[data-majority-marker="senate"]') as HTMLElement;
     expect(house.style.left).toBe('50.11%');
-    expect(senate.style.left).toBe('51%');
+    expect(senate.style.left).toBe('50%');
     expect(house).toHaveTextContent('218 seats for a majority');
-    expect(senate).toHaveTextContent('51 seats for a majority');
+    expect(senate).toHaveTextContent('50 seats for a majority');
     expect(screen.getByText('435 seats')).toBeInTheDocument();
+    expect(screen.getByText('100 seats · R Vice President breaks ties')).toBeInTheDocument();
   });
 
   it('the composition bar is proportional: segment width is the mart seat_pct', () => {

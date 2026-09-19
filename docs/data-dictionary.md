@@ -680,8 +680,10 @@ the seed's as-of date). Source: `seed.composition_seats`.
 ### `mart.chamber_majority`
 
 One row per chamber: `chamber_seats`, `seated`, `vacant`, the Congress-wide `congress_seats`,
-`congress_seated`, `congress_vacant`, `majority_threshold` (chamber seats / 2 + 1: 218 and 51,
-unchanged by vacancies), `majority_pct` (where that line falls along the bar, threshold / seats),
+`congress_seated`, `congress_vacant`, `majority_threshold` (seats to control the chamber, unchanged by
+vacancies: chamber seats / 2 + 1 for the House, 218; for the Senate 50 while the Vice President
+is in the party ahead, else 51; ADR 0014), `tiebreak_letter` (Senate only: the Vice President's
+party letter from the dbt var `senate_vp_party`, `R` on 2026-09-19), `majority_pct` (where that line falls along the bar, threshold / seats),
 `republican_caucus` and `democratic_caucus` (independents counted with the party they caucus with,
 as in ADR 0005), `majority_party`, `majority_letter` (`R`, `D`, null on a tie) and
 `majority_margin`. The page states control in words ("Republicans control the House") from
