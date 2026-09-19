@@ -410,6 +410,9 @@ models:
         tests: [unique, not_null]
       - name: majority_threshold
         tests: [not_null]
+        description: "Seats to control the chamber: seats / 2 + 1, or seats / 2 for the Senate party its Vice President belongs to (ADR 0014)"
+      - name: tiebreak_letter
+        description: "Senate only: party letter of the Vice President, who breaks ties (ADR 0014)"
 
   - name: congress_bill_outcome
     description: >

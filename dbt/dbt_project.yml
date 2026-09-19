@@ -39,3 +39,5 @@ vars:
   composition_as_of: "2026-09-19"
   composition_house_source_url: "https://clerk.house.gov/Members"
   composition_senate_source_url: "https://www.senate.gov/senators/"
+  # Party of the sitting Vice President, who breaks Senate ties (ADR 0014): republican or democratic.
+  senate_vp_party: "republican"

@@ -32,7 +32,8 @@ router = APIRouter(prefix="/congress", tags=["congress"])
 MAJORITY_SQL = text(
     """
     SELECT chamber, chamber_seats, seated, vacant, congress_seats, congress_seated,
-           congress_vacant, majority_threshold, majority_pct, republican_caucus, democratic_caucus,
+           congress_vacant, majority_threshold, tiebreak_letter, majority_pct,
+           republican_caucus, democratic_caucus,
            majority_party, majority_letter, majority_margin, as_of, source, source_url, fetched_at
     FROM mart.chamber_majority
     ORDER BY CASE chamber WHEN 'house' THEN 1 ELSE 2 END
@@ -88,6 +89,7 @@ def overview(session: Annotated[Session, Depends(get_session)]) -> OverviewRespo
             seated=row["seated"],
             vacant=row["vacant"],
             majority_threshold=row["majority_threshold"],
+            tiebreak_letter=row["tiebreak_letter"],
             majority_pct=row["majority_pct"],
             republican_caucus=row["republican_caucus"],
             democratic_caucus=row["democratic_caucus"],

@@ -126,7 +126,9 @@ function chamberBar(c: ChamberComposition): ChamberBar {
   return {
     chamber: c.chamber,
     name,
-    seatsLine: `${c.seats} seats`,
+    seatsLine: c.tiebreak_letter
+      ? `${c.seats} seats · ${c.tiebreak_letter} Vice President breaks ties`
+      : `${c.seats} seats`,
     headline: party
       ? `${PARTY_NOUN[party]} control the ${name}`
       : `Neither party has a majority in the ${name}`,

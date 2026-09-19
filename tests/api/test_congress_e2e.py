@@ -26,7 +26,7 @@ def test_composition_is_the_seed_and_adds_up(built_mart: None, client: TestClien
 
     house, senate = composition["chambers"]
     assert (house["chamber"], house["seats"], house["majority_threshold"]) == ("house", 435, 218)
-    assert (senate["chamber"], senate["seats"], senate["majority_threshold"]) == ("senate", 100, 51)
+    assert (senate["chamber"], senate["seats"], senate["majority_threshold"]) == ("senate", 100, 50)
     assert {g["party_group"]: g["seats"] for g in house["groups"]} == {
         "republican": 218,
         "democratic": 214,
@@ -38,7 +38,9 @@ def test_composition_is_the_seed_and_adds_up(built_mart: None, client: TestClien
     assert (house["majority_letter"], house["majority_margin"]) == ("R", 5)
     # the majority line sits at threshold / seats along the bar
     assert house["majority_pct"] == pytest.approx(50.11, abs=0.01)
-    assert senate["majority_pct"] == pytest.approx(51, abs=0.01)
+    assert senate["majority_pct"] == pytest.approx(50, abs=0.01)
+    # ADR 0014: a Republican Vice President breaks ties, so the Senate line sits at 50, not 51.
+    assert (house["tiebreak_letter"], senate["tiebreak_letter"]) == (None, "R")
     assert (senate["republican_caucus"], senate["democratic_caucus"]) == (53, 47)
     assert (senate["majority_letter"], senate["majority_margin"]) == ("R", 6)
 

@@ -457,6 +457,7 @@ export interface ChamberComposition {
   seated: number;
   vacant: number;
   majority_threshold: number;
+  tiebreak_letter: string | null;
   majority_pct: number;
   republican_caucus: number;
   democratic_caucus: number;
