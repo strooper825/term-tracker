@@ -108,17 +108,14 @@ describe('congress overview: given these mart rows, this text renders', () => {
     expect(screen.getAllByText(/^Vacant/)).toHaveLength(1);
   });
 
-  it('passed-both is a whole-database table above the divider, and says what it covers', () => {
+  it('passed-both is a whole-database table and points back at the counts above it', () => {
     page();
     const card = screen.getByRole('region', { name: 'Passed both chambers' });
     expect(within(card).getByText('All sponsors')).toBeInTheDocument();
     expect(
       within(card).getByText('7 measures · 4 enacted · 3 adopted · 0 vetoed'),
     ).toBeInTheDocument();
-    expect(card).toHaveTextContent('Every bill in our database (3,922), whoever sponsored it');
-    expect(card).toHaveTextContent('Not yet every bill in Congress');
-    const divider = screen.getByRole('separator', { name: 'Scope change' });
-    expect(divider.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(card).toHaveTextContent('The same bills as the counts above.');
   });
 
   it('H.R. 1 is in the table with its law number and both tallies', () => {
@@ -129,46 +126,50 @@ describe('congress overview: given these mart rows, this text renders', () => {
     expect(within(row).getByText('Law 119-21')).toBeInTheDocument();
   });
 
-  it('the scope-change divider is a labelled separator that names the tracked count and links out', () => {
+  it('has no scope-change divider: nothing on the page counts only the tracked members', () => {
     page();
-    const divider = screen.getByRole('separator', { name: 'Scope change' });
-    expect(within(divider).getByText('Scope change')).toBeInTheDocument();
-    expect(divider).toHaveTextContent(
-      'Everything below counts only the 20 members this site tracks — not all 535.',
-    );
-    expect(within(divider).getByRole('link', { name: /See tracked members/ })).toHaveAttribute(
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Scope change/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Everything below counts only/i)).not.toBeInTheDocument();
+  });
+
+  it('sections run composition, then activity, then the passed-both table', () => {
+    page();
+    const composition = screen.getByRole('region', { name: 'Chamber composition' });
+    const activity = screen.getByRole('region', { name: 'Legislative activity' });
+    const passed = screen.getByRole('region', { name: 'Passed both chambers' });
+    const after = Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(composition.compareDocumentPosition(activity) & after).toBeTruthy();
+    expect(activity.compareDocumentPosition(passed) & after).toBeTruthy();
+  });
+
+  it('activity card says what its counts cover and links to the tracked members', () => {
+    page();
+    const card = screen.getByRole('region', { name: 'Legislative activity' });
+    expect(within(card).getByText('All sponsors')).toBeInTheDocument();
+    expect(card).toHaveTextContent('119th Congress to date');
+    expect(card).toHaveTextContent('Every bill in our database (3,922), whoever sponsored it');
+    expect(card).toHaveTextContent('bills our 20 tracked members sponsored or cosponsored');
+    expect(card).toHaveTextContent('Not yet every bill in Congress');
+    expect(within(card).getByRole('link', { name: /See tracked members/ })).toHaveAttribute(
       'href',
       '/members',
     );
   });
 
-  it('the divider sits between the all-Congress sections and the tracked-member stats', () => {
-    page();
-    const composition = screen.getByRole('region', { name: 'Chamber composition' });
-    const passed = screen.getByRole('region', { name: 'Passed both chambers' });
-    const divider = screen.getByRole('separator', { name: 'Scope change' });
-    const activity = screen.getByRole('region', { name: /Legislative activity/ });
-    const after = Node.DOCUMENT_POSITION_FOLLOWING;
-    expect(composition.compareDocumentPosition(passed) & after).toBeTruthy();
-    expect(passed.compareDocumentPosition(divider) & after).toBeTruthy();
-    expect(divider.compareDocumentPosition(activity) & after).toBeTruthy();
-  });
-
-  it('activity header splits tracked members by chamber from the mart', () => {
-    page();
-    const section = screen.getByRole('region', { name: /Legislative activity/ });
-    expect(section).toHaveTextContent('119th Congress to date · 10 House · 10 Senate');
-  });
-
-  it('shows four stats, and none of the removed ones', () => {
+  it('shows four stats over every bill in the database, and none of the removed ones', () => {
     page();
     const stat = (label: string) => screen.getByText(label).parentElement as HTMLElement;
-    expect(stat('Bills introduced')).toHaveTextContent('702');
-    expect(stat('Bills introduced')).toHaveTextContent('257 House · 445 Senate');
-    expect(stat('Passed a chamber')).toHaveTextContent('45');
-    expect(stat('Passed a chamber')).toHaveTextContent('22 House bills · 23 Senate bills');
-    expect(stat('Became law')).toHaveTextContent('0.4% of introduced');
-    expect(stat('Vetoed')).toHaveTextContent('0 overridden · 0 not overridden');
+    expect(stat('Bills in our database')).toHaveTextContent('3,922');
+    expect(stat('Bills in our database')).toHaveTextContent('1,956 House · 1,966 Senate');
+    expect(stat('Passed a chamber')).toHaveTextContent('665');
+    expect(stat('Passed a chamber')).toHaveTextContent('425 House bills · 240 Senate bills');
+    expect(stat('Became law')).toHaveTextContent('69');
+    expect(stat('Became law')).toHaveTextContent('1.8% of bills in our database');
+    expect(stat('Vetoed')).toHaveTextContent('2');
+    expect(stat('Vetoed')).toHaveTextContent('0 overridden · 2 not overridden');
+    // it is not claimed to be every bill introduced in Congress
+    expect(screen.queryByText('Bills introduced')).not.toBeInTheDocument();
     for (const gone of [
       /Roll call votes/i,
       /Committee actions/i,
@@ -237,7 +238,7 @@ describe('congress overview: given these mart rows, this text renders', () => {
   it('empty table says so instead of rendering a bare header', () => {
     page({
       ...OVERVIEW,
-      passed_both: { bills_in_dataset: 0, total: 0, enacted: 0, adopted: 0, vetoed: 0, items: [] },
+      passed_both: { total: 0, enacted: 0, adopted: 0, vetoed: 0, items: [] },
     });
     expect(
       screen.getByText('No bill in the database has passed both chambers.'),

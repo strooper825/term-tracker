@@ -469,11 +469,9 @@ export interface ChamberComposition {
 
 export interface OverviewActivity {
   tracked_members: number;
-  tracked_house: number;
-  tracked_senate: number;
-  bills_introduced: number;
-  introduced_house: number;
-  introduced_senate: number;
+  bills_in_dataset: number;
+  bills_house: number;
+  bills_senate: number;
   passed_chamber: number;
   passed_chamber_house_origin: number;
   passed_chamber_senate_origin: number;
@@ -513,7 +511,6 @@ export interface CongressOverviewResponse {
   };
   activity: OverviewActivity;
   passed_both: {
-    bills_in_dataset: number;
     total: number;
     enacted: number;
     adopted: number;

@@ -664,11 +664,10 @@ Weekly buckets (`week_start`, Monday) per member and `event_type`, built from `m
 ## Congress overview (`/congress`, ADR 0012 and 0013)
 
 `GET /api/v1/congress/overview` returns all of it; the page renders these columns and computes
-nothing. Three scopes, in page order: **composition** covers all 535 seats and is
-hand-maintained; **passed both chambers** covers every bill in `mart.bill` whoever sponsored it
-(the tracked members' bills plus any bill a loaded roll call names, so not every bill in
-Congress); and below the scope-change divider, the **activity stats** count only bills a tracked
-member sponsored.
+nothing. Two scopes, in page order: **composition** covers all 535 seats and is
+hand-maintained; **legislative activity** and **passed both chambers** cover every bill in
+`mart.bill` whoever sponsored it (the tracked members' bills plus any bill a loaded roll call
+names, so not every bill in Congress). Nothing on the page counts only the tracked members.
 
 ### `mart.chamber_composition`
 
@@ -691,13 +690,12 @@ as in ADR 0005), `majority_party`, `majority_letter` (`R`, `D`, null on a tie) a
 
 ### `mart.congress_bill_outcome`
 
-One row per bill (kind `bill`) in `mart.bill`: 3,922 on 2026-09-19. `sponsor_is_tracked` scopes the
-tracked-member figures; the passed-both table reads every row. Amendments are excluded.
+One row per bill (kind `bill`) in `mart.bill`: 3,922 on 2026-09-19, all in the 119th Congress. The
+activity stats and the passed-both table read every row. Amendments are excluded.
 
 | Column | Description |
 |---|---|
 | `congress`, `bill_type`, `bill_number`, `label`, `title`, `origin_chamber`, `congress_gov_url` | The bill |
-| `sponsor_is_tracked` | A tracked member is the sponsor |
 | `house_status`, `senate_status` | The vote-journey stage status (ADR 0009) |
 | `passed_house`, `passed_senate` | A passage roll call read `passed`, or the Library of Congress recorded "Passed/agreed to in House" (action code `8000`) or "... in Senate" (`17000`). The codes cover voice votes and unanimous consent. All 445 passage roll calls carry the matching action (checked 2026-09-19) |
 | `passed_a_chamber`, `passed_both_chambers` | Either chamber; both chambers of a two-chamber type (never `hres` or `sres`) |
@@ -713,16 +711,14 @@ Law 119-21, House 215 to 214, Senate 50 to 50.
 
 ### `mart.congress_overview`
 
-One row. `congress`, `congress_start`, `congress_end`, `tracked_members`, `tracked_house`,
-`tracked_senate` (from `mart.member_summary`, not hardcoded).
-
-**Tracked members' bills** (`sponsor_is_tracked`): `bills_introduced`, `introduced_house`,
-`introduced_senate` (by chamber of origin); `passed_chamber` and its `_house_origin` /
-`_senate_origin` split (distinct bills, so the halves sum to the total); `became_law`,
-`became_law_pct`; `vetoed`, `vetoed_overridden`, `vetoed_not_overridden`.
-
-**Every bill in the dataset**: `bills_in_dataset`, `passed_both`, `passed_both_enacted`,
-`passed_both_adopted`, `passed_both_vetoed`.
-
-Percentages are rounded to one decimal. `assert_congress_overview_consistent` checks the splits
-against their totals within each scope.
+One row, every figure over every bill in `mart.congress_bill_outcome`. `congress`,
+`congress_start`, `congress_end`; `tracked_members` (from `mart.member_summary`, only so the page
+can say whose bills seeded the dataset); `bills_in_dataset` (not "bills introduced": it is not
+every bill in Congress), `bills_house`, `bills_senate` (by chamber of origin); `passed_chamber` and
+its `_house_origin` / `_senate_origin` split (distinct bills, so the halves sum to the total);
+`became_law`, `became_law_pct` (share of `bills_in_dataset`); `vetoed`, `vetoed_overridden`,
+`vetoed_not_overridden`; `passed_both`, `passed_both_enacted`, `passed_both_adopted`,
+`passed_both_vetoed`. Percentages are rounded to one decimal. Checked 2026-09-19: 3,922 bills
+(1,956 House, 1,966 Senate), 665 passed a chamber (425 House bills, 240 Senate bills), 69 law
+(1.8%), 2 vetoed (none overridden), 84 passed both. `assert_congress_overview_consistent` checks the
+splits against their totals and each figure against the one it is a subset of.

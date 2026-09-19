@@ -8,14 +8,14 @@ unit_tests:
     given:
       - input: ref('bill')
         rows:
-          - {congress: 119, bill_type: hr, bill_number: "1", kind: bill, sponsor_is_tracked: true, label: "H.R. 1", origin_chamber: House}
-          - {congress: 119, bill_type: hr, bill_number: "2", kind: bill, sponsor_is_tracked: true, label: "H.R. 2", origin_chamber: House}
-          - {congress: 119, bill_type: s, bill_number: "3", kind: bill, sponsor_is_tracked: true, label: "S. 3", origin_chamber: Senate}
-          - {congress: 119, bill_type: hres, bill_number: "4", kind: bill, sponsor_is_tracked: true, label: "H.Res. 4", origin_chamber: House}
-          - {congress: 119, bill_type: hr, bill_number: "5", kind: bill, sponsor_is_tracked: true, label: "H.R. 5", origin_chamber: House}
-          - {congress: 119, bill_type: hr, bill_number: "6", kind: bill, sponsor_is_tracked: false, label: "H.R. 6", origin_chamber: House}
-          - {congress: 119, bill_type: hconres, bill_number: "7", kind: bill, sponsor_is_tracked: true, label: "H.Con.Res. 7", origin_chamber: House}
-          - {congress: 119, bill_type: hr, bill_number: "8", kind: bill, sponsor_is_tracked: true, label: "H.R. 8", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "1", kind: bill, label: "H.R. 1", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "2", kind: bill, label: "H.R. 2", origin_chamber: House}
+          - {congress: 119, bill_type: s, bill_number: "3", kind: bill, label: "S. 3", origin_chamber: Senate}
+          - {congress: 119, bill_type: hres, bill_number: "4", kind: bill, label: "H.Res. 4", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "5", kind: bill, label: "H.R. 5", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "6", kind: bill, label: "H.R. 6", origin_chamber: House}
+          - {congress: 119, bill_type: hconres, bill_number: "7", kind: bill, label: "H.Con.Res. 7", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "8", kind: bill, label: "H.R. 8", origin_chamber: House}
       - input: ref('bill_journey_stage')
         rows:
           - {congress: 119, bill_type: hr, bill_number: "1", stage_key: introduced, status: complete}

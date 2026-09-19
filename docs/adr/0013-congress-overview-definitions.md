@@ -103,3 +103,27 @@ reader was not asking. Changes:
 - **Control is stated in words** ("Republicans control the House"), with the seat counts behind it
   and a marker at the majority line, replacing the bare "R +5". `mart.chamber_majority.majority_pct`
   places the marker.
+
+## Update 2026-09-19, later (activity stats cover the whole dataset)
+
+Same review, second correction: the stat cards should count the same bills as the table, not
+only the tracked members' bills. Changes:
+
+- **The four stats (bills, passed a chamber, became law, vetoed) read every bill in
+  `mart.congress_bill_outcome`.** On 2026-09-19: 3,922 bills (1,956 House, 1,966 Senate), 665
+  passed a chamber (425 House bills, 240 Senate bills), 69 law (1.8%), 2 vetoed, none overridden.
+  Every bill in the dataset carries action history (only 11 of 3,922 lack it), so the
+  action-code passage rule works across all of them.
+- **The first stat is "Bills in our database", not "Bills introduced".** 3,922 is not the number
+  of bills introduced in Congress: 3,522 of them were sponsored or cosponsored by a tracked
+  member, and the other 400 were named by a roll call. Calling it "introduced" would state a national
+  figure the data cannot support. The card says what it covers in a sentence and links to the
+  tracked members.
+- **The scope-change divider is removed.** It said "everything below counts only the 20 members
+  this site tracks", which is no longer true of anything on the page, and a divider that draws a
+  hard line between two scopes has nothing to divide. Sections now run composition, activity,
+  passed-both, all in the same card style. The tracked-member split by chamber
+  (`tracked_house`, `tracked_senate`) and the `sponsor_is_tracked` column are gone; only
+  `tracked_members` remains, for the sentence.
+- Supersedes the "Scope" bullet above (a bill counts when a tracked member is its sponsor) and
+  the note that the divider separates two scopes.

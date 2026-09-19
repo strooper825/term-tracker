@@ -414,7 +414,7 @@ models:
   - name: congress_bill_outcome
     description: >
       One row per bill in mart.bill, with the outcome facts the Congress overview counts
-      (ADR 0013). sponsor_is_tracked scopes the tracked-member figures.
+      (ADR 0013). Every figure on the page reads all of it.
     columns:
       - name: label
         tests: [not_null]
@@ -425,9 +425,9 @@ models:
               config: { where: "outcome is not null" }
 
   - name: congress_overview
-    description: "One row, every aggregate figure on /congress."
+    description: "One row, every aggregate figure on /congress, over every bill in the dataset."
     columns:
-      - name: bills_introduced
+      - name: bills_in_dataset
         tests: [not_null]
       - name: tracked_members
         tests: [not_null]

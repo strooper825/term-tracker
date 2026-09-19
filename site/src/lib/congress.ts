@@ -63,8 +63,16 @@ export interface CongressModel {
     sources: { label: string; href: string }[];
     chambers: ChamberBar[];
   };
-  scope: { message: string; linkLabel: string; href: string };
-  activity: { heading: string; meta: string; stats: StatCell[] };
+  activity: {
+    heading: string;
+    chip: string;
+    meta: string;
+    /** What the counts cover, in a sentence, with a link to the tracked members. */
+    scope: string;
+    trackedLabel: string;
+    trackedHref: string;
+    stats: StatCell[];
+  };
   passedBoth: { chip: string; meta: string; scope: string; rows: PassedRow[] };
   footnote: string;
 }
@@ -180,19 +188,18 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
     dateRange: `${formatDate(data.congress_start)} — ${formatDate(data.congress_end)}`,
     seatedLine: `Seated ${formatNumber(composition.seated)} of ${formatNumber(composition.seats)} · ${plural(composition.vacant, 'vacancy', 'vacancies')}`,
     composition: { asOf, sources, chambers: composition.chambers.map(chamberBar) },
-    scope: {
-      message: `Everything below counts only the ${a.tracked_members} members this site tracks — not all ${formatNumber(composition.seats)}.`,
-      linkLabel: 'See tracked members',
-      href: '/members',
-    },
     activity: {
       heading: 'Legislative activity',
-      meta: `${congressLabel(data.congress)} to date · ${a.tracked_house} House · ${a.tracked_senate} Senate`,
+      chip: 'All sponsors',
+      meta: `${congressLabel(data.congress)} to date`,
+      scope: `Every bill in our database (${formatNumber(a.bills_in_dataset)}), whoever sponsored it: bills our ${a.tracked_members} tracked members sponsored or cosponsored, plus any bill a recorded roll call named. Not yet every bill in Congress.`,
+      trackedLabel: 'See tracked members',
+      trackedHref: '/members',
       stats: [
         {
-          label: 'Bills introduced',
-          value: formatNumber(a.bills_introduced),
-          sub: `${formatNumber(a.introduced_house)} House · ${formatNumber(a.introduced_senate)} Senate`,
+          label: 'Bills in our database',
+          value: formatNumber(a.bills_in_dataset),
+          sub: `${formatNumber(a.bills_house)} House · ${formatNumber(a.bills_senate)} Senate`,
         },
         {
           label: 'Passed a chamber',
@@ -202,7 +209,7 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
         {
           label: 'Became law',
           value: formatNumber(a.became_law),
-          sub: `${formatShare(a.became_law_pct)} of introduced`,
+          sub: `${formatShare(a.became_law_pct)} of bills in our database`,
         },
         {
           label: 'Vetoed',
@@ -213,7 +220,7 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
     },
     passedBoth: {
       chip: 'All sponsors',
-      scope: `Every bill in our database (${formatNumber(pb.bills_in_dataset)}), whoever sponsored it: the tracked members' bills plus any bill a recorded roll call named. Not yet every bill in Congress.`,
+      scope: 'The same bills as the counts above.',
       meta: `${plural(pb.total, 'measure', 'measures')} · ${formatNumber(pb.enacted)} enacted · ${formatNumber(pb.adopted)} adopted · ${formatNumber(pb.vetoed)} vetoed`,
       rows: pb.items.map(passedRow),
     },

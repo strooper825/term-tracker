@@ -53,20 +53,21 @@ def test_composition_is_the_seed_and_adds_up(built_mart: None, client: TestClien
 def test_activity_figures_agree_with_each_other(built_mart: None, client: TestClient) -> None:
     body = _overview(client)
     a = body["activity"]
-    assert a["tracked_house"] + a["tracked_senate"] == a["tracked_members"]
-    assert a["introduced_house"] + a["introduced_senate"] == a["bills_introduced"]
+    assert a["bills_house"] + a["bills_senate"] == a["bills_in_dataset"]
     assert (
         a["passed_chamber_house_origin"] + a["passed_chamber_senate_origin"]
         == (a["passed_chamber"])
     )
     assert a["vetoed_overridden"] + a["vetoed_not_overridden"] == a["vetoed"]
+    # one dataset, so each figure fits inside the one it is a subset of
+    assert a["became_law"] <= a["passed_chamber"] <= a["bills_in_dataset"]
 
 
 def test_passed_both_table_matches_its_header_counts(built_mart: None, client: TestClient) -> None:
     body = _overview(client)
     passed = body["passed_both"]
     assert passed["total"] == len(passed["items"])
-    assert passed["total"] <= passed["bills_in_dataset"]
+    assert passed["total"] <= body["activity"]["passed_chamber"]
     outcomes = [item["outcome"] for item in passed["items"]]
     assert passed["enacted"] == outcomes.count("law")
     assert passed["adopted"] == outcomes.count("adopted")

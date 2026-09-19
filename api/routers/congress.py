@@ -1,9 +1,9 @@
-"""/api/v1/congress: the Congress overview page (chamber composition, the bills that passed both
-chambers, then tracked-member activity).
+"""/api/v1/congress: the Congress overview page (chamber composition, legislative activity, and
+the bills that passed both chambers).
 
 Every figure is a mart column (docs/adr/0012, 0013); this router selects and reshapes rows and
-does no arithmetic. Composition covers all 535 seats and is hand-maintained; the passed-both
-table covers every bill in the database; the activity counts cover only the tracked members.
+does no arithmetic. Composition covers all 535 seats and is hand-maintained; every count and
+the passed-both table cover every bill in the database, whoever sponsored it.
 """
 
 from __future__ import annotations
@@ -123,7 +123,6 @@ def overview(session: Annotated[Session, Depends(get_session)]) -> OverviewRespo
         ),
         activity=Activity(**{k: stats[k] for k in ACTIVITY_FIELDS}),
         passed_both=PassedBoth(
-            bills_in_dataset=stats["bills_in_dataset"],
             total=stats["passed_both"],
             enacted=stats["passed_both_enacted"],
             adopted=stats["passed_both_adopted"],

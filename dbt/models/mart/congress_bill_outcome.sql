@@ -1,8 +1,8 @@
 -- One row per bill (kind bill) in mart.bill, with the outcome facts the Congress overview
 -- counts (ADR 0013). mart.bill holds every bill a tracked member sponsored or cosponsored plus
 -- every bill a loaded roll call names, so this is not every bill in Congress. The "Passed both
--- chambers" table reads all of it; the tracked-member stat cards filter to sponsor_is_tracked
--- (a tracked member is the sponsor), so the page and a manual query read the same rows.
+-- chambers" table and every stat on the page read all of it, so the page and a manual query
+-- read the same rows.
 --
 -- passed_house / passed_senate: the chamber's stage in mart.bill_journey_stage is passed (a
 -- passage roll call), or the Library of Congress recorded "Passed/agreed to in House" (action
@@ -20,7 +20,6 @@ with bills as (
         label,
         title,
         origin_chamber,
-        sponsor_is_tracked,
         congress_gov_url,
         source,
         source_url,
@@ -111,7 +110,6 @@ select
     label,
     title,
     origin_chamber,
-    sponsor_is_tracked,
     house_status,
     senate_status,
     passed_house,

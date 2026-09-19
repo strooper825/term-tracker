@@ -1,8 +1,7 @@
 // Congress overview page (/congress). Server component: every prop is built at build time in
 // src/lib/congress.ts from GET /api/v1/congress/overview. Three parts, in order: chamber
-// composition for all 535 seats, the bills that passed both chambers (every bill in the
-// database, whoever sponsored it), then a hard break and activity counting only the tracked
-// members.
+// composition for all 535 seats, legislative activity, and the bills that passed both chambers.
+// The last two cover every bill in the database, whoever sponsored it.
 import { PARTY_COLOR } from '@/data/eventTypes';
 import type { ChamberBar, CompositionSegment, CongressModel, StatCell } from '@/lib/congress';
 import { PassedBothTable } from './PassedBothTable';
@@ -164,31 +163,6 @@ function PassedBothCard({ model }: { model: CongressModel }) {
   );
 }
 
-/* The hard break. Full width of the sheet, solid navy, and set apart from both halves, so a
-   reader scrolling past cannot mistake the counts below for counts of all of Congress. */
-function ScopeDivider({ scope }: { scope: CongressModel['scope'] }) {
-  return (
-    <div
-      role="separator"
-      aria-label="Scope change"
-      className="bg-navy text-white px-7 py-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-y-4 border-ink"
-    >
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-        <span className="self-start flex-none text-label uppercase font-bold text-navy bg-white rounded-chip px-2.5 py-1">
-          Scope change
-        </span>
-        <p className="text-heading font-semibold m-0 leading-snug">{scope.message}</p>
-      </div>
-      <a
-        href={scope.href}
-        className="self-start flex-none text-label uppercase text-white border border-white/70 rounded-ctl px-3.5 py-2 hover:bg-white/10"
-      >
-        {scope.linkLabel} →
-      </a>
-    </div>
-  );
-}
-
 /* Cells sit on a one-pixel grid gap over the rule colour, so the lines between them stay
    right at any column count. */
 function StatGrid({ stats }: { stats: StatCell[] }) {
@@ -206,20 +180,35 @@ function StatGrid({ stats }: { stats: StatCell[] }) {
   );
 }
 
-function ActivitySection({ model }: { model: CongressModel }) {
+function ActivityCard({ model }: { model: CongressModel }) {
   const { activity } = model;
   return (
-    <section
-      aria-labelledby="activity-title"
-      className="bg-card border-x-4 border-b-4 border-navy px-[18px] py-6 md:px-7 flex flex-col gap-5"
-    >
-      <div className="flex items-baseline justify-between gap-x-4 gap-y-1 flex-wrap">
-        <h2 id="activity-title" className="text-heading font-semibold text-ink m-0">
-          {activity.heading} · <span className="text-navy">tracked members</span>
-        </h2>
-        <span className="text-meta text-ink3 tnum">{activity.meta}</span>
+    <section aria-labelledby="activity-title" className="border border-rule rounded-card bg-card">
+      <div className="px-[18px] pt-4 pb-3 border-b border-ruleSoft flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-x-4 gap-y-1 flex-wrap">
+          <div className="flex items-baseline gap-x-2.5 gap-y-1 flex-wrap">
+            <h2 id="activity-title" className="text-heading font-semibold text-ink m-0">
+              {activity.heading}
+            </h2>
+            <span className="text-label uppercase text-ink2 bg-lockBg border border-rule rounded-chip px-2 py-0.5 tnum">
+              {activity.chip}
+            </span>
+          </div>
+          <span className="text-meta text-ink3 tnum">{activity.meta}</span>
+        </div>
+        <p className="text-meta text-ink3 m-0 max-w-[80ch]">
+          {activity.scope}{' '}
+          <a
+            href={activity.trackedHref}
+            className="text-ink2 underline decoration-rule underline-offset-2 whitespace-nowrap"
+          >
+            {activity.trackedLabel} →
+          </a>
+        </p>
       </div>
-      <StatGrid stats={activity.stats} />
+      <div className="px-[18px] py-4">
+        <StatGrid stats={activity.stats} />
+      </div>
     </section>
   );
 }
@@ -250,11 +239,8 @@ export function CongressOverview({
         <main>
           <div className="px-7 pt-7 pb-7 bg-canvas flex flex-col gap-7">
             <CompositionCard model={model} />
+            <ActivityCard model={model} />
             <PassedBothCard model={model} />
-          </div>
-          <ScopeDivider scope={model.scope} />
-          <div className="px-7 pt-7 pb-7 bg-canvas">
-            <ActivitySection model={model} />
           </div>
           <p className="px-7 pb-6 text-label uppercase text-ink3 m-0 leading-relaxed">
             {model.footnote}
