@@ -37,7 +37,7 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
   if (rows.length === 0) {
     return (
       <p className="text-body text-ink3 px-[18px] py-4 m-0">
-        No bill in the database has passed both chambers.
+        No bill has passed both chambers.
       </p>
     );
   }

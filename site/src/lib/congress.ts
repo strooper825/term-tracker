@@ -65,15 +65,10 @@ export interface CongressModel {
   };
   activity: {
     heading: string;
-    chip: string;
     meta: string;
-    /** What the counts cover, in a sentence, with a link to the tracked members. */
-    scope: string;
-    trackedLabel: string;
-    trackedHref: string;
     stats: StatCell[];
   };
-  passedBoth: { chip: string; meta: string; scope: string; rows: PassedRow[] };
+  passedBoth: { meta: string; rows: PassedRow[] };
   footnote: string;
 }
 
@@ -190,14 +185,10 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
     composition: { asOf, sources, chambers: composition.chambers.map(chamberBar) },
     activity: {
       heading: 'Legislative activity',
-      chip: 'All sponsors',
       meta: `${congressLabel(data.congress)} to date`,
-      scope: `Every bill in our database (${formatNumber(a.bills_in_dataset)}), whoever sponsored it: bills our ${a.tracked_members} tracked members sponsored or cosponsored, plus any bill a recorded roll call named. Not yet every bill in Congress.`,
-      trackedLabel: 'See tracked members',
-      trackedHref: '/members',
       stats: [
         {
-          label: 'Bills in our database',
+          label: 'Total bills',
           value: formatNumber(a.bills_in_dataset),
           sub: `${formatNumber(a.bills_house)} House · ${formatNumber(a.bills_senate)} Senate`,
         },
@@ -209,7 +200,7 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
         {
           label: 'Became law',
           value: formatNumber(a.became_law),
-          sub: `${formatShare(a.became_law_pct)} of bills in our database`,
+          sub: `${formatShare(a.became_law_pct)} of total bills`,
         },
         {
           label: 'Vetoed',
@@ -219,8 +210,6 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
       ],
     },
     passedBoth: {
-      chip: 'All sponsors',
-      scope: 'The same bills as the counts above.',
       meta: `${plural(pb.total, 'measure', 'measures')} · ${formatNumber(pb.enacted)} enacted · ${formatNumber(pb.adopted)} adopted · ${formatNumber(pb.vetoed)} vetoed`,
       rows: pb.items.map(passedRow),
     },

@@ -108,14 +108,14 @@ describe('congress overview: given these mart rows, this text renders', () => {
     expect(screen.getAllByText(/^Vacant/)).toHaveLength(1);
   });
 
-  it('passed-both is a whole-database table and points back at the counts above it', () => {
+  it('passed-both shows its counts and no scope chip or note', () => {
     page();
     const card = screen.getByRole('region', { name: 'Passed both chambers' });
-    expect(within(card).getByText('All sponsors')).toBeInTheDocument();
+    expect(within(card).queryByText('All sponsors')).not.toBeInTheDocument();
     expect(
       within(card).getByText('7 measures · 4 enacted · 3 adopted · 0 vetoed'),
     ).toBeInTheDocument();
-    expect(card).toHaveTextContent('The same bills as the counts above.');
+    expect(card).not.toHaveTextContent('The same bills as the counts above.');
   });
 
   it('H.R. 1 is in the table with its law number and both tallies', () => {
@@ -143,29 +143,24 @@ describe('congress overview: given these mart rows, this text renders', () => {
     expect(activity.compareDocumentPosition(passed) & after).toBeTruthy();
   });
 
-  it('activity card says what its counts cover and links to the tracked members', () => {
+  it('activity card carries no scope chip, scope note, tracked-members link or "our database"', () => {
     page();
     const card = screen.getByRole('region', { name: 'Legislative activity' });
-    expect(within(card).getByText('All sponsors')).toBeInTheDocument();
     expect(card).toHaveTextContent('119th Congress to date');
-    expect(card).toHaveTextContent('Every bill in our database (3,922), whoever sponsored it');
-    expect(card).toHaveTextContent('bills our 20 tracked members sponsored or cosponsored');
-    expect(card).toHaveTextContent('Not yet every bill in Congress');
-    expect(within(card).getByRole('link', { name: /See tracked members/ })).toHaveAttribute(
-      'href',
-      '/members',
-    );
+    expect(within(card).queryByText('All sponsors')).not.toBeInTheDocument();
+    expect(within(card).queryByRole('link')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/our database|in the database/i);
   });
 
-  it('shows four stats over every bill in the database, and none of the removed ones', () => {
+  it('shows four stats over every bill, and none of the removed ones', () => {
     page();
     const stat = (label: string) => screen.getByText(label).parentElement as HTMLElement;
-    expect(stat('Bills in our database')).toHaveTextContent('3,922');
-    expect(stat('Bills in our database')).toHaveTextContent('1,956 House · 1,966 Senate');
+    expect(stat('Total bills')).toHaveTextContent('3,922');
+    expect(stat('Total bills')).toHaveTextContent('1,956 House · 1,966 Senate');
     expect(stat('Passed a chamber')).toHaveTextContent('665');
     expect(stat('Passed a chamber')).toHaveTextContent('425 House bills · 240 Senate bills');
     expect(stat('Became law')).toHaveTextContent('69');
-    expect(stat('Became law')).toHaveTextContent('1.8% of bills in our database');
+    expect(stat('Became law')).toHaveTextContent('1.8% of total bills');
     expect(stat('Vetoed')).toHaveTextContent('2');
     expect(stat('Vetoed')).toHaveTextContent('0 overridden · 2 not overridden');
     // it is not claimed to be every bill introduced in Congress
@@ -241,7 +236,7 @@ describe('congress overview: given these mart rows, this text renders', () => {
       passed_both: { total: 0, enacted: 0, adopted: 0, vetoed: 0, items: [] },
     });
     expect(
-      screen.getByText('No bill in the database has passed both chambers.'),
+      screen.getByText('No bill has passed both chambers.'),
     ).toBeInTheDocument();
   });
 
