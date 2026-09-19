@@ -337,6 +337,13 @@ describe('member tabs', () => {
     expect(screen.getByRole('tab', { name: /Constituency/ })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('the tab bar sticks to the top and never scrolls vertically', () => {
+    render(dashboard());
+    const bar = screen.getByRole('tablist');
+    expect(bar).toHaveClass('sticky', 'top-0', 'overflow-x-auto', 'overflow-y-hidden');
+    expect(screen.getAllByRole('tabpanel', { hidden: true })[0]).toHaveAttribute('tabindex', '0');
+  });
+
   it('a locked tab says it is not published yet', () => {
     render(dashboard());
     fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
