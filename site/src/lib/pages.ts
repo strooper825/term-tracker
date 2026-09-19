@@ -9,13 +9,14 @@ import {
   buildFundraising,
   buildHeader,
   buildIndexRow,
+  buildDateRanges,
   buildKeyDates,
   buildRecord,
   buildStats,
   buildTerm,
-  buildTermFacts,
   buildVoteRows,
   lastUpdated,
+  policyAreaTotals,
   type IndexRow,
 } from './model';
 import type { DashboardProps } from '@/components/MemberDashboard';
@@ -51,13 +52,14 @@ export async function congressPageProps(): Promise<{
 }
 
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
-  const [detail, feed, committees, keyDates, fundraising, freshness] = await Promise.all([
+  const [detail, feed, committees, keyDates, fundraising, freshness, sessions] = await Promise.all([
     api.member(bioguide),
     api.feedAll(bioguide),
     api.committees(bioguide),
     api.keyDates(bioguide),
     api.fundraising(bioguide),
     api.freshness(),
+    api.sessions(),
   ]);
   return {
     member: buildHeader(detail),
@@ -65,7 +67,10 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     term: buildTerm(detail),
     votes: buildVoteRows(feed),
     congressLabel: congressLabel(detail.term.tracked_congress),
-    termFacts: buildTermFacts(detail),
+    policyAreas: policyAreaTotals(feed),
+    // The rolling windows count back from the latest ingest rather than the build clock, so
+    // every boundary the filter uses comes from data.
+    dateRanges: buildDateRanges(sessions.sessions, detail.term, latestIngest(freshness, today)),
     record: buildRecord(detail),
     election: buildElection(keyDates.items, detail, today),
     committees: buildCommitteeRows(committees.items),
@@ -102,4 +107,11 @@ export async function billPageProps(
     trail.push({ label: bill.sponsorName, href: `/members/${detail.sponsor.bioguide_id}` });
   }
   return { bill, trail, lastUpdated: lastUpdated(freshness) };
+}
+
+/** The most recent successful ingest, the anchor for the rolling date windows. Falls back to
+ *  `today` on a database with no recorded run. */
+function latestIngest(freshness: { sources: { fetched_at: string }[] }, today: Date): Date {
+  const latest = freshness.sources.map((s) => s.fetched_at).sort().at(-1);
+  return latest ? new Date(latest) : today;
 }

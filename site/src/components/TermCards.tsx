@@ -1,5 +1,5 @@
-// "Current term" and "Record" cards for the Congress activity tab: label-and-value rows over
-// mart.member_summary and mart.term_history columns, formatted in src/lib/model.ts.
+// The "Record" card for the Congress activity tab: label-and-value rows over
+// mart.member_vote_stats and mart.term_history columns, formatted in src/lib/model.ts.
 import type { FactRow, RecordModel } from '@/lib/model';
 
 function FactRows({ rows }: { rows: FactRow[] }) {
@@ -18,19 +18,6 @@ function FactRows({ rows }: { rows: FactRow[] }) {
         </div>
       ))}
     </dl>
-  );
-}
-
-export function CurrentTermCard({ rows }: { rows: FactRow[] }) {
-  return (
-    <section aria-labelledby="term-title" className="border border-rule rounded-card bg-card">
-      <div className="px-[18px] pt-4 pb-[11px]">
-        <h2 id="term-title" className="text-heading font-semibold text-ink m-0">
-          Current term
-        </h2>
-      </div>
-      <FactRows rows={rows} />
-    </section>
   );
 }
 

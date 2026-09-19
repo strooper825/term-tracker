@@ -4,11 +4,12 @@
 // tab is one function here, so a section can grow without touching the others.
 import type {
   CommitteeRow,
+  DateRange,
   ElectionModel,
-  FactRow,
   FundraisingModel,
   KeyDateRow,
   MemberHeaderModel,
+  PolicyAreaCount,
   RecordModel,
   Stat,
   TermModel,
@@ -20,7 +21,7 @@ import { MemberTabs, type TabSpec } from './MemberTabs';
 import { RollCallVotes } from './RollCallVotes';
 import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from './SideCards';
 import { Breadcrumb, SiteFooter, SiteHeader } from './SiteChrome';
-import { CurrentTermCard, RecordCard } from './TermCards';
+import { RecordCard } from './TermCards';
 
 export interface DashboardProps {
   member: MemberHeaderModel;
@@ -29,7 +30,8 @@ export interface DashboardProps {
   votes: VoteRow[];
   /** "119th Congress": the Congress the vote list covers. */
   congressLabel: string;
-  termFacts: FactRow[];
+  policyAreas: PolicyAreaCount[];
+  dateRanges: DateRange[];
   record: RecordModel;
   election: ElectionModel | null;
   committees: CommitteeRow[];
@@ -38,18 +40,22 @@ export interface DashboardProps {
   lastUpdated: string | null;
 }
 
-/* Congress activity: what the member does in the chamber. Votes take the wide column; who they
-   sit with, their record and their term sit beside it. */
+/* Congress activity: what the member does in the chamber. Votes take the wide column; their
+   committees and record sit beside it. */
 function CongressActivityTab(props: DashboardProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-main gap-7 items-start">
       <div className="min-w-0">
-        <RollCallVotes votes={props.votes} congressLabel={props.congressLabel} />
+        <RollCallVotes
+          votes={props.votes}
+          congressLabel={props.congressLabel}
+          policyAreas={props.policyAreas}
+          dateRanges={props.dateRanges}
+        />
       </div>
       <div className="flex flex-col gap-5 min-w-0">
         <CommitteesCard committees={props.committees} />
         <RecordCard record={props.record} />
-        <CurrentTermCard rows={props.termFacts} />
       </div>
     </div>
   );

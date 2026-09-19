@@ -14,6 +14,7 @@ import type {
   KeyDatesResponse,
   MemberDetail,
   MembersResponse,
+  SessionsResponse,
 } from './types';
 
 function baseUrl(): string {
@@ -41,6 +42,7 @@ export const api = {
   fundraising: (bioguide: string) =>
     getJson<FundraisingResponse>(`/api/v1/members/${bioguide}/fundraising`),
   congressOverview: () => getJson<CongressOverviewResponse>('/api/v1/congress/overview'),
+  sessions: () => getJson<SessionsResponse>('/api/v1/meta/sessions'),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
   bills: (limit: number, offset: number) =>
     getJson<BillsResponse>(`/api/v1/bills?limit=${limit}&offset=${offset}`),

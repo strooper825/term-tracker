@@ -4,6 +4,7 @@
 
 import { EVENT_TYPE_FROM_MART, type EventKey, type PartyName } from '@/data/eventTypes';
 import {
+  addDays,
   billPath,
   congressLabel,
   cycleLabel,
@@ -27,6 +28,7 @@ import type {
   BillRollCall,
   BillSummaryVersion,
   CommitteeAssignment,
+  CongressSession,
   FeedItem,
   FreshnessResponse,
   FundraisingResponse,
@@ -352,11 +354,75 @@ export function feedRow(item: FeedItem): FeedRow {
   };
 }
 
+export interface PolicyAreaCount {
+  name: string;
+  count: number;
+}
+
+/** The policy areas present in this member's feed, commonest first, then alphabetically so
+ *  the order is stable between builds. Counting rows the page already holds, the same way
+ *  eventTotals does; the areas themselves are mart.member_feed.policy_area. */
+export function policyAreaTotals(items: FeedItem[]): PolicyAreaCount[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (item.policy_area) counts.set(item.policy_area, (counts.get(item.policy_area) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** How many feed rows carry no policy area. Shown when a policy filter is on, so a shorter
+ *  list is never silent about what it left out. */
+export function rowsWithoutPolicyArea(items: FeedItem[]): number {
+  return items.filter((item) => !item.policy_area).length;
+}
+
+export interface DateRange {
+  key: string;
+  label: string;
+  /** Inclusive ISO bounds; null means unbounded on that side. */
+  from: string | null;
+  to: string | null;
+}
+
+export const ALL_DATES = 'all';
+
+/** The date presets, every boundary from data rather than from the browser clock:
+ *  the session bounds are mart.congress_session, the term bounds mart.member_summary, and the
+ *  rolling windows count back from `asOf`, which callers pass as the latest ingest time. */
+export function buildDateRanges(
+  sessions: CongressSession[],
+  term: { start_date: string; end_date: string },
+  asOf: Date,
+): DateRange[] {
+  const current = sessions.find((s) => s.is_current) ?? sessions[sessions.length - 1];
+  const back = (days: number) => toIsoDate(addDays(asOf, -days));
+  return [
+    { key: ALL_DATES, label: 'All dates', from: null, to: null },
+    { key: 'last30', label: 'Last 30 days', from: back(30), to: null },
+    { key: 'last90', label: 'Last 90 days', from: back(90), to: null },
+    ...(current
+      ? [
+          {
+            key: 'session',
+            label: `This session (${current.year})`,
+            from: current.start_date,
+            to: current.end_date,
+          },
+        ]
+      : []),
+    { key: 'term', label: 'Whole term', from: term.start_date, to: term.end_date },
+  ];
+}
+
 export type VotePosition = 'Yea' | 'Nay' | 'Present' | 'Not Voting' | 'Other';
 
 export interface VoteRow {
   key: string;
   position: VotePosition;
+  /** "Voted YEA " or "Did not vote ": the bold opening of the row's sentence. */
+  lead: string;
   /** The bill, nomination or roll call the vote was on: "H.R. 3424: Title". */
   subject: string;
   /** "On Passage · Passed 219–213", the question and result the mart carries. */
@@ -382,7 +448,8 @@ export function buildVoteRows(items: FeedItem[]): VoteRow[] {
       return {
         key: item.event_key,
         position,
-        subject: row.headline.replace(/^on /, ''),
+        lead: row.lead ?? '',
+        subject: row.headline,
         secondary: row.secondary,
         secondaryFull: row.secondaryFull,
         date: formatDate(item.event_date),
@@ -398,37 +465,6 @@ export interface FactRow {
   label: string;
   value: string;
   note?: string;
-}
-
-/** The "Current term" card: where the member sits and how long the term runs. Every value is
- *  a mart.member_summary column or the term block of GET /members/{id}. */
-export function buildTermFacts(detail: MemberDetail): FactRow[] {
-  const t = detail.term;
-  const caucus = caucusParty(detail);
-  const firstTracked = t.congresses[0];
-  const lastTracked = t.congresses[t.congresses.length - 1];
-  return [
-    { label: 'Seat', value: seatLong(detail.seat) },
-    {
-      label: 'Party',
-      value: partyName(detail.party),
-      ...(caucus ? { note: `Caucuses with ${PARTY_MEMBERS[caucus]}` } : {}),
-    },
-    { label: 'Term starts', value: formatLongDate(t.start_date) },
-    { label: 'Term ends', value: formatLongDate(t.end_date) },
-    {
-      label: 'Days remaining',
-      value: formatNumber(Math.max(0, t.days_remaining)),
-      note: `${formatNumber(t.days_elapsed)} elapsed`,
-    },
-    {
-      label: 'Congresses',
-      value:
-        firstTracked === lastTracked
-          ? congressLabel(firstTracked)
-          : `${ordinal(firstTracked)}–${congressLabel(lastTracked)}`,
-    },
-  ];
 }
 
 export interface RecordModel {

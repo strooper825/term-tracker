@@ -13,7 +13,8 @@ import {
   buildRecord,
   buildStats,
   buildTerm,
-  buildTermFacts,
+  buildDateRanges,
+  policyAreaTotals,
   buildVoteRows,
 } from '@/lib/model';
 import { KeyDatesCard } from '@/components/SideCards';
@@ -34,6 +35,7 @@ import {
   STEIL_FUNDRAISING,
   STEIL_KEY_DATES,
   STEIL_LIST,
+  SESSIONS,
 } from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
@@ -54,7 +56,8 @@ function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
       term={buildTerm(detail)}
       votes={buildVoteRows(FEED)}
       congressLabel="119th Congress"
-      termFacts={buildTermFacts(detail)}
+      policyAreas={policyAreaTotals(FEED)}
+      dateRanges={buildDateRanges(SESSIONS, detail.term, TODAY)}
       record={buildRecord(detail)}
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
@@ -69,7 +72,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
   it('header, breadcrumb, five stats, term bar, and footer', () => {
     render(dashboard());
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Rep. Bryan Steil');
-    expect(screen.getAllByText('Wisconsin’s 1st District')).toHaveLength(2); // header, Current term card
+    expect(screen.getByText('Wisconsin’s 1st District')).toBeInTheDocument();
     expect(screen.getAllByText('REPUBLICAN').length).toBeGreaterThan(0);
     expect(screen.getByText('99.24%')).toBeInTheDocument(); // member_vote_stats.attendance_pct
     expect(screen.getByText('652 of 657 roll calls')).toBeInTheDocument();
@@ -111,7 +114,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
   it('Senate member: Class 2 seat and the header facts, no map tab', () => {
     render(dashboard(COTTON));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Tom Cotton');
-    expect(screen.getAllByText('Arkansas · Class 2')).toHaveLength(2); // header, Current term card
+    expect(screen.getByText('Arkansas · Class 2')).toBeInTheDocument();
     expect(screen.getByText('Tracking 119th Congress')).toBeInTheDocument();
     expect(facts()).toEqual({
       'Current term': 'Jan 3, 2021 – Jan 3, 2027',
@@ -140,13 +143,13 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     render(dashboard(SANDERS));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Bernard Sanders');
     expect(screen.getAllByText('INDEPENDENT').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Caucuses with Democrats')).toHaveLength(2); // term.caucus: header, Current term card
+    expect(screen.getByText('Caucuses with Democrats')).toBeInTheDocument(); // term.caucus
     expect(screen.getByText('Senate Democratic Outreach Chair')).toBeInTheDocument();
     expect(facts()['Serving since']).toBe('1991');
     expect(facts().Term).toBe('12th4th in the Senate');
     expect(screen.getByText('99.87%')).toBeInTheDocument(); // member_vote_stats.party_unity_cq_pct
     expect(screen.getByText('votes with Democratic caucus')).toBeInTheDocument();
-    expect(screen.getAllByText('Vermont · Class 1')).toHaveLength(2); // header, Current term card
+    expect(screen.getByText('Vermont · Class 1')).toBeInTheDocument();
     // Class 1 seat, term to 2031: the 2026 general election is shown but the seat is not on the ballot
     const election = screen.getByText('Next election').closest('section')!;
     expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
@@ -185,18 +188,27 @@ describe('key dates card', () => {
 
 describe('roll call votes', () => {
   const votes = () => buildVoteRows(FEED);
-  const list = () => <RollCallVotes votes={votes()} congressLabel="119th Congress" />;
+  const list = (rows = votes()) => (
+    <RollCallVotes
+      votes={rows}
+      congressLabel="119th Congress"
+      policyAreas={policyAreaTotals(FEED)}
+      dateRanges={buildDateRanges(SESSIONS, STEIL.term, TODAY)}
+    />
+  );
+  const items = () => screen.getAllByRole('listitem');
 
-  it('lists only the roll-call votes, with the position, subject, question and result', () => {
+  it('lists only the roll-call votes as plain sentences, with question and result', () => {
     render(list());
-    expect(screen.getAllByRole('listitem')).toHaveLength(4); // 4 of the 7 feed rows are votes
-    expect(
-      screen.getByText('H.R. 4795: Protect Economic and Academic Freedom Act of 2026'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('nomination PN12-1')).toBeInTheDocument();
+    expect(items()).toHaveLength(4); // 4 of the 7 feed rows are votes
+    expect(items()[0]).toHaveTextContent(
+      'Voted YEA on H.R. 4795: Protect Economic and Academic Freedom Act of 2026',
+    );
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');
+    expect(screen.getByText('Did not vote', { exact: false })).toBeInTheDocument();
     expect(screen.queryByText(/Introduced H\.R\. 4735/)).not.toBeInTheDocument(); // not a vote
     expect(screen.getByText(/4 recorded/)).toBeInTheDocument();
+    expect(screen.getByText('4 of 4 votes')).toBeInTheDocument();
   });
 
   it('gives each vote one destination: the bill page when the mart has one, else the source', () => {
@@ -211,13 +223,51 @@ describe('roll call votes', () => {
   it('filters by position and by search, says when nothing matches, and clears', () => {
     render(list());
     fireEvent.click(screen.getByRole('button', { name: /Yea/ })); // turn Yea off
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
-    expect(screen.queryByText('nomination PN12-1')).not.toBeInTheDocument();
+    expect(items()).toHaveLength(2);
+    expect(screen.getByText('2 of 4 votes')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Search roll call votes'), { target: { value: 'zzzz' } });
     expect(screen.getByText(/No votes match “zzzz”/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(items()).toHaveLength(4);
+  });
+
+  it('policy area: the dropdown lists the areas present, and filtering says what it hid', () => {
+    render(list());
+    fireEvent.click(screen.getByRole('button', { name: 'All policy areas' }));
+    const options = within(screen.getByRole('listbox', { name: 'Policy areas' }))
+      .getAllByRole('option')
+      .map((o) => o.textContent);
+    expect(options).toEqual([
+      'Congress1',
+      'Education1',
+      'Finance and Financial Sector1',
+      'Government Operations and Politics1',
+    ]);
+    fireEvent.click(screen.getByRole('option', { name: /Education/ }));
+    expect(screen.getByText('1 of 4 votes')).toBeInTheDocument();
+    // the three votes with no policy area are named, not silently dropped
+    expect(screen.getByText(/3 votes have no policy area and are hidden/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear policy areas' }));
+    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
+  });
+
+  it('date range: presets come from the mart, and Clear resets every filter', () => {
+    render(list());
+    const select = screen.getByLabelText('Date range') as HTMLSelectElement;
+    expect(select.value).toBe('all');
+    expect([...select.options].map((o) => o.textContent)).toEqual([
+      'All dates',
+      'Last 30 days',
+      'Last 90 days',
+      'This session (2026)',
+      'Whole term',
+    ]);
+    fireEvent.change(select, { target: { value: 'session' } });
+    expect(screen.getByText('2 of 4 votes')).toBeInTheDocument(); // the two 2025 votes drop out
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect((screen.getByLabelText('Date range') as HTMLSelectElement).value).toBe('all');
+    expect(screen.getByText('4 of 4 votes')).toBeInTheDocument();
   });
 
   it('shows ten at a time and offers the rest', () => {
@@ -225,12 +275,12 @@ describe('roll call votes', () => {
       ...votes()[0],
       key: `vote:house:1:${i}`,
     }));
-    render(<RollCallVotes votes={many} congressLabel="119th Congress" />);
-    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    render(list(many));
+    expect(items()).toHaveLength(10);
     fireEvent.click(screen.getByRole('button', { name: /Show 10 more/ }));
-    expect(screen.getAllByRole('listitem')).toHaveLength(20);
+    expect(items()).toHaveLength(20);
     fireEvent.click(screen.getByRole('button', { name: /Show 3 more/ }));
-    expect(screen.getAllByRole('listitem')).toHaveLength(23);
+    expect(items()).toHaveLength(23);
     expect(screen.queryByRole('button', { name: /more/ })).not.toBeInTheDocument();
   });
 });
@@ -251,7 +301,7 @@ describe('member tabs', () => {
     expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(5);
   });
 
-  it('Congress activity holds the votes, committees, record and current term', () => {
+  it('Congress activity holds the votes, committees and record, and no current-term card', () => {
     render(dashboard());
     const panel = screen.getByRole('tabpanel');
     expect(within(panel).getByRole('heading', { name: 'Roll call votes' })).toBeInTheDocument();
@@ -260,9 +310,7 @@ describe('member tabs', () => {
     expect(within(record).getByText('Votes cast')).toBeInTheDocument();
     expect(within(record).getByText('0.76%')).toBeInTheDocument(); // missed_vote_pct
     expect(within(record).getByText('Terms in office')).toBeInTheDocument();
-    const term = within(panel).getByRole('region', { name: 'Current term' });
-    expect(within(term).getByText('Wisconsin’s 1st District')).toBeInTheDocument();
-    expect(within(term).getByText('112')).toBeInTheDocument(); // days remaining
+    expect(within(panel).queryByRole('region', { name: 'Current term' })).not.toBeInTheDocument();
     expect(within(panel).queryByText('Next election')).not.toBeInTheDocument();
   });
 
