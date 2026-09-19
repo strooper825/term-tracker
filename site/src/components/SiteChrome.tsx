@@ -22,14 +22,9 @@ export function SiteHeader({ active }: { active: string }) {
   );
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-7 py-3.5 border-b border-rule">
-      <div className="flex items-baseline gap-2">
-        <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
-          Term Tracker
-        </span>
-        <span className="text-label uppercase text-ink4 border border-rule rounded-chip px-1.5 py-px">
-          working name
-        </span>
-      </div>
+      <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
+        Term Tracker
+      </span>
       <nav className="flex gap-[22px] text-body">
         {link('/congress', 'Congress')}
         {link('/members', 'Members')}
@@ -93,8 +88,9 @@ export function PartyBadge({
   const cls = {
     sm: 'text-label px-1.5 py-0.5',
     md: 'text-label px-[7px] py-0.5',
-    // The member card's own-row badge (Members index): bigger padding, not just bigger text.
-    lg: 'text-label px-[7px] py-[5px]',
+    // The member card's own-row badge (Members index): bigger padding, and one fixed width so
+    // REPUBLICAN, DEMOCRATIC and INDEPENDENT read as the same chip whatever the name beside it.
+    lg: 'text-label px-[7px] py-[5px] inline-block w-[104px] text-center',
   }[size];
   return (
     <span

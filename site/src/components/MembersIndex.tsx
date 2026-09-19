@@ -35,7 +35,9 @@ function MemberCard({ member }: { member: IndexRow }) {
         />
         <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-base font-semibold leading-snug">{member.name}</span>
-          <PartyBadge party={member.party} size="lg" />
+          <span className="self-start">
+            <PartyBadge party={member.party} size="lg" />
+          </span>
           <span className="text-meta text-ink3">{member.seatShort}</span>
         </div>
       </div>
@@ -112,7 +114,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
             Members of the {congressLabel}
           </h1>
           <p className="text-label uppercase text-ink3 tnum m-0">
-            {members.length} tracked members · more coming
+            {members.length} tracked members
           </p>
         </div>
         <div className="flex gap-9">
