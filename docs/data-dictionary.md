@@ -664,8 +664,10 @@ Weekly buckets (`week_start`, Monday) per member and `event_type`, built from `m
 ## Congress overview (`/congress`, ADR 0012 and 0013)
 
 `GET /api/v1/congress/overview` returns all of it; the page renders these columns and computes
-nothing. Two scopes, kept apart on the page by a scope-change divider: **composition** covers all
-535 seats and is hand-maintained; everything else counts only the tracked members.
+nothing. Two scopes, in page order: **composition** covers all 535 seats and is
+hand-maintained; **legislative activity** and **passed both chambers** cover every bill in
+`mart.bill` whoever sponsored it (the tracked members' bills plus any bill a loaded roll call
+names, so not every bill in Congress). Nothing on the page counts only the tracked members.
 
 ### `mart.chamber_composition`
 
@@ -679,19 +681,21 @@ the seed's as-of date). Source: `seed.composition_seats`.
 
 One row per chamber: `chamber_seats`, `seated`, `vacant`, the Congress-wide `congress_seats`,
 `congress_seated`, `congress_vacant`, `majority_threshold` (chamber seats / 2 + 1: 218 and 51,
-unchanged by vacancies), `republican_caucus` and `democratic_caucus` (independents counted with the
-party they caucus with, as in ADR 0005), `majority_party`, `majority_letter` (`R`, `D`, null on a
-tie) and `majority_margin`. Seeded 2026-09-19: House R +5 (219 to 214), Senate R +6 (53 to 47).
+unchanged by vacancies), `majority_pct` (where that line falls along the bar, threshold / seats),
+`republican_caucus` and `democratic_caucus` (independents counted with the party they caucus with,
+as in ADR 0005), `majority_party`, `majority_letter` (`R`, `D`, null on a tie) and
+`majority_margin`. The page states control in words ("Republicans control the House") from
+`majority_party` and the two caucus counts, and draws the majority line at `majority_pct`. Seeded
+2026-09-19: House 219 to 214 (218 R + 1 I), Senate 53 to 47 (45 D + 2 I).
 
-### `mart.congress_tracked_bill`
+### `mart.congress_bill_outcome`
 
-One row per bill (kind `bill`) a tracked member sponsored: 702 on 2026-09-19. Amendments,
-cosponsored-only bills and roll-call-only bills are excluded.
+One row per bill (kind `bill`) in `mart.bill`: 3,922 on 2026-09-19, all in the 119th Congress. The
+activity stats and the passed-both table read every row. Amendments are excluded.
 
 | Column | Description |
 |---|---|
 | `congress`, `bill_type`, `bill_number`, `label`, `title`, `origin_chamber`, `congress_gov_url` | The bill |
-| `measure_type` | `house_bill` (hr), `senate_bill` (s), `joint_resolution` (hjres, sjres), `other` (hres, sres, hconres, sconres) |
 | `house_status`, `senate_status` | The vote-journey stage status (ADR 0009) |
 | `passed_house`, `passed_senate` | A passage roll call read `passed`, or the Library of Congress recorded "Passed/agreed to in House" (action code `8000`) or "... in Senate" (`17000`). The codes cover voice votes and unanimous consent. All 445 passage roll calls carry the matching action (checked 2026-09-19) |
 | `passed_a_chamber`, `passed_both_chambers` | Either chamber; both chambers of a two-chamber type (never `hres` or `sres`) |
@@ -699,23 +703,22 @@ cosponsored-only bills and roll-call-only bills are excluded.
 | `vetoed`, `veto_overridden` | An E30000 "Vetoed by President" action; vetoed and also became law |
 | `outcome` | `law`, `vetoed`, `overridden`, `adopted` (a concurrent resolution that cleared both chambers, no President stage), `pending` (bill or joint resolution that cleared both, not yet law or vetoed); null otherwise |
 | `outcome_date` | Law date, veto date, or the date the second chamber passed it |
-| `still_in_committee` | No vote stage past Introduced and no Calendars, Floor, Discharge, President, BecameLaw, ResolvingDifferences or Veto action. A derivation from action types, not a Congress.gov status |
 | `house_yea`, `house_nay`, `senate_yea`, `senate_nay` | The latest passage roll call in the chamber; null when it left none |
+
+Checked 2026-09-19: 84 bills passed both chambers (69 law, 6 adopted, 2 vetoed, 7 not yet law),
+and the 69 laws equal the 69 `Became Public Law` actions in `mart.bill_action`. H.R. 1 reads Public
+Law 119-21, House 215 to 214, Senate 50 to 50.
 
 ### `mart.congress_overview`
 
-One row. `congress`, `congress_start`, `congress_end`, `tracked_members`, `tracked_house`,
-`tracked_senate` (from `mart.member_summary`, not hardcoded); `bills_introduced`,
-`introduced_house`, `introduced_senate` (by chamber of origin); `passed_chamber` and its
-`_house_origin` / `_senate_origin` split (distinct bills, so the halves sum to the total);
-`became_law`, `became_law_pct`; `vetoed`, `vetoed_overridden`, `vetoed_not_overridden`;
-`roll_call_votes` and its house/senate split (votes cast by tracked members, `member_vote.voted`,
-not roll calls held); `committee_actions` (`member_feed`, `committee_action`); `resolutions`
-(joint resolutions plus other); `still_in_committee` and `_pct`; `passed_both`,
-`passed_both_enacted`, `passed_both_adopted`, `passed_both_vetoed`. Percentages are rounded to
-one decimal. `assert_congress_overview_consistent` checks the splits against their totals.
-
-### `mart.congress_overview_type`
-
-One row per measure type (`house_bill`, `senate_bill`, `joint_resolution`, `other`) with `bills`
-and `bill_pct` (share of bills introduced, what the measure-type bar's width is).
+One row, every figure over every bill in `mart.congress_bill_outcome`. `congress`,
+`congress_start`, `congress_end`; `tracked_members` (from `mart.member_summary`, only so the page
+can say whose bills seeded the dataset); `bills_in_dataset` (not "bills introduced": it is not
+every bill in Congress), `bills_house`, `bills_senate` (by chamber of origin); `passed_chamber` and
+its `_house_origin` / `_senate_origin` split (distinct bills, so the halves sum to the total);
+`became_law`, `became_law_pct` (share of `bills_in_dataset`); `vetoed`, `vetoed_overridden`,
+`vetoed_not_overridden`; `passed_both`, `passed_both_enacted`, `passed_both_adopted`,
+`passed_both_vetoed`. Percentages are rounded to one decimal. Checked 2026-09-19: 3,922 bills
+(1,956 House, 1,966 Senate), 665 passed a chamber (425 House bills, 240 Senate bills), 69 law
+(1.8%), 2 vetoed (none overridden), 84 passed both. `assert_congress_overview_consistent` checks the
+splits against their totals and each figure against the one it is a subset of.

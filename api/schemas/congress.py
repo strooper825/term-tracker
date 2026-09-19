@@ -24,6 +24,7 @@ class ChamberComposition(BaseModel):
     seated: int
     vacant: int
     majority_threshold: int = Field(description="Seats for a majority: chamber seats / 2 + 1")
+    majority_pct: float = Field(description="Where the majority line falls along the bar, in %")
     republican_caucus: int
     democratic_caucus: int
     majority_party: str | None
@@ -41,23 +42,15 @@ class Composition(BaseModel):
     chambers: list[ChamberComposition] = Field(description="House, then Senate")
 
 
-class MeasureType(BaseModel):
-    measure_type: str
-    label: str
-    short_label: str
-    bills: int
-    bill_pct: float | None
-
-
 class Activity(BaseModel):
-    """Every figure counts only the tracked members (ADR 0013)."""
+    """Every bill in the dataset, whoever sponsored it (ADR 0013)."""
 
     tracked_members: int
-    tracked_house: int
-    tracked_senate: int
-    bills_introduced: int
-    introduced_house: int
-    introduced_senate: int
+    bills_in_dataset: int = Field(
+        description="Bills the counts are drawn from: not every bill in Congress"
+    )
+    bills_house: int = Field(description="By chamber of origin")
+    bills_senate: int
     passed_chamber: int
     passed_chamber_house_origin: int
     passed_chamber_senate_origin: int
@@ -66,13 +59,6 @@ class Activity(BaseModel):
     vetoed: int
     vetoed_overridden: int
     vetoed_not_overridden: int
-    roll_call_votes: int
-    roll_call_votes_house: int
-    roll_call_votes_senate: int
-    committee_actions: int
-    resolutions: int
-    still_in_committee: int
-    still_in_committee_pct: float | None
 
 
 class PassedBothItem(BaseModel):
@@ -94,6 +80,8 @@ class PassedBothItem(BaseModel):
 
 
 class PassedBoth(BaseModel):
+    """The table of measures that cleared both chambers (ADR 0013)."""
+
     total: int
     enacted: int
     adopted: int = Field(description="Concurrent resolutions, which never go to the President")
@@ -107,7 +95,6 @@ class OverviewResponse(BaseModel):
     congress_end: dt.date
     composition: Composition
     activity: Activity
-    measure_types: list[MeasureType]
     passed_both: PassedBoth
     generated_at: datetime
     sources: list[SourceRef]

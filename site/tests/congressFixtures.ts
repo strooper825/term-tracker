@@ -1,7 +1,23 @@
-/** GET /api/v1/congress/overview as the local marts returned it on 2026-09-19. */
+/** GET /api/v1/congress/overview, trimmed from what the local marts returned on 2026-09-19. */
 import type { CongressOverviewResponse, PassedBothItem } from '@/lib/types';
 
 const CG = 'https://www.congress.gov/bill/119th-congress';
+
+export const HR1: PassedBothItem = {
+  congress: 119,
+  bill_type: 'hr',
+  bill_number: '1',
+  label: 'H.R. 1',
+  title: 'An act to provide for reconciliation pursuant to title II of H. Con. Res. 14',
+  outcome: 'law',
+  public_law_number: '119-21',
+  outcome_date: '2025-07-04',
+  house_yea: 215,
+  house_nay: 214,
+  senate_yea: 50,
+  senate_nay: 50,
+  congress_gov_url: `${CG}/house-bill/1`,
+};
 
 export const PASSED_ITEMS: PassedBothItem[] = [
   {
@@ -73,7 +89,14 @@ const ADOPTED: PassedBothItem[] = [
   congress_gov_url: `${CG}/${type === 'hconres' ? 'house' : 'senate'}-concurrent-resolution/${number}`,
 }));
 
-const BOTH: PassedBothItem[] = [PASSED_ITEMS[0], ADOPTED[0], PASSED_ITEMS[1], PASSED_ITEMS[2], ...ADOPTED.slice(1)];
+const BOTH: PassedBothItem[] = [
+  PASSED_ITEMS[0],
+  ADOPTED[0],
+  PASSED_ITEMS[1],
+  PASSED_ITEMS[2],
+  ...ADOPTED.slice(1),
+  HR1,
+];
 
 export const OVERVIEW: CongressOverviewResponse = {
   congress: 119,
@@ -91,6 +114,7 @@ export const OVERVIEW: CongressOverviewResponse = {
         seated: 433,
         vacant: 2,
         majority_threshold: 218,
+        majority_pct: 50.11,
         republican_caucus: 219,
         democratic_caucus: 214,
         majority_party: 'republican',
@@ -110,6 +134,7 @@ export const OVERVIEW: CongressOverviewResponse = {
         seated: 100,
         vacant: 0,
         majority_threshold: 51,
+        majority_pct: 51,
         republican_caucus: 53,
         democratic_caucus: 47,
         majority_party: 'republican',
@@ -126,34 +151,19 @@ export const OVERVIEW: CongressOverviewResponse = {
   },
   activity: {
     tracked_members: 20,
-    tracked_house: 10,
-    tracked_senate: 10,
-    bills_introduced: 702,
-    introduced_house: 257,
-    introduced_senate: 445,
-    passed_chamber: 45,
-    passed_chamber_house_origin: 22,
-    passed_chamber_senate_origin: 23,
-    became_law: 3,
-    became_law_pct: 0.4,
-    vetoed: 0,
+    bills_in_dataset: 3922,
+    bills_house: 1956,
+    bills_senate: 1966,
+    passed_chamber: 665,
+    passed_chamber_house_origin: 425,
+    passed_chamber_senate_origin: 240,
+    became_law: 69,
+    became_law_pct: 1.8,
+    vetoed: 2,
     vetoed_overridden: 0,
-    vetoed_not_overridden: 0,
-    roll_call_votes: 14999,
-    roll_call_votes_house: 6419,
-    roll_call_votes_senate: 8580,
-    committee_actions: 183,
-    resolutions: 118,
-    still_in_committee: 604,
-    still_in_committee_pct: 86,
+    vetoed_not_overridden: 2,
   },
-  measure_types: [
-    { measure_type: 'house_bill', label: 'House bills', short_label: 'H.R.', bills: 212, bill_pct: 30.2 },
-    { measure_type: 'senate_bill', label: 'Senate bills', short_label: 'S.', bills: 372, bill_pct: 52.99 },
-    { measure_type: 'joint_resolution', label: 'Joint resolutions', short_label: 'J.Res.', bills: 37, bill_pct: 5.27 },
-    { measure_type: 'other', label: 'Other', short_label: 'Other', bills: 81, bill_pct: 11.54 },
-  ],
-  passed_both: { total: 6, enacted: 3, adopted: 3, vetoed: 0, items: BOTH },
+  passed_both: { total: 7, enacted: 4, adopted: 3, vetoed: 0, items: BOTH },
   generated_at: '2026-09-19T16:00:00Z',
   sources: [],
 };
@@ -173,6 +183,12 @@ export function manyPassed(): CongressOverviewResponse {
   }));
   return {
     ...OVERVIEW,
-    passed_both: { total: 10, enacted: 5, adopted: 3, vetoed: 2, items: [...BOTH, ...extra] },
+    passed_both: {
+      total: 11,
+      enacted: 6,
+      adopted: 3,
+      vetoed: 2,
+      items: [...BOTH, ...extra],
+    },
   };
 }

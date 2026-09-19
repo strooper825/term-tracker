@@ -1,9 +1,8 @@
--- One row per bill (kind bill) that a tracked member sponsored, with the outcome facts the
--- Congress overview counts (ADR 0013). Everything the overview page shows about legislation is
--- a count or a filter over this table, so the page and a manual query read the same rows.
---
--- Scope: sponsor_is_tracked. Amendments, cosponsored-only bills, and bills that are in
--- mart.bill only because a roll call named them are not here.
+-- One row per bill (kind bill) in mart.bill, with the outcome facts the Congress overview
+-- counts (ADR 0013). mart.bill holds every bill a tracked member sponsored or cosponsored plus
+-- every bill a loaded roll call names, so this is not every bill in Congress. The "Passed both
+-- chambers" table and every stat on the page read all of it, so the page and a manual query
+-- read the same rows.
 --
 -- passed_house / passed_senate: the chamber's stage in mart.bill_journey_stage is passed (a
 -- passage roll call), or the Library of Congress recorded "Passed/agreed to in House" (action
@@ -13,10 +12,7 @@
 -- vetoed: a "Vetoed by President" action (code E30000). veto_overridden: vetoed and also became
 -- law (E40000). Neither has an override roll call to check against, so an overridden veto is
 -- read from the bill going on to become law after the veto.
--- still_in_committee: no vote stage past Introduced and no Calendars, Floor, Discharge,
--- President, ResolvingDifferences or Veto action. A derivation from action types, not a
--- Congress.gov status (ADR 0003, ADR 0013).
-with tracked as (
+with bills as (
     select
         congress,
         bill_type,
@@ -29,7 +25,7 @@ with tracked as (
         source_url,
         fetched_at
     from {{ ref('bill') }}
-    where kind = 'bill' and sponsor_is_tracked
+    where kind = 'bill'
 ),
 
 stages as (
@@ -39,8 +35,7 @@ stages as (
         bill_number,
         max(status) filter (where stage_key = 'house_vote') as house_status,
         max(status) filter (where stage_key = 'senate_vote') as senate_status,
-        max(status) filter (where stage_key = 'became_law') as law_status,
-        coalesce(bool_or(stage_key <> 'introduced' and status <> 'pending'), false) as has_progress
+        max(status) filter (where stage_key = 'became_law') as law_status
     from {{ ref('bill_journey_stage') }}
     group by 1, 2, 3
 ),
@@ -64,14 +59,7 @@ late as (
         min(action_date) filter (where action_code = '8000') as house_passed_date,
         min(action_date) filter (where action_code = '17000') as senate_passed_date,
         max(substring(action_text from 'Public Law No: ([0-9]+-[0-9]+)'))
-            filter (where action_code = 'E40000') as public_law_number,
-        coalesce(
-            bool_or(action_type in (
-                'Calendars', 'Floor', 'Discharge', 'President', 'BecameLaw',
-                'ResolvingDifferences', 'Veto'
-            )),
-            false
-        ) as has_floor_action
+            filter (where action_code = 'E40000') as public_law_number
     from {{ ref('bill_action') }}
     group by 1, 2, 3
 ),
@@ -104,19 +92,11 @@ joined as (
         l.veto_date,
         l.law_date,
         l.public_law_number,
-        not coalesce(s.has_progress, false) and not coalesce(l.has_floor_action, false)
-            as still_in_committee,
         hv.yea_total as house_yea,
         hv.nay_total as house_nay,
         sv.yea_total as senate_yea,
-        sv.nay_total as senate_nay,
-        case
-            when t.bill_type = 'hr' then 'house_bill'
-            when t.bill_type = 's' then 'senate_bill'
-            when t.bill_type in ('hjres', 'sjres') then 'joint_resolution'
-            else 'other'
-        end as measure_type
-    from tracked as t
+        sv.nay_total as senate_nay
+    from bills as t
     left join stages as s using (congress, bill_type, bill_number)
     left join late as l using (congress, bill_type, bill_number)
     left join house_vote as hv using (congress, bill_type, bill_number)
@@ -130,7 +110,6 @@ select
     label,
     title,
     origin_chamber,
-    measure_type,
     house_status,
     senate_status,
     passed_house,
@@ -157,7 +136,6 @@ select
         case when passed_house and passed_senate
             then greatest(house_passed_date, senate_passed_date) end
     ) as outcome_date,
-    still_in_committee,
     house_yea,
     house_nay,
     senate_yea,

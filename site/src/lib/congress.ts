@@ -5,7 +5,6 @@ import { formatDate, formatNumber, formatShare, congressLabel } from './format';
 import type {
   ChamberComposition,
   CongressOverviewResponse,
-  OverviewMeasureType,
   PartyGroup,
   PassedBothItem,
 } from './types';
@@ -24,8 +23,14 @@ export interface ChamberBar {
   chamber: 'house' | 'senate';
   name: string;
   seatsLine: string;
-  marginLabel: string | null;
-  marginTitle: string;
+  /** "Republicans control the House": who holds the majority, in words. */
+  headline: string;
+  /** Which party the headline is about, for the badge; null when nobody has a majority. */
+  controlParty: 'republican' | 'democratic' | null;
+  /** "219 seats caucus with Republicans (218 Republicans + 1 independent) · 214 with Democrats". */
+  detail: string;
+  majorityPct: number;
+  majorityLabel: string;
   ariaLabel: string;
   segments: CompositionSegment[];
 }
@@ -35,16 +40,6 @@ export interface StatCell {
   value: string;
   sub: string;
   note?: string;
-}
-
-export interface TypeSegment {
-  key: OverviewMeasureType['measure_type'];
-  label: string;
-  count: string;
-  widthPct: number;
-  /** Text inside the segment, or null when too narrow. */
-  barLabel: string | null;
-  legend: string;
 }
 
 export interface PassedRow {
@@ -68,18 +63,23 @@ export interface CongressModel {
     sources: { label: string; href: string }[];
     chambers: ChamberBar[];
   };
-  scope: { message: string; linkLabel: string; href: string };
-  activity: { heading: string; meta: string; stats: StatCell[] };
-  types: { segments: TypeSegment[] };
-  passedBoth: { meta: string; rows: PassedRow[] };
+  activity: {
+    heading: string;
+    chip: string;
+    meta: string;
+    /** What the counts cover, in a sentence, with a link to the tracked members. */
+    scope: string;
+    trackedLabel: string;
+    trackedHref: string;
+    stats: StatCell[];
+  };
+  passedBoth: { chip: string; meta: string; scope: string; rows: PassedRow[] };
   footnote: string;
 }
 
 /** A bar segment holds its text only when it is wide enough to read; the legend carries every
  *  count regardless. This is layout, not a figure. */
 const MIN_LABEL_PCT = 8;
-/** The measure-type labels are longer ("H.R. 212"), so they need a wider segment. */
-const TYPE_MIN_LABEL_PCT = 12;
 
 const CAUCUS_LETTER = { republican: 'R', democratic: 'D' } as const;
 const PARTY_LETTER: Record<string, string> = {
@@ -100,38 +100,42 @@ function segment(g: PartyGroup): CompositionSegment {
   };
 }
 
+const PARTY_NOUN = { republican: 'Republicans', democratic: 'Democrats' } as const;
+type Party = keyof typeof PARTY_NOUN;
+
+/* One side's seat count in words. The party's own seats and any independents who caucus with
+   it are both mart columns, so nothing is added here: "219 (218 Republicans + 1 independent)". */
+function caucusSide(c: ChamberComposition, party: Party, total: number, short = false): string {
+  const own = c.groups.find((g) => g.party_group === party);
+  const indep = c.groups.find((g) => g.party_group === 'independent' && g.caucus_with === party);
+  const detail =
+    indep && own
+      ? ` (${own.seats} ${PARTY_NOUN[party]} + ${indep.seats} independent${indep.seats === 1 ? '' : 's'})`
+      : '';
+  return `${total} ${short ? 'with' : 'seats caucus with'} ${PARTY_NOUN[party]}${detail}`;
+}
+
 function chamberBar(c: ChamberComposition): ChamberBar {
   const name = c.chamber === 'house' ? 'House' : 'Senate';
-  const majority = c.majority_letter
-    ? `${c.majority_letter} +${c.majority_margin}`
-    : null;
+  const party: Party | null =
+    c.majority_party === 'republican' || c.majority_party === 'democratic' ? c.majority_party : null;
+  const rep = caucusSide(c, 'republican', c.republican_caucus);
+  const dem = caucusSide(c, 'democratic', c.democratic_caucus);
+  const repShort = caucusSide(c, 'republican', c.republican_caucus, true);
+  const demShort = caucusSide(c, 'democratic', c.democratic_caucus, true);
   return {
     chamber: c.chamber,
     name,
-    seatsLine: `${c.seats} seats · ${c.majority_threshold} for majority`,
-    marginLabel: majority,
-    marginTitle: `Seats caucusing with Republicans ${c.republican_caucus}, with Democrats ${c.democratic_caucus}`,
-    ariaLabel: `${name} composition: ${c.groups.map((g) => `${g.label} ${g.seats}`).join(', ')}`,
+    seatsLine: `${c.seats} seats`,
+    headline: party
+      ? `${PARTY_NOUN[party]} control the ${name}`
+      : `Neither party has a majority in the ${name}`,
+    controlParty: party,
+    detail: party === 'republican' ? `${rep} · ${demShort}` : party === 'democratic' ? `${dem} · ${repShort}` : `${rep} · ${demShort}`,
+    majorityPct: c.majority_pct,
+    majorityLabel: `${c.majority_threshold} seats for a majority`,
+    ariaLabel: `${name} composition: ${c.groups.map((g) => `${g.label} ${g.seats}`).join(', ')}. ${c.majority_threshold} seats are needed for a majority.`,
     segments: c.groups.map(segment),
-  };
-}
-
-const TYPE_LEGEND: Record<OverviewMeasureType['measure_type'], string> = {
-  house_bill: 'House bills',
-  senate_bill: 'Senate bills',
-  joint_resolution: 'Joint resolutions',
-  other: 'Other',
-};
-
-function typeSegment(t: OverviewMeasureType): TypeSegment {
-  const pct = t.bill_pct ?? 0;
-  return {
-    key: t.measure_type,
-    label: t.label,
-    count: formatNumber(t.bills),
-    widthPct: pct,
-    barLabel: pct >= TYPE_MIN_LABEL_PCT ? `${t.short_label} ${formatNumber(t.bills)}` : null,
-    legend: `${TYPE_LEGEND[t.measure_type]} ${formatNumber(t.bills)}`,
   };
 }
 
@@ -184,64 +188,42 @@ export function buildCongressModel(data: CongressOverviewResponse): CongressMode
     dateRange: `${formatDate(data.congress_start)} — ${formatDate(data.congress_end)}`,
     seatedLine: `Seated ${formatNumber(composition.seated)} of ${formatNumber(composition.seats)} · ${plural(composition.vacant, 'vacancy', 'vacancies')}`,
     composition: { asOf, sources, chambers: composition.chambers.map(chamberBar) },
-    scope: {
-      message: `Everything below counts only the ${a.tracked_members} members this site tracks — not all ${formatNumber(composition.seats)}.`,
-      linkLabel: 'See tracked members',
-      href: '/members',
-    },
     activity: {
       heading: 'Legislative activity',
-      meta: `${congressLabel(data.congress)} to date · ${a.tracked_house} House · ${a.tracked_senate} Senate`,
+      chip: 'All sponsors',
+      meta: `${congressLabel(data.congress)} to date`,
+      scope: `Every bill in our database (${formatNumber(a.bills_in_dataset)}), whoever sponsored it: bills our ${a.tracked_members} tracked members sponsored or cosponsored, plus any bill a recorded roll call named. Not yet every bill in Congress.`,
+      trackedLabel: 'See tracked members',
+      trackedHref: '/members',
       stats: [
         {
-          label: 'Bills introduced',
-          value: formatNumber(a.bills_introduced),
-          sub: `${formatNumber(a.introduced_house)} House · ${formatNumber(a.introduced_senate)} Senate`,
+          label: 'Bills in our database',
+          value: formatNumber(a.bills_in_dataset),
+          sub: `${formatNumber(a.bills_house)} House · ${formatNumber(a.bills_senate)} Senate`,
         },
         {
           label: 'Passed a chamber',
           value: formatNumber(a.passed_chamber),
-          sub: `${formatNumber(a.passed_chamber_house_origin)} House-origin · ${formatNumber(a.passed_chamber_senate_origin)} Senate-origin`,
+          sub: `${formatNumber(a.passed_chamber_house_origin)} House bills · ${formatNumber(a.passed_chamber_senate_origin)} Senate bills`,
         },
         {
           label: 'Became law',
           value: formatNumber(a.became_law),
-          sub: `${formatShare(a.became_law_pct)} of introduced`,
+          sub: `${formatShare(a.became_law_pct)} of bills in our database`,
         },
         {
           label: 'Vetoed',
           value: formatNumber(a.vetoed),
           sub: `${formatNumber(a.vetoed_overridden)} overridden · ${formatNumber(a.vetoed_not_overridden)} not overridden`,
         },
-        {
-          label: 'Roll call votes',
-          value: formatNumber(a.roll_call_votes),
-          sub: `${formatNumber(a.roll_call_votes_house)} House · ${formatNumber(a.roll_call_votes_senate)} Senate`,
-          note: 'Votes cast by tracked members',
-        },
-        {
-          label: 'Committee actions',
-          value: formatNumber(a.committee_actions),
-          sub: 'On bills tracked members sponsored',
-        },
-        {
-          label: 'Resolutions',
-          value: formatNumber(a.resolutions),
-          sub: 'Simple, concurrent, joint',
-        },
-        {
-          label: 'Still in committee',
-          value: formatNumber(a.still_in_committee),
-          sub: `${formatShare(a.still_in_committee_pct)} of introduced`,
-          note: 'No vote or floor action recorded',
-        },
       ],
     },
-    types: { segments: data.measure_types.map(typeSegment) },
     passedBoth: {
+      chip: 'All sponsors',
+      scope: 'The same bills as the counts above.',
       meta: `${plural(pb.total, 'measure', 'measures')} · ${formatNumber(pb.enacted)} enacted · ${formatNumber(pb.adopted)} adopted · ${formatNumber(pb.vetoed)} vetoed`,
       rows: pb.items.map(passedRow),
     },
-    footnote: `Composition figures hand-maintained, as of ${asOf} · activity figures from the Congress.gov API and Senate.gov roll calls, refreshed nightly`,
+    footnote: `Composition figures hand-maintained, as of ${asOf} · bill and vote figures from the Congress.gov API and Senate.gov roll calls, refreshed nightly`,
   };
 }

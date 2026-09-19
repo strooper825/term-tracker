@@ -37,7 +37,7 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
   if (rows.length === 0) {
     return (
       <p className="text-body text-ink3 px-[18px] py-4 m-0">
-        No measure sponsored by a tracked member has passed both chambers.
+        No bill in the database has passed both chambers.
       </p>
     );
   }
@@ -91,8 +91,7 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
       </div>
       <div className="pt-3 flex items-center justify-between gap-3 flex-wrap">
         <span className="text-label uppercase text-ink3 tnum">
-          Showing {shown.length} of {rows.length} · Sponsored by tracked members · ↗ Opens
-          Congress.gov
+          Showing {shown.length} of {rows.length} · Newest first · ↗ Opens Congress.gov in a new tab
         </span>
         {hidden > 0 && (
           <button
