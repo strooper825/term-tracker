@@ -14,8 +14,6 @@ import type {
   KeyDatesResponse,
   MemberDetail,
   MembersResponse,
-  SessionsResponse,
-  TimelineResponse,
 } from './types';
 
 function baseUrl(): string {
@@ -37,8 +35,6 @@ async function getJson<T>(path: string): Promise<T> {
 export const api = {
   members: () => getJson<MembersResponse>('/api/v1/members'),
   member: (bioguide: string) => getJson<MemberDetail>(`/api/v1/members/${bioguide}`),
-  timeline: (bioguide: string, from: string, to: string) =>
-    getJson<TimelineResponse>(`/api/v1/members/${bioguide}/timeline?from=${from}&to=${to}`),
   committees: (bioguide: string) =>
     getJson<CommitteesResponse>(`/api/v1/members/${bioguide}/committees`),
   keyDates: (bioguide: string) => getJson<KeyDatesResponse>(`/api/v1/members/${bioguide}/key-dates`),
@@ -46,7 +42,6 @@ export const api = {
     getJson<FundraisingResponse>(`/api/v1/members/${bioguide}/fundraising`),
   congressOverview: () => getJson<CongressOverviewResponse>('/api/v1/congress/overview'),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
-  sessions: () => getJson<SessionsResponse>('/api/v1/meta/sessions'),
   bills: (limit: number, offset: number) =>
     getJson<BillsResponse>(`/api/v1/bills?limit=${limit}&offset=${offset}`),
   bill: (congress: number, billType: string, billNumber: string) =>

@@ -1,26 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ALL_DATES,
-  MIN_TICK_GAP_WEEKS,
   buildCommitteeRows,
-  buildDateRanges,
   buildElection,
   buildFundraising,
   buildHeader,
   buildIndexRow,
   buildKeyDates,
+  buildRecord,
   buildStats,
+  buildTermFacts,
+  buildVoteRows,
+  serviceFacts,
   buildTerm,
-  buildWeeks,
   caucusParty,
-  eventTotals,
   feedRow,
-  groupFeed,
-  policyAreaTotals,
-  rowsWithoutPolicyArea,
   seatLong,
-  serviceLine,
-  timelineRange,
 } from '@/lib/model';
 import {
   cycleLabel,
@@ -62,7 +56,10 @@ describe('header: given a mart row, these labels render', () => {
     expect(h.seatShort).toBe('WI-1');
     expect(h.chamberLabel).toBe('U.S. House of Representatives');
     expect(h.congress).toBe('119th Congress');
-    expect(h.termLine).toBe('Term: Jan 3, 2025 – Jan 3, 2027 · 657 roll calls to date');
+    expect(h.facts.slice(0, 2)).toEqual([
+      { label: 'Current term', value: 'Jan 3, 2025 – Jan 3, 2027' },
+      { label: 'Roll calls', value: '657', note: 'to date' },
+    ]);
   });
 
   it('Senate seat Arkansas (Class 2) with a six-year term spanning three Congresses', () => {
@@ -71,7 +68,10 @@ describe('header: given a mart row, these labels render', () => {
     expect(h.seat).toBe('Arkansas · Class 2');
     expect(h.seatShort).toBe('Arkansas (Class 2)');
     expect(h.congress).toBe('Tracking 119th Congress');
-    expect(h.termLine).toBe('Term: Jan 3, 2021 – Jan 3, 2027 · 890 roll calls in the 119th');
+    expect(h.facts.slice(0, 2)).toEqual([
+      { label: 'Current term', value: 'Jan 3, 2021 – Jan 3, 2027' },
+      { label: 'Roll calls', value: '890', note: 'in the 119th' },
+    ]);
   });
 
   it('at-large districts and party spellings', () => {
@@ -81,13 +81,20 @@ describe('header: given a mart row, these labels render', () => {
     expect(ordinal(112)).toBe('112th');
   });
 
-  it('service line: age from bio.birthday, serving since and Nth term from term_history', () => {
-    expect(serviceLine(STEIL)).toBe('Age 45 · Serving since 2019 · 4th term');
+  it('service facts: age from bio.birthday, serving since and Nth term from term_history', () => {
+    expect(serviceFacts(STEIL)).toEqual([
+      { label: 'Age', value: '45' },
+      { label: 'Serving since', value: '2019' },
+      { label: 'Term', value: '4th' },
+    ]);
     // House then Senate: the chamber count is added so a first-term senator reads correctly
-    expect(serviceLine(COTTON)).toBe('Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate');
-    expect(serviceLine(SLOTKIN)).toBe('Age 50 · Serving since 2019 · 4th term · 1st in the Senate');
-    expect(serviceLine(SANDERS)).toBe('Age 85 · Serving since 1991 · 12th term · 4th in the Senate');
-    expect(serviceLine({ ...STEIL, bio: { ...STEIL.bio, age: null } })).toBe('Serving since 2019 · 4th term');
+    expect(serviceFacts(COTTON).at(-1)).toEqual({ label: 'Term', value: '3rd', note: '2nd in the Senate' });
+    expect(serviceFacts(SLOTKIN).at(-1)).toEqual({ label: 'Term', value: '4th', note: '1st in the Senate' });
+    expect(serviceFacts(SANDERS).at(-1)).toEqual({ label: 'Term', value: '12th', note: '4th in the Senate' });
+    expect(serviceFacts({ ...STEIL, bio: { ...STEIL.bio, age: null } }).map((f) => f.label)).toEqual([
+      'Serving since',
+      'Term',
+    ]);
   });
 
   it('leadership title and caucus note come from leadership_role and term.caucus', () => {
@@ -126,9 +133,32 @@ describe('stats and term', () => {
     expect(buildTerm(COTTON)).toEqual({ start: 'Jan 3, 2021', end: 'Jan 3, 2027', elapsed: 2079, total: 2191 });
   });
 
-  it('timeline range starts at the tracked Congress, not the Senate term start', () => {
-    expect(timelineRange(COTTON, TODAY)).toEqual({ from: '2025-01-03', to: '2026-09-13' });
-    expect(timelineRange(STEIL, TODAY)).toEqual({ from: '2025-01-03', to: '2026-09-13' });
+  it('current term card: seat, party, dates and days left from the term block', () => {
+    const rows = Object.fromEntries(buildTermFacts(COTTON).map((r) => [r.label, r]));
+    expect(rows.Seat.value).toBe('Arkansas · Class 2');
+    expect(rows['Term starts'].value).toBe('Sunday, Jan 3, 2021');
+    expect(rows['Term ends'].value).toBe('Sunday, Jan 3, 2027');
+    expect(rows.Congresses.value).toBe('117th–119th Congress');
+    expect(rows.Party.note).toBeUndefined();
+    expect(buildTermFacts(SANDERS).find((r) => r.label === 'Party')?.note).toBe('Caucuses with Democrats');
+    expect(buildTermFacts(STEIL).find((r) => r.label === 'Congresses')?.value).toBe('119th Congress');
+  });
+
+  it('record card: vote and bill figures, and one row per term served', () => {
+    const record = buildRecord(COTTON);
+    expect(record.stats.find((r) => r.label === 'Votes cast')).toEqual({
+      label: 'Votes cast',
+      value: '876',
+      note: 'of 890 roll calls in the 119th',
+    });
+    expect(record.stats.find((r) => r.label === 'Not voting')?.value).toBe('14');
+    expect(record.stats.find((r) => r.label === 'Missed votes')?.value).toBe('1.57%');
+    expect(record.stats.at(-1)?.value).toBe('99.77%'); // party_unity_pct, the plan definition
+    expect(record.history.map((r) => r.value)).toEqual([
+      'House · 2013–2015',
+      'Senate · 2015–2021',
+      'Senate · 2021–2027',
+    ]);
   });
 });
 
@@ -169,32 +199,12 @@ describe('feed', () => {
     expect(row.secondaryFull).toContain('PN25-28 and PN12-19');
   });
 
-  it('groups by calendar day with a long date label and counts totals per type', () => {
-    const groups = groupFeed(FEED);
-    expect(groups[0].date).toBe('Thursday, Sep 3, 2026');
+  it('long date labels carry the weekday', () => {
     expect(formatLongDate('2026-09-10')).toBe('Thursday, Sep 10, 2026');
-    expect(eventTotals(FEED)).toEqual({ vote: 4, sponsor: 1, cosponsor: 1, committee: 1 });
   });
 });
 
-describe('weeks, key dates, election, index', () => {
-  it('zero-fills every Monday between from and to and keeps the API counts', () => {
-    const weeks = buildWeeks(WEEKS, '2025-01-03', '2026-09-13');
-    expect(weeks[0].label).toBe('Dec 30, 2024');
-    expect(weeks.length).toBe(89);
-    const july = weeks.find((w) => w.label === 'Jul 21, 2025');
-    expect(july?.counts).toEqual({ vote: 12, sponsor: 1, cosponsor: 3, committee: 0 });
-    expect(weeks.every((w) => Object.values(w.counts).every((n) => n >= 0))).toBe(true);
-    const tickIndices = weeks.map((w, i) => (w.tick ? i : -1)).filter((i) => i >= 0);
-    expect(tickIndices.length).toBeGreaterThan(6);
-    for (let i = 1; i < tickIndices.length; i += 1) {
-      expect(tickIndices[i] - tickIndices[i - 1]).toBeGreaterThanOrEqual(MIN_TICK_GAP_WEEKS);
-    }
-    expect(weeks[0].tick).toBe('Jan 2025'); // the week of Dec 30 is mostly January
-    expect(weeks.find((w) => w.tick === 'Jan 2026')).toBeTruthy();
-    expect(weeks.find((w) => w.tick === 'Feb')).toBeUndefined(); // too close to the January label
-  });
-
+describe('key dates, election, index', () => {
   it('election card picks the next election-kind key date and says the seat is on the ballot', () => {
     const e = buildElection(STEIL_KEY_DATES, STEIL, TODAY);
     expect(e).toEqual({
@@ -299,63 +309,26 @@ describe('fundraising: every figure is a mart column, only formatted', () => {
   });
 });
 
-describe('feed filters take their values from mart columns', () => {
-  it('policy areas are counted from the rows and sorted commonest first, then by name', () => {
-    // four of the seven fixture rows carry mart.member_feed.policy_area
-    expect(policyAreaTotals(FEED)).toEqual([
-      { name: 'Congress', count: 1 },
-      { name: 'Education', count: 1 },
-      { name: 'Finance and Financial Sector', count: 1 },
-      { name: 'Government Operations and Politics', count: 1 },
-    ]);
-    expect(rowsWithoutPolicyArea(FEED)).toBe(3);
-
-    // count wins over name, and ties fall back to the name so builds are stable
-    const item = (policy_area: string | null) => ({ ...FEED[0], policy_area });
-    expect(
-      policyAreaTotals([item('Taxation'), item('Health'), item('Taxation'), item(null), item('Health'), item('Taxation')]),
-    ).toEqual([
-      { name: 'Taxation', count: 3 },
-      { name: 'Health', count: 2 },
-    ]);
-  });
-
-  it('date presets read their bounds from mart.congress_session and the term', () => {
-    const ranges = buildDateRanges(SESSIONS, STEIL.term, new Date(Date.UTC(2026, 8, 13)));
-    expect(ranges.map((r) => r.key)).toEqual([ALL_DATES, 'last30', 'last90', 'session', 'term']);
-
-    const byKey = Object.fromEntries(ranges.map((r) => [r.key, r]));
-    expect(byKey[ALL_DATES]).toEqual({ key: 'all', label: 'All dates', from: null, to: null });
-    // the current session, not the first one
-    expect(byKey.session).toEqual({
-      key: 'session',
-      label: 'This session (2026)',
-      from: '2026-01-03',
-      to: '2027-01-03',
-    });
-    expect(byKey.term).toEqual({
-      key: 'term',
-      label: 'Whole term',
-      from: '2025-01-03',
-      to: '2027-01-03',
-    });
-    // rolling windows count back from the anchor the caller passes, not from the wall clock
-    expect(byKey.last30.from).toBe('2026-08-14');
-    expect(byKey.last90.from).toBe('2026-06-15');
-    expect(byKey.last30.to).toBeNull();
-  });
-
-  it('a member whose feed has no sessions yet still gets the other presets', () => {
-    const ranges = buildDateRanges([], STEIL.term, new Date(Date.UTC(2026, 8, 13)));
-    expect(ranges.map((r) => r.key)).toEqual([ALL_DATES, 'last30', 'last90', 'term']);
-  });
-
+describe('feed rows and the vote list', () => {
   it('feed rows carry the policy area and the ISO date the filters compare', () => {
-    const rows = groupFeed(FEED).flatMap((g) => g.items);
+    const rows = FEED.map(feedRow);
     const vote = rows.find((r) => r.headline.includes('H.R. 4795'))!;
     expect(vote.policyArea).toBe('Education');
     expect(vote.isoDate).toBe('2026-09-03');
     const nomination = rows.find((r) => r.headline.includes('PN12-1'))!;
     expect(nomination.policyArea).toBeNull();
+  });
+
+  it('vote rows keep only roll calls, newest first, with the position and one destination', () => {
+    const rows = buildVoteRows(FEED);
+    expect(rows.map((r) => r.position)).toEqual(['Yea', 'Yea', 'Not Voting', 'Other']);
+    expect(rows[0]).toMatchObject({
+      subject: 'H.R. 4795: Protect Economic and Academic Freedom Act of 2026',
+      date: 'Sep 3, 2026',
+      policyArea: 'Education',
+      detailsHref: '/bills/119/hr/4795',
+    });
+    expect(rows[1].detailsHref).toBeUndefined(); // a nomination has no bill page
+    expect(rows[1].source).toMatch(/senate\.gov|clerk\.house\.gov/);
   });
 });

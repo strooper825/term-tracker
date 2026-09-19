@@ -4,10 +4,8 @@
 
 import { EVENT_TYPE_FROM_MART, type EventKey, type PartyName } from '@/data/eventTypes';
 import {
-  addDays,
   billPath,
   congressLabel,
-  congressStartDate,
   cycleLabel,
   daysBetween,
   formatDate,
@@ -17,7 +15,6 @@ import {
   formatPercent,
   formatShare,
   formatTimestampUtc,
-  monthShort,
   ordinal,
   parseDate,
   titleCase,
@@ -25,7 +22,6 @@ import {
 } from './format';
 import type {
   BillAction,
-  CongressSession,
   BillCosponsor,
   BillDetail,
   BillRollCall,
@@ -40,7 +36,6 @@ import type {
   PassageVote,
   MemberDetail,
   MemberListItem,
-  WeekBucket,
 } from './types';
 
 export type Chamber = 'House' | 'Senate';
@@ -62,14 +57,21 @@ export interface MemberHeaderModel {
   seat: string;
   seatShort: string;
   congress: string;
-  termLine: string;
-  /** "Age 45 · Serving since 2019 · 4th term", plus "· 1st in the Senate" after a chamber change. */
-  serviceLine: string;
+  /** The four or five facts under the name, each a label over a value (term dates, roll calls,
+   *  age, serving since, term number). */
+  facts: HeaderFact[];
   /** Current party or chamber leadership title from congress-legislators, if any. */
   leadershipTitle: string | null;
   /** "Caucuses with Democrats" for an Independent; null otherwise. */
   caucusNote: string | null;
   photoUrl: string | null;
+}
+
+export interface HeaderFact {
+  label: string;
+  value: string;
+  /** A qualifier set apart from the value: "in the 119th", "3rd in the Senate". */
+  note?: string;
 }
 
 export interface TermModel {
@@ -98,12 +100,6 @@ export interface KeyDateRow {
   label: string;
 }
 
-export interface Week {
-  label: string;
-  counts: Record<EventKey, number>;
-  tick: string;
-}
-
 export interface FeedRow {
   type: EventKey;
   lead?: string;
@@ -121,11 +117,6 @@ export interface FeedRow {
   policyArea: string | null;
   /** mart.member_feed.event_date, ISO, for the date filter to compare against. */
   isoDate: string;
-}
-
-export interface FeedGroup {
-  date: string;
-  items: FeedRow[];
 }
 
 export interface IndexRow {
@@ -212,20 +203,23 @@ export function caucusParty(detail: Pick<MemberDetail, 'party' | 'caucus'>): Par
   return caucus === partyName(detail.party) ? null : caucus;
 }
 
-/** "Age 45 · Serving since 2019 · 4th term"; members who changed chamber also get
- *  "· 1st in the Senate" so a first-term senator with House service reads correctly. */
-export function serviceLine(detail: MemberDetail): string {
+/** Age, serving since, and term number as labelled facts; members who changed chamber get
+ *  "3rd in the Senate" as a note on the term, so a first-term senator with House service reads
+ *  correctly. */
+export function serviceFacts(detail: MemberDetail): HeaderFact[] {
   const svc = detail.service;
   const chamber = chamberName(detail.seat.chamber);
   const since = parseDate(svc.serving_since).getUTCFullYear();
   const changedChamber = svc.terms.some((t) => t.chamber !== detail.seat.chamber);
-  const parts = [
-    ...(detail.bio.age === null ? [] : [`Age ${detail.bio.age}`]),
-    `Serving since ${since}`,
-    `${ordinal(svc.term_number)} term`,
-    ...(changedChamber ? [`${ordinal(svc.chamber_term_number)} in the ${chamber}`] : []),
+  return [
+    ...(detail.bio.age === null ? [] : [{ label: 'Age', value: String(detail.bio.age) }]),
+    { label: 'Serving since', value: String(since) },
+    {
+      label: 'Term',
+      value: ordinal(svc.term_number),
+      ...(changedChamber ? { note: `${ordinal(svc.chamber_term_number)} in the ${chamber}` } : {}),
+    },
   ];
-  return parts.join(' · ');
 }
 
 export function buildHeader(detail: MemberDetail): MemberHeaderModel {
@@ -245,10 +239,18 @@ export function buildHeader(detail: MemberDetail): MemberHeaderModel {
     seat: seatLong(detail.seat),
     seatShort: detail.seat.label,
     congress: multi ? `Tracking ${tracked} Congress` : `${tracked} Congress`,
-    termLine:
-      `Term: ${formatDate(detail.term.start_date)} – ${formatDate(detail.term.end_date)} · ` +
-      `${formatNumber(rollCalls)} roll calls ${multi ? `in the ${tracked}` : 'to date'}`,
-    serviceLine: serviceLine(detail),
+    facts: [
+      {
+        label: 'Current term',
+        value: `${formatDate(detail.term.start_date)} – ${formatDate(detail.term.end_date)}`,
+      },
+      {
+        label: 'Roll calls',
+        value: formatNumber(rollCalls),
+        note: multi ? `in the ${tracked}` : 'to date',
+      },
+      ...serviceFacts(detail),
+    ],
     leadershipTitle: detail.leadership.find((r) => r.is_current)?.title ?? null,
     caucusNote: caucus ? `Caucuses with ${PARTY_MEMBERS[caucus]}` : null,
     photoUrl: detail.photo_url,
@@ -302,57 +304,6 @@ export function buildTerm(detail: MemberDetail): TermModel {
   };
 }
 
-/** Timeline range: the tracked Congress (or the term start, if later) up to `today`. */
-export function timelineRange(detail: MemberDetail, today: Date): { from: string; to: string } {
-  const congressStart = congressStartDate(detail.term.tracked_congress);
-  const termStart = parseDate(detail.term.start_date);
-  const from = termStart > congressStart ? termStart : congressStart;
-  return { from: toIsoDate(from), to: toIsoDate(today) };
-}
-
-/** Minimum columns between two axis labels; at ~8px per week this keeps "Jan 2025" clear of
- *  the next label. */
-export const MIN_TICK_GAP_WEEKS = 6;
-
-/** One column per week (Monday to Sunday) across the range, zero-filled. Axis labels sit on the
- *  first week of a month, never closer than MIN_TICK_GAP_WEEKS columns apart, with the year only
- *  on the first label and on January. */
-export function buildWeeks(buckets: WeekBucket[], from: string, to: string): Week[] {
-  const start = parseDate(from);
-  const monday = addDays(start, -((start.getUTCDay() + 6) % 7));
-  const end = parseDate(to);
-  const byWeek = new Map(buckets.map((b) => [b.week_start, b]));
-  const weeks: Week[] = [];
-  let lastMonth = -1;
-  let lastTickIndex = -MIN_TICK_GAP_WEEKS;
-  for (let d = monday; d <= end; d = addDays(d, 7)) {
-    const key = toIsoDate(d);
-    const b = byWeek.get(key);
-    const monthDay = d.getUTCDate() <= 7 ? d : addDays(d, 6);
-    const firstOfMonthInWeek = d.getUTCDate() <= 7 || d.getUTCMonth() !== addDays(d, 6).getUTCMonth();
-    const month = monthDay.getUTCMonth();
-    let tick = '';
-    const wantsTick = weeks.length === 0 || (firstOfMonthInWeek && month !== lastMonth);
-    if (wantsTick && weeks.length - lastTickIndex >= MIN_TICK_GAP_WEEKS) {
-      const withYear = weeks.length === 0 || month === 0;
-      tick = `${monthShort(monthDay)}${withYear ? ` ${monthDay.getUTCFullYear()}` : ''}`;
-      lastTickIndex = weeks.length;
-    }
-    if (wantsTick) lastMonth = month;
-    weeks.push({
-      label: formatDate(key),
-      counts: {
-        vote: b?.vote ?? 0,
-        sponsor: b?.bill_sponsored ?? 0,
-        cosponsor: b?.bill_cosponsored ?? 0,
-        committee: b?.committee_action ?? 0,
-      },
-      tick,
-    });
-  }
-  return weeks;
-}
-
 const VOTE_LEAD = /^(Voted .+? on |Did not vote on )([\s\S]*)$/;
 
 /** The bill page for a feed event, when the event names a bill that has one.
@@ -401,84 +352,118 @@ export function feedRow(item: FeedItem): FeedRow {
   };
 }
 
-/** Group feed items by calendar day, newest first (the API already orders by event_at desc). */
-export function groupFeed(items: FeedItem[]): FeedGroup[] {
-  const groups: FeedGroup[] = [];
-  for (const item of items) {
-    const date = formatLongDate(item.event_date);
-    const last = groups[groups.length - 1];
-    if (last && last.date === date) last.items.push(feedRow(item));
-    else groups.push({ date, items: [feedRow(item)] });
-  }
-  return groups;
-}
+export type VotePosition = 'Yea' | 'Nay' | 'Present' | 'Not Voting' | 'Other';
 
-export interface PolicyAreaCount {
-  name: string;
-  count: number;
-}
-
-/** The policy areas present in this member's feed, commonest first, then alphabetically so
- *  the order is stable between builds. Counting rows the page already holds, the same way
- *  eventTotals does; the areas themselves are mart.member_feed.policy_area. */
-export function policyAreaTotals(items: FeedItem[]): PolicyAreaCount[] {
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    if (item.policy_area) counts.set(item.policy_area, (counts.get(item.policy_area) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-}
-
-/** How many feed rows carry no policy area. Shown when a policy filter is on, so a shorter
- *  list is never silent about what it left out. */
-export function rowsWithoutPolicyArea(items: FeedItem[]): number {
-  return items.filter((item) => !item.policy_area).length;
-}
-
-export interface DateRange {
+export interface VoteRow {
   key: string;
-  label: string;
-  /** Inclusive ISO bounds; null means unbounded on that side. */
-  from: string | null;
-  to: string | null;
+  position: VotePosition;
+  /** The bill, nomination or roll call the vote was on: "H.R. 3424: Title". */
+  subject: string;
+  /** "On Passage · Passed 219–213", the question and result the mart carries. */
+  secondary: string;
+  secondaryFull?: string;
+  date: string;
+  isoDate: string;
+  policyArea: string | null;
+  /** The bill page here when the mart says there is one, else the public roll-call record. */
+  detailsHref?: string;
+  source: string;
 }
 
-export const ALL_DATES = 'all';
+const VOTE_POSITIONS: VotePosition[] = ['Yea', 'Nay', 'Present', 'Not Voting'];
 
-/** The date presets, every boundary from data rather than from the browser clock:
- *  the session bounds are mart.congress_session, the term bounds mart.member_summary, and the
- *  rolling windows count back from `asOf`, which callers pass as the latest ingest time. */
-export function buildDateRanges(
-  sessions: CongressSession[],
-  term: { start_date: string; end_date: string },
-  asOf: Date,
-): DateRange[] {
-  const current = sessions.find((s) => s.is_current) ?? sessions[sessions.length - 1];
-  const back = (days: number) => toIsoDate(addDays(asOf, -days));
+/** Roll-call votes from mart.member_feed (event_type vote), in the API's order, newest first. */
+export function buildVoteRows(items: FeedItem[]): VoteRow[] {
+  return items
+    .filter((item) => item.event_type === 'vote')
+    .map((item) => {
+      const row = feedRow(item);
+      const position = VOTE_POSITIONS.find((p) => p === item.position) ?? 'Other';
+      return {
+        key: item.event_key,
+        position,
+        subject: row.headline.replace(/^on /, ''),
+        secondary: row.secondary,
+        secondaryFull: row.secondaryFull,
+        date: formatDate(item.event_date),
+        isoDate: item.event_date,
+        policyArea: item.policy_area,
+        detailsHref: row.detailsHref,
+        source: row.source,
+      };
+    });
+}
+
+export interface FactRow {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+/** The "Current term" card: where the member sits and how long the term runs. Every value is
+ *  a mart.member_summary column or the term block of GET /members/{id}. */
+export function buildTermFacts(detail: MemberDetail): FactRow[] {
+  const t = detail.term;
+  const caucus = caucusParty(detail);
+  const firstTracked = t.congresses[0];
+  const lastTracked = t.congresses[t.congresses.length - 1];
   return [
-    { key: ALL_DATES, label: 'All dates', from: null, to: null },
-    { key: 'last30', label: 'Last 30 days', from: back(30), to: null },
-    { key: 'last90', label: 'Last 90 days', from: back(90), to: null },
-    ...(current
-      ? [
-          {
-            key: 'session',
-            label: `This session (${current.year})`,
-            from: current.start_date,
-            to: current.end_date,
-          },
-        ]
-      : []),
-    { key: 'term', label: 'Whole term', from: term.start_date, to: term.end_date },
+    { label: 'Seat', value: seatLong(detail.seat) },
+    {
+      label: 'Party',
+      value: partyName(detail.party),
+      ...(caucus ? { note: `Caucuses with ${PARTY_MEMBERS[caucus]}` } : {}),
+    },
+    { label: 'Term starts', value: formatLongDate(t.start_date) },
+    { label: 'Term ends', value: formatLongDate(t.end_date) },
+    {
+      label: 'Days remaining',
+      value: formatNumber(Math.max(0, t.days_remaining)),
+      note: `${formatNumber(t.days_elapsed)} elapsed`,
+    },
+    {
+      label: 'Congresses',
+      value:
+        firstTracked === lastTracked
+          ? congressLabel(firstTracked)
+          : `${ordinal(firstTracked)}–${congressLabel(lastTracked)}`,
+    },
   ];
 }
 
-export function eventTotals(items: FeedItem[]): Record<EventKey, number> {
-  const totals: Record<EventKey, number> = { vote: 0, sponsor: 0, cosponsor: 0, committee: 0 };
-  for (const item of items) totals[EVENT_TYPE_FROM_MART[item.event_type] ?? 'vote'] += 1;
-  return totals;
+export interface RecordModel {
+  stats: FactRow[];
+  /** One row per term served, oldest first. */
+  history: FactRow[];
+}
+
+/** The "Record" card: the vote figures behind the stat strip, in full, and the member's
+ *  terms in office. */
+export function buildRecord(detail: MemberDetail): RecordModel {
+  const v = detail.votes;
+  const tracked = ordinal(detail.term.tracked_congress);
+  const caucus = caucusParty(detail);
+  return {
+    stats: [
+      {
+        label: 'Votes cast',
+        value: formatNumber(v.votes_cast),
+        note: `of ${formatNumber(v.positions)} roll calls in the ${tracked}`,
+      },
+      { label: 'Not voting', value: formatNumber(v.not_voting) },
+      { label: 'Missed votes', value: formatPercent(v.missed_vote_pct) },
+      {
+        label: 'Party unity, all party votes',
+        value: formatPercent(v.party_unity_pct),
+        note: `scored against the ${caucus ? `${caucus} caucus` : 'party majority'}; the header shows the CQ figure`,
+      },
+    ],
+    history: detail.service.terms.map((t, i) => ({
+      label: `${ordinal(i + 1)} term`,
+      value: `${chamberName(t.chamber)} · ${parseDate(t.start_date).getUTCFullYear()}–${parseDate(t.end_date).getUTCFullYear()}`,
+      note: t.state + (t.chamber === 'house' && t.district !== null ? `-${t.district || 'AL'}` : ''),
+    })),
+  };
 }
 
 export function buildKeyDates(dates: KeyDate[]): KeyDateRow[] {

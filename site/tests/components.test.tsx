@@ -1,22 +1,20 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ActivityFeed } from '@/components/ActivityFeed';
 import { MemberDashboard } from '@/components/MemberDashboard';
 import { MembersIndex } from '@/components/MembersIndex';
+import { RollCallVotes } from '@/components/RollCallVotes';
 import {
   buildCommitteeRows,
   buildElection,
   buildFundraising,
   buildHeader,
   buildIndexRow,
-  buildDateRanges,
   buildKeyDates,
+  buildRecord,
   buildStats,
   buildTerm,
-  buildWeeks,
-  eventTotals,
-  groupFeed,
-  policyAreaTotals,
+  buildTermFacts,
+  buildVoteRows,
 } from '@/lib/model';
 import { KeyDatesCard } from '@/components/SideCards';
 import {
@@ -29,7 +27,6 @@ import {
   NO_FILINGS_FUNDRAISING,
   SANDERS,
   SANDERS_LIST,
-  SESSIONS,
   SLOTKIN,
   SLOTKIN_LIST,
   STEIL,
@@ -37,10 +34,17 @@ import {
   STEIL_FUNDRAISING,
   STEIL_KEY_DATES,
   STEIL_LIST,
-  WEEKS,
 } from './fixtures';
 
 const TODAY = new Date(Date.UTC(2026, 8, 13));
+
+/** The header facts as label -> the text of the value and its note. */
+function facts(): Record<string, string> {
+  const list = document.querySelector('dl') as HTMLElement;
+  return Object.fromEntries(
+    [...list.children].map((f) => [f.querySelector('dt')!.textContent, f.querySelector('dd')!.textContent]),
+  );
+}
 
 function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
   return (
@@ -48,12 +52,10 @@ function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
       member={buildHeader(detail)}
       stats={buildStats(detail)}
       term={buildTerm(detail)}
-      weeks={buildWeeks(WEEKS, '2025-01-03', '2026-09-13')}
-      feedGroups={groupFeed(FEED)}
-      eventTotals={eventTotals(FEED)}
-      totalLabel="7"
-      policyAreas={policyAreaTotals(FEED)}
-      dateRanges={buildDateRanges(SESSIONS, detail.term, TODAY)}
+      votes={buildVoteRows(FEED)}
+      congressLabel="119th Congress"
+      termFacts={buildTermFacts(detail)}
+      record={buildRecord(detail)}
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
@@ -67,7 +69,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
   it('header, breadcrumb, five stats, term bar, and footer', () => {
     render(dashboard());
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Rep. Bryan Steil');
-    expect(screen.getByText('Wisconsin’s 1st District')).toBeInTheDocument();
+    expect(screen.getAllByText('Wisconsin’s 1st District')).toHaveLength(2); // header, Current term card
     expect(screen.getAllByText('REPUBLICAN').length).toBeGreaterThan(0);
     expect(screen.getByText('99.24%')).toBeInTheDocument(); // member_vote_stats.attendance_pct
     expect(screen.getByText('652 of 657 roll calls')).toBeInTheDocument();
@@ -83,7 +85,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getByText('Members', { selector: 'a.text-ink2' })).toHaveAttribute('href', '/members');
   });
 
-  it('next election, committees, key dates, and locked panels', () => {
+  it('next election, committees, key dates, and the locked tabs', () => {
     render(dashboard());
     const election = screen.getByText('Next election').closest('section')!;
     expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
@@ -99,30 +101,38 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
     expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
-    for (const title of ['Stock trades', 'Public statements', 'District map']) {
-      expect(screen.getByText(title)).toBeInTheDocument();
+    for (const title of ['Stock trades', 'Public statements', 'Consistency']) {
+      expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeInTheDocument();
+      expect(screen.getByRole('region', { hidden: true, name: `${title} (not yet published)` })).toBeInTheDocument();
     }
     expect(screen.getAllByText('Coming in a future release')).toHaveLength(3); // Fundraising is live
-    expect(screen.getByText('3 not yet published')).toBeInTheDocument();
   });
 
-  it('Senate member: Class 2 seat, three-Congress term line, state map panel', () => {
+  it('Senate member: Class 2 seat and the header facts, no map tab', () => {
     render(dashboard(COTTON));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Tom Cotton');
-    expect(screen.getByText('Arkansas · Class 2')).toBeInTheDocument();
+    expect(screen.getAllByText('Arkansas · Class 2')).toHaveLength(2); // header, Current term card
     expect(screen.getByText('Tracking 119th Congress')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Term: Jan 3, 2021 – Jan 3, 2027 · 890 roll calls in the 119th · Age 49 · Serving since 2013 · 3rd term · 2nd in the Senate',
-      ),
-    ).toBeInTheDocument();
+    expect(facts()).toEqual({
+      'Current term': 'Jan 3, 2021 – Jan 3, 2027',
+      'Roll calls': '890in the 119th',
+      Age: '49',
+      'Serving since': '2013',
+      Term: '3rd2nd in the Senate',
+    });
     expect(screen.getByText('Senate Republican Conference Chair')).toBeInTheDocument(); // leadership_role
-    expect(screen.getByText('State map')).toBeInTheDocument();
+    expect(screen.queryByText(/map/i)).not.toBeInTheDocument();
   });
 
-  it('header: age and service line from bio and term_history; no chip without a leadership role', () => {
+  it('header: age and service facts from bio and term_history; no chip without a leadership role', () => {
     render(dashboard());
-    expect(screen.getByText(/Age 45 · Serving since 2019 · 4th term/)).toBeInTheDocument();
+    expect(facts()).toEqual({
+      'Current term': 'Jan 3, 2025 – Jan 3, 2027',
+      'Roll calls': '657to date',
+      Age: '45',
+      'Serving since': '2019',
+      Term: '4th',
+    });
     expect(screen.queryByText(/Caucuses with/)).not.toBeInTheDocument();
   });
 
@@ -130,12 +140,13 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     render(dashboard(SANDERS));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sen. Bernard Sanders');
     expect(screen.getAllByText('INDEPENDENT').length).toBeGreaterThan(0);
-    expect(screen.getByText('Caucuses with Democrats')).toBeInTheDocument(); // term.caucus
+    expect(screen.getAllByText('Caucuses with Democrats')).toHaveLength(2); // term.caucus: header, Current term card
     expect(screen.getByText('Senate Democratic Outreach Chair')).toBeInTheDocument();
-    expect(screen.getByText(/Age 85 · Serving since 1991 · 12th term · 4th in the Senate/)).toBeInTheDocument();
+    expect(facts()['Serving since']).toBe('1991');
+    expect(facts().Term).toBe('12th4th in the Senate');
     expect(screen.getByText('99.87%')).toBeInTheDocument(); // member_vote_stats.party_unity_cq_pct
     expect(screen.getByText('votes with Democratic caucus')).toBeInTheDocument();
-    expect(screen.getByText('Vermont · Class 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Vermont · Class 1')).toHaveLength(2); // header, Current term card
     // Class 1 seat, term to 2031: the 2026 general election is shown but the seat is not on the ballot
     const election = screen.getByText('Next election').closest('section')!;
     expect(within(election).getByText('Nov 3, 2026')).toBeInTheDocument();
@@ -144,7 +155,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
 
   it('first-term senator with House service reads "1st in the Senate"', () => {
     render(dashboard(SLOTKIN));
-    expect(screen.getByText(/Age 50 · Serving since 2019 · 4th term · 1st in the Senate/)).toBeInTheDocument();
+    expect(facts().Term).toBe('4th1st in the Senate');
     expect(screen.getAllByText('DEMOCRATIC').length).toBeGreaterThan(0);
   });
 
@@ -172,180 +183,116 @@ describe('key dates card', () => {
   });
 });
 
-function feed(items = FEED) {
-  return (
-    <ActivityFeed
-      groups={groupFeed(items)}
-      totals={eventTotals(items)}
-      totalLabel={String(items.length)}
-      policyAreas={policyAreaTotals(items)}
-      dateRanges={buildDateRanges(SESSIONS, STEIL.term, TODAY)}
-    />
-  );
-}
+describe('roll call votes', () => {
+  const votes = () => buildVoteRows(FEED);
+  const list = () => <RollCallVotes votes={votes()} congressLabel="119th Congress" />;
 
-/** Tick one policy area, opening the dropdown first if it is not already open. */
-function pickArea(name: string) {
-  if (!screen.queryByRole('listbox')) {
-    fireEvent.click(document.querySelector('button[aria-haspopup="listbox"]') as HTMLElement);
-  }
-  const list = screen.getByRole('listbox', { name: 'Policy areas' });
-  fireEvent.click(within(list).getByRole('option', { name: new RegExp(name) }));
-}
-
-describe('activity feed', () => {
-  it('renders votes with and without a bill title, filters by type, searches, and empties gracefully', () => {
-    render(feed());
-    // The headline is plain text again; the row's one destination is the Details button.
+  it('lists only the roll-call votes, with the position, subject, question and result', () => {
+    render(list());
+    expect(screen.getAllByRole('listitem')).toHaveLength(4); // 4 of the 7 feed rows are votes
     expect(
-      screen.getByText('on H.R. 4795: Protect Economic and Academic Freedom Act of 2026'),
+      screen.getByText('H.R. 4795: Protect Economic and Academic Freedom Act of 2026'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'H.R. 4795' })).not.toBeInTheDocument();
-    expect(screen.getByText('on nomination PN12-1')).toBeInTheDocument();
-    expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toBeInTheDocument();
-    expect(screen.getByText('on roll call 353')).toBeInTheDocument();
+    expect(screen.getByText('nomination PN12-1')).toBeInTheDocument();
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');
-    expect(screen.getByText('Did not vote')).toBeInTheDocument();
-    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Floor vote/ }));
-    expect(screen.getByText('3 of 7 events')).toBeInTheDocument();
-    expect(screen.queryByText('on nomination PN12-1')).not.toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: 'zzzz' } });
-    expect(screen.getByText(/No events match “zzzz”/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
+    expect(screen.queryByText(/Introduced H\.R\. 4735/)).not.toBeInTheDocument(); // not a vote
+    expect(screen.getByText(/4 recorded/)).toBeInTheDocument();
   });
 
-  it('policy area: dropdown lists only the areas present, with counts, commonest first', () => {
-    render(feed());
-    const open = screen.getByRole('button', { name: 'All policy areas' });
-    fireEvent.click(open);
-    // scoped to the dropdown: the native date <select> also exposes options
-    const list = screen.getByRole('listbox', { name: 'Policy areas' });
-    const options = within(list).getAllByRole('option').map((o) => o.textContent);
-    // four of the seven fixture rows carry an area; the other three are nominations and
-    // procedural roll calls, which Congress.gov does not classify
-    expect(options).toHaveLength(4);
-    expect(options).toEqual([
-      'Congress1',
-      'Education1',
-      'Finance and Financial Sector1',
-      'Government Operations and Politics1',
-    ]);
-  });
-
-  it('policy area: filtering narrows the feed and says what it hid', () => {
-    render(feed());
-    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
-    pickArea('Education');
-    expect(screen.getByText('1 of 7 events')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Education' })).toBeInTheDocument();
-    // the three rows with no policy area are named, not silently dropped
-    expect(
-      screen.getByText(/3 events have no policy area and are hidden/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('on nomination PN12-1')).not.toBeInTheDocument();
-
-    // a second area is additive
-    pickArea('Congress');
-    expect(screen.getByText('2 of 7 events')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '2 policy areas' })).toBeInTheDocument();
-  });
-
-  it('policy area: the notice disappears when no area is selected', () => {
-    render(feed());
-    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
-    pickArea('Education');
-    expect(screen.getByText(/no policy area and/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear policy areas' }));
-    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
-    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
-  });
-
-  it('date range: presets take their bounds from the mart, and the default is all dates', () => {
-    render(feed());
-    const select = screen.getByLabelText('Date range') as HTMLSelectElement;
-    expect(select.value).toBe('all');
-    expect([...select.options].map((o) => o.textContent)).toEqual([
-      'All dates',
-      'Last 30 days',
-      'Last 90 days',
-      'This session (2026)', // mart.congress_session, the current one
-      'Whole term',
-    ]);
-
-    // the fixture feed spans Jan 2025 to Sep 2026; this session starts 2026-01-03
-    fireEvent.change(select, { target: { value: 'session' } });
-    expect(screen.getByText('3 of 7 events')).toBeInTheDocument();
-    expect(screen.queryByText(/Voted Johnson \(LA\)/)).not.toBeInTheDocument(); // Jan 2025
-
-    fireEvent.change(select, { target: { value: 'last30' } });
-    expect(screen.getByText('2 of 7 events')).toBeInTheDocument(); // Sep 2026 rows only
-
-    fireEvent.change(select, { target: { value: 'all' } });
-    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
-  });
-
-  it('filters compose, and Clear resets all four at once', () => {
-    render(feed());
-    fireEvent.change(screen.getByLabelText('Date range'), { target: { value: 'session' } });
-    expect(screen.getByText('3 of 7 events')).toBeInTheDocument();
-
-    pickArea('Education');
-    expect(screen.getByText('1 of 7 events')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Floor vote/ })); // turn votes off
-    expect(screen.getByText('0 of 7 events')).toBeInTheDocument();
-    expect(screen.getByText('No events match the selected filters.')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByText('7 of 7 events')).toBeInTheDocument();
-    expect((screen.getByLabelText('Date range') as HTMLSelectElement).value).toBe('all');
-    expect(screen.getByRole('button', { name: 'All policy areas' })).toBeInTheDocument();
-    expect(screen.queryByText(/no policy area and/)).not.toBeInTheDocument();
-  });
-
-  it('search composes with the other filters and the count reflects all of them', () => {
-    render(feed());
-    fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: 'RESULTS' } });
-    expect(screen.getByText('1 of 7 events')).toBeInTheDocument();
-    // that row is Government Operations, so filtering to Education leaves nothing
-    pickArea('Education');
-    expect(screen.getByText('0 of 7 events')).toBeInTheDocument();
-    expect(screen.getByText(/No events match “RESULTS” in the selected filters/)).toBeInTheDocument();
-  });
-
-  it('gives every row exactly one destination, chosen by mart.member_feed.bill_label', () => {
-    render(feed());
-    const rows = screen.getAllByText(/^(on |Introduced |Cosponsored |H\.Res\.)/);
-    expect(rows.length).toBe(7);
-    for (const row of rows) {
-      const container = row.closest('div.flex.gap-\\[11px\\]') as HTMLElement;
-      const links = within(container).getAllByRole('link');
-      expect(links).toHaveLength(1); // never both a Details and a source link
-    }
-
-    // four fixture rows name a bill that has a page: three votes/bills plus the committee action
+  it('gives each vote one destination: the bill page when the mart has one, else the source', () => {
+    render(list());
     const details = screen.getAllByRole('link', { name: 'Details →' });
-    expect(details.map((a) => a.getAttribute('href')).sort()).toEqual([
-      '/bills/119/hr/4735',
-      '/bills/119/hr/4795',
-      '/bills/119/hr/5269',
-      '/bills/119/hres/150',
-    ]);
-    for (const link of details) {
-      expect(link).not.toHaveAttribute('target'); // internal, same tab
-    }
-
-    // the three rows with no bill page keep the outward source link
+    expect(details.map((a) => a.getAttribute('href'))).toEqual(['/bills/119/hr/4795']);
     const sources = screen.getAllByRole('link', { name: /source ↗/ });
     expect(sources).toHaveLength(3);
-    for (const link of sources) {
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link.getAttribute('href')).toMatch(/clerk\.house\.gov|senate\.gov/);
-    }
+    for (const link of sources) expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('filters by position and by search, says when nothing matches, and clears', () => {
+    render(list());
+    fireEvent.click(screen.getByRole('button', { name: /Yea/ })); // turn Yea off
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.queryByText('nomination PN12-1')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Search roll call votes'), { target: { value: 'zzzz' } });
+    expect(screen.getByText(/No votes match “zzzz”/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+  });
+
+  it('shows ten at a time and offers the rest', () => {
+    const many = Array.from({ length: 23 }, (_, i) => ({
+      ...votes()[0],
+      key: `vote:house:1:${i}`,
+    }));
+    render(<RollCallVotes votes={many} congressLabel="119th Congress" />);
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    fireEvent.click(screen.getByRole('button', { name: /Show 10 more/ }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(20);
+    fireEvent.click(screen.getByRole('button', { name: /Show 3 more/ }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(23);
+    expect(screen.queryByRole('button', { name: /more/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('member tabs', () => {
+  it('five tabs in order, the first selected, and the other panels hidden', () => {
+    render(dashboard());
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      'Congress activity',
+      'Election',
+      'Stock trades' + 'Soon',
+      'Public statements' + 'Soon',
+      'Consistency' + 'Soon',
+    ]);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'panel-activity');
+    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(5);
+  });
+
+  it('Congress activity holds the votes, committees, record and current term', () => {
+    render(dashboard());
+    const panel = screen.getByRole('tabpanel');
+    expect(within(panel).getByRole('heading', { name: 'Roll call votes' })).toBeInTheDocument();
+    expect(within(panel).getByRole('heading', { name: 'Committees' })).toBeInTheDocument();
+    const record = within(panel).getByRole('region', { name: 'Record' });
+    expect(within(record).getByText('Votes cast')).toBeInTheDocument();
+    expect(within(record).getByText('0.76%')).toBeInTheDocument(); // missed_vote_pct
+    expect(within(record).getByText('Terms in office')).toBeInTheDocument();
+    const term = within(panel).getByRole('region', { name: 'Current term' });
+    expect(within(term).getByText('Wisconsin’s 1st District')).toBeInTheDocument();
+    expect(within(term).getByText('112')).toBeInTheDocument(); // days remaining
+    expect(within(panel).queryByText('Next election')).not.toBeInTheDocument();
+  });
+
+  it('the Election tab holds the next election, key dates and fundraising', () => {
+    render(dashboard());
+    fireEvent.click(screen.getByRole('tab', { name: 'Election' }));
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-election');
+    expect(within(panel).getByText('Next election')).toBeInTheDocument();
+    expect(within(panel).getByText('Key dates')).toBeInTheDocument();
+    expect(within(panel).getByRole('heading', { name: 'Fundraising' })).toBeInTheDocument();
+    expect(within(panel).queryByText('Roll call votes')).not.toBeInTheDocument();
+    expect(window.location.hash).toBe('#election');
+  });
+
+  it('arrow keys move between tabs and wrap', () => {
+    render(dashboard());
+    const [first] = screen.getAllByRole('tab');
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
+    expect(screen.getByRole('tab', { name: 'Election' })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Election' }), { key: 'ArrowLeft' });
+    fireEvent.keyDown(screen.getAllByRole('tab')[0], { key: 'ArrowLeft' });
+    expect(screen.getByRole('tab', { name: /Consistency/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('a locked tab says it is not published yet', () => {
+    render(dashboard());
+    fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
   });
 });
 
@@ -407,7 +354,11 @@ describe('members index', () => {
 });
 
 describe('fundraising card: given a mart.member_fundraising row, this text renders', () => {
-  const card = () => screen.getByRole('region', { name: 'Fundraising' });
+  // the card lives in the Election tab, so open it first
+  const card = () => {
+    fireEvent.click(screen.getByRole('tab', { name: 'Election' }));
+    return screen.getByRole('region', { name: 'Fundraising' });
+  };
 
   it('three figures, the receipt-share bars with amounts, coverage, committee, and the FEC source link', () => {
     render(dashboard());

@@ -1,7 +1,8 @@
 'use client';
 
-// CommitteesCard, KeyDatesCard, NextElectionCard, LockedPanels: ported from design/src/components.
-import { type ReactNode, useState } from 'react';
+// CommitteesCard, KeyDatesCard, NextElectionCard: ported from design/src/components.
+// LockedTabPanel is the placeholder body of a tab whose data is not published yet.
+import { useState } from 'react';
 import type { CommitteeRow, ElectionModel, KeyDateRow } from '@/lib/model';
 
 const COMMITTEES_SHOWN = 7;
@@ -128,45 +129,22 @@ const LockGlyph = () => (
   <span className="inline-block w-[9px] h-[9px] border-[1.5px] border-lockInk rounded-[1px] flex-none" />
 );
 
-export interface LockedPanel {
-  title: string;
-  desc: string;
-}
-
-/* Locked panels are sized as they will be when live, so the page does not reflow on release;
-   a released panel (`live`) takes the leading cells of the same grid. */
-export function LockedPanels({ panels, live }: { panels: LockedPanel[]; live?: ReactNode }) {
-  const pending = panels.length;
+/* A tab whose data is not published yet. Sized like a real panel so the tab does not jump when
+   it goes live. */
+export function LockedTabPanel({ title, desc }: { title: string; desc: string }) {
   return (
-    <section className="px-7 pt-1 pb-7">
-      <div className="flex items-baseline justify-between gap-4 mb-3">
-        <h2 className="text-heading font-semibold text-ink m-0">
-          {live ? 'Data panels' : 'Planned data panels'}
-        </h2>
-        <span className="text-label uppercase text-ink3">
-          {live ? `${pending} not yet published` : 'Not yet published'}
-        </span>
+    <section
+      aria-label={`${title} (not yet published)`}
+      className="border border-dashed border-lockRule rounded-card bg-lockBg p-6 min-h-[260px] flex flex-col justify-between gap-6"
+    >
+      <div className="flex flex-col gap-2 max-w-[60ch]">
+        <div className="flex items-center gap-2">
+          <LockGlyph />
+          <h2 className="text-heading font-semibold text-ink2 m-0">{title}</h2>
+        </div>
+        <p className="text-body text-ink3 m-0">{desc}</p>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {live}
-        {panels.map((p) => (
-          <div
-            key={p.title}
-            className="border border-dashed border-lockRule rounded-card bg-lockBg p-4 min-h-[150px] flex flex-col justify-between gap-4"
-          >
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-[7px]">
-                <LockGlyph />
-                <span className="text-base text-ink2">{p.title}</span>
-              </div>
-              <p className="text-meta text-ink3 leading-relaxed m-0">{p.desc}</p>
-            </div>
-            <div className="text-label uppercase text-ink3">
-              Coming in a future release
-            </div>
-          </div>
-        ))}
-      </div>
+      <div className="text-label uppercase text-ink3">Coming in a future release</div>
     </section>
   );
 }

@@ -1,5 +1,5 @@
 // MemberHeader, StatStrip, TermProgress: ported from design/src/components.
-import type { MemberHeaderModel, Stat, TermModel } from '@/lib/model';
+import type { HeaderFact, MemberHeaderModel, Stat, TermModel } from '@/lib/model';
 import { formatNumber } from '@/lib/format';
 import { MemberPhoto } from './MemberPhoto';
 import { PartyBadge } from './SiteChrome';
@@ -30,11 +30,27 @@ export function MemberHeader({ member }: { member: MemberHeaderModel }) {
           <span className="text-[#C6C3BC]">|</span>
           <span>{member.congress}</span>
         </div>
-        <div className="text-meta text-ink3 tnum">
-          {member.termLine} · {member.serviceLine}
-        </div>
       </div>
     </div>
+  );
+}
+
+/* The facts the header opens with: current term, roll calls, age, serving since, term number.
+   Label over value, the value at heading size, so they read before the stat strip does. */
+export function MemberFacts({ facts }: { facts: HeaderFact[] }) {
+  return (
+    <dl className="m-0 grid grid-cols-2 md:flex md:flex-wrap gap-x-9 gap-y-4 border-t border-rule pt-[18px]">
+      {facts.map((f, i) => (
+        // the term dates are the longest value: a full row on a phone so they do not wrap
+        <div key={f.label} className={`flex flex-col gap-1 min-w-0 ${i === 0 ? 'col-span-2 md:col-span-1' : ''}`}>
+          <dt className="text-label uppercase text-ink3">{f.label}</dt>
+          <dd className="m-0 flex items-baseline gap-x-2 flex-wrap tnum">
+            <span className="text-heading font-semibold text-ink">{f.value}</span>
+            {f.note && <span className="text-meta text-ink2">{f.note}</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
