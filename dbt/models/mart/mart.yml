@@ -52,6 +52,17 @@ models:
       - name: end_congress
         tests: [not_null]
 
+  - name: member_contact
+    description: >
+      How to reach a tracked member: official website, contact form, phone, fax, Washington office
+      and mailing address, from the latest congress-legislators term. Null where the source has none.
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+
   - name: term_history
     description: Every term a tracked member has served, in source order.
     columns:

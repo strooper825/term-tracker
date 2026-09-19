@@ -13,6 +13,7 @@ import {
   buildRecord,
   buildStats,
   buildTerm,
+  buildContact,
   buildDateRanges,
   policyAreaTotals,
   buildVoteRows,
@@ -35,6 +36,9 @@ import {
   STEIL_FUNDRAISING,
   STEIL_KEY_DATES,
   STEIL_LIST,
+  BOOZMAN_CONTACT,
+  NO_CONTACT,
+  STEIL_CONTACT,
   SESSIONS,
 } from './fixtures';
 
@@ -48,7 +52,7 @@ function facts(): Record<string, string> {
   );
 }
 
-function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
+function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING, contact = STEIL_CONTACT) {
   return (
     <MemberDashboard
       member={buildHeader(detail)}
@@ -61,6 +65,7 @@ function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING) {
       record={buildRecord(detail)}
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
+      contact={buildContact(contact)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}
       lastUpdated="Sep 13, 2026 02:09 UTC"
@@ -292,13 +297,14 @@ describe('member tabs', () => {
     expect(tabs.map((t) => t.textContent)).toEqual([
       'Congress activity',
       'Election',
+      'Contact',
       'Stock trades' + 'Soon',
       'Public statements' + 'Soon',
       'Constituency' + 'Soon',
     ]);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'panel-activity');
-    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(5);
+    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(6);
   });
 
   it('Congress activity holds the votes, committees and record, and no current-term card', () => {
@@ -342,6 +348,41 @@ describe('member tabs', () => {
     const bar = screen.getByRole('tablist');
     expect(bar).toHaveClass('sticky', 'top-0', 'overflow-x-auto', 'overflow-y-hidden');
     expect(screen.getAllByRole('tabpanel', { hidden: true })[0]).toHaveAttribute('tabindex', '0');
+  });
+
+  it('the Contact tab lists the office phone, website, and address, and links them', () => {
+    render(dashboard());
+    fireEvent.click(screen.getByRole('tab', { name: 'Contact' }));
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-contact');
+    expect(within(panel).getByRole('link', { name: '202-225-3031' })).toHaveAttribute('href', 'tel:+12022253031');
+    const site = within(panel).getByRole('link', { name: 'steil.house.gov' });
+    expect(site).toHaveAttribute('href', 'https://steil.house.gov');
+    expect(site).toHaveAttribute('target', '_blank');
+    expect(within(panel).getByText('1526 Longworth House Office Building')).toBeInTheDocument();
+    expect(within(panel).getByText(/Washington DC 20515-4901/)).toBeInTheDocument();
+    // the source has no contact form or fax for this member, so neither row is drawn
+    expect(within(panel).queryByText('Contact form')).not.toBeInTheDocument();
+    expect(within(panel).queryByText('Fax')).not.toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: /source/ })).toBeInTheDocument();
+  });
+
+  it('a member with a contact form shows it', () => {
+    render(dashboard(STEIL, STEIL_FUNDRAISING, BOOZMAN_CONTACT));
+    fireEvent.click(screen.getByRole('tab', { name: 'Contact' }));
+    expect(screen.getByRole('link', { name: 'boozman.senate.gov/public/index.cfm/contact' })).toHaveAttribute(
+      'href',
+      'https://www.boozman.senate.gov/public/index.cfm/contact',
+    );
+  });
+
+  it('with no contact information the tab is a coming-soon panel, like public statements', () => {
+    render(dashboard(STEIL, STEIL_FUNDRAISING, NO_CONTACT));
+    const tab = screen.getByRole('tab', { name: /Contact/ });
+    expect(tab).toHaveTextContent('Soon');
+    fireEvent.click(tab);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
+    expect(screen.queryByText('Reach the office')).not.toBeInTheDocument();
   });
 
   it('a locked tab says it is not published yet', () => {

@@ -203,9 +203,8 @@ One row per tracked member. Key `bioguide_id`.
 | `photo_url` | text | Congress.gov member image convention; replaced by the API value in Phase 1b |
 
 Source fields not captured (kept only in `raw.legislator.payload`): `id.thomas`,
-`id.maplight`, `id.house_history`, `id.google_entity_id`, `id.pictorial`, `family`,
-`other_names`, and the per-term contact block (`url`, `address`, `office`, `phone`, `fax`,
-`contact_form`, `rss_url`).
+`id.maplight`, `id.house_history`, `id.google_entity_id`, `id.pictorial`, `family`, and
+`other_names`. The per-term contact block is in `mart.member_contact`.
 
 ### `mart.term`
 
@@ -239,6 +238,18 @@ Party and chamber leadership roles of tracked members from congress-legislators
 per role and Congress, so a title held continuously appears once per Congress; `end_date` is
 null and `is_current` true while held. Columns `title`, `chamber`, `start_date`, `end_date`,
 `is_current`.
+
+### `mart.member_contact`
+
+One row per tracked member, from the latest term in congress-legislators (the per-term contact block
+that `mart.member` leaves in `raw.legislator.payload`). Key `bioguide_id`. Columns `website_url`,
+`contact_form_url`, `phone`, `fax`, `office` (building and room), `address` (Washington mailing
+address), `rss_url`, plus `source`, `source_url`, `fetched_at`. Every column but the key is null when
+the source has no value: on 2026-09-19 all 20 members have website, phone, office and address; 8 have
+a contact form, 1 a fax and 11 an RSS feed. `GET /members/{id}/contact` returns it; the site's Contact tab shows
+what is present, and shows "coming soon" when none of the contact columns has a value. The data is
+the member's official office information as congress-legislators records it and can lag a change of
+office; it is not verified against the member's own site.
 
 ### `mart.committee`
 

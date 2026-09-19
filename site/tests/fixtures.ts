@@ -2,6 +2,7 @@
 import type {
   BillDetail,
   CommitteeAssignment,
+  ContactResponse,
   CongressSession,
   FeedItem,
   FundraisingResponse,
@@ -1149,3 +1150,41 @@ export const SESSIONS: CongressSession[] = [
     is_current: true,
   },
 ];
+
+/** GET /members/{id}/contact for Steil and Boozman, as the live database returned it (2026-09-19). */
+export const STEIL_CONTACT: ContactResponse = {
+  bioguide_id: 'S001213',
+  website_url: 'https://steil.house.gov',
+  contact_form_url: null,
+  phone: '202-225-3031',
+  fax: null,
+  office: '1526 Longworth House Office Building',
+  address: '1526 Longworth House Office Building Washington DC 20515-4901',
+  rss_url: null,
+  sources: [
+    {
+      source: 'legislators',
+      source_url: 'https://unitedstates.github.io/congress-legislators/legislators-current.yaml',
+      fetched_at: '2026-09-16T06:12:00Z',
+    },
+  ],
+};
+
+export const BOOZMAN_CONTACT: ContactResponse = {
+  ...STEIL_CONTACT,
+  bioguide_id: 'B001236',
+  website_url: 'https://www.boozman.senate.gov/public',
+  contact_form_url: 'https://www.boozman.senate.gov/public/index.cfm/contact',
+  phone: '202-224-4843',
+  office: '555 Dirksen Senate Office Building',
+  address: '555 Dirksen Senate Office Building Washington DC 20510',
+};
+
+export const NO_CONTACT: ContactResponse = {
+  ...STEIL_CONTACT,
+  website_url: null,
+  phone: null,
+  office: null,
+  address: null,
+  sources: [],
+};

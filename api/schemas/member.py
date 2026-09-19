@@ -225,6 +225,18 @@ class CommitteesResponse(BaseModel):
     sources: list[SourceRef]
 
 
+class ContactResponse(BaseModel):
+    bioguide_id: str
+    website_url: str | None = Field(description="Official website")
+    contact_form_url: str | None
+    phone: str | None = Field(description="Washington office")
+    fax: str | None
+    office: str | None = Field(description="Building and room number")
+    address: str | None = Field(description="Washington mailing address")
+    rss_url: str | None
+    sources: list[SourceRef]
+
+
 class KeyDate(BaseModel):
     date: dt.date
     label: str

@@ -213,6 +213,18 @@ export interface KeyDate {
   source_url: string;
 }
 
+export interface ContactResponse {
+  bioguide_id: string;
+  website_url: string | null;
+  contact_form_url: string | null;
+  phone: string | null;
+  fax: string | null;
+  office: string | null;
+  address: string | null;
+  rss_url: string | null;
+  sources: SourceRef[];
+}
+
 export interface KeyDatesResponse {
   bioguide_id: string;
   items: KeyDate[];

@@ -245,6 +245,19 @@ def test_timeline_buckets(built_mart: None, client: TestClient) -> None:
     assert first_week["vote"] >= 1
 
 
+def test_contact(built_mart: None, client: TestClient) -> None:
+    # The committed fixtures keep each term's website but drop the office details (phone,
+    # office, address, fax, contact form), so only the website is present here; the live
+    # database has all of them for every tracked member.
+    cotton = client.get(f"{COTTON}/contact").json()
+    assert cotton["bioguide_id"] == "C001095"
+    assert cotton["website_url"] == "https://www.cotton.senate.gov"
+    assert all(cotton[k] is None for k in ("phone", "fax", "office", "address", "contact_form_url"))
+    assert cotton["sources"] and cotton["sources"][0]["source_url"]
+    steil = client.get(f"{STEIL}/contact").json()
+    assert steil["website_url"] and steil["website_url"].startswith("https://")
+
+
 def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
     committees = client.get(f"{STEIL}/committees").json()
     assert {c["thomas_id"] for c in committees["items"]} >= {"HSBA", "HSHA", "HSBA21"}
