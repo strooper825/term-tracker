@@ -1,0 +1,79 @@
+version: 2
+
+# Constructed cases for the outcome logic in congress_tracked_bill (ADR 0013). The live data has
+# no veto among tracked-member bills, so the override path is exercised here instead.
+unit_tests:
+  - name: congress_tracked_bill_outcomes
+    model: congress_tracked_bill
+    given:
+      - input: ref('bill')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "1", kind: bill, sponsor_is_tracked: true, label: "H.R. 1", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "2", kind: bill, sponsor_is_tracked: true, label: "H.R. 2", origin_chamber: House}
+          - {congress: 119, bill_type: s, bill_number: "3", kind: bill, sponsor_is_tracked: true, label: "S. 3", origin_chamber: Senate}
+          - {congress: 119, bill_type: hres, bill_number: "4", kind: bill, sponsor_is_tracked: true, label: "H.Res. 4", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "5", kind: bill, sponsor_is_tracked: true, label: "H.R. 5", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "6", kind: bill, sponsor_is_tracked: false, label: "H.R. 6", origin_chamber: House}
+          - {congress: 119, bill_type: hconres, bill_number: "7", kind: bill, sponsor_is_tracked: true, label: "H.Con.Res. 7", origin_chamber: House}
+          - {congress: 119, bill_type: hr, bill_number: "8", kind: bill, sponsor_is_tracked: true, label: "H.R. 8", origin_chamber: House}
+      - input: ref('bill_journey_stage')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "1", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: hr, bill_number: "1", stage_key: house_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "1", stage_key: senate_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "1", stage_key: became_law, status: complete}
+          - {congress: 119, bill_type: hr, bill_number: "2", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: hr, bill_number: "2", stage_key: house_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "2", stage_key: senate_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "2", stage_key: became_law, status: vetoed}
+          - {congress: 119, bill_type: s, bill_number: "3", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: s, bill_number: "3", stage_key: senate_vote, status: no_roll_call}
+          - {congress: 119, bill_type: s, bill_number: "3", stage_key: house_vote, status: passed}
+          - {congress: 119, bill_type: s, bill_number: "3", stage_key: became_law, status: complete}
+          - {congress: 119, bill_type: hres, bill_number: "4", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: hres, bill_number: "4", stage_key: house_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "5", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: hr, bill_number: "5", stage_key: house_vote, status: pending}
+          - {congress: 119, bill_type: hr, bill_number: "5", stage_key: senate_vote, status: pending}
+          - {congress: 119, bill_type: hr, bill_number: "5", stage_key: became_law, status: pending}
+          - {congress: 119, bill_type: hconres, bill_number: "7", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: hconres, bill_number: "7", stage_key: house_vote, status: pending}
+          - {congress: 119, bill_type: hconres, bill_number: "7", stage_key: senate_vote, status: pending}
+          - {congress: 119, bill_type: hr, bill_number: "8", stage_key: introduced, status: complete}
+          - {congress: 119, bill_type: hr, bill_number: "8", stage_key: house_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "8", stage_key: senate_vote, status: passed}
+          - {congress: 119, bill_type: hr, bill_number: "8", stage_key: to_president, status: pending}
+          - {congress: 119, bill_type: hr, bill_number: "8", stage_key: became_law, status: pending}
+      - input: ref('bill_action')
+        format: sql
+        rows: |
+          select 119 as congress, 'hr' as bill_type, '1' as bill_number, 'E30000' as action_code, 'President' as action_type, 'Vetoed by President.' as action_text, '2025-12-29'::date as action_date
+          union all
+          select 119 as congress, 'hr' as bill_type, '1' as bill_number, 'E40000' as action_code, 'BecameLaw' as action_type, 'Became Public Law No: 119-99.' as action_text, '2026-01-20'::date as action_date
+          union all
+          select 119 as congress, 'hr' as bill_type, '2' as bill_number, 'E30000' as action_code, 'President' as action_type, 'Vetoed by President.' as action_text, '2025-12-29'::date as action_date
+          union all
+          select 119 as congress, 's' as bill_type, '3' as bill_number, 'E30000' as action_code, 'President' as action_type, 'Signed by President.' as action_text, '2026-02-02'::date as action_date
+          union all
+          select 119 as congress, 's' as bill_type, '3' as bill_number, 'E40000' as action_code, 'BecameLaw' as action_type, 'Became Public Law No: 119-12.' as action_text, '2026-02-02'::date as action_date
+          union all
+          select 119 as congress, 'hr' as bill_type, '5' as bill_number, '1000' as action_code, 'IntroReferral' as action_type, 'Introduced in House' as action_text, '2025-03-01'::date as action_date
+          union all
+          select 119 as congress, 's' as bill_type, '3' as bill_number, '17000' as action_code, 'Floor' as action_type, 'Passed/agreed to in Senate: Passed Senate by Unanimous Consent.' as action_text, '2026-01-20'::date as action_date
+          union all
+          select 119 as congress, 'hconres' as bill_type, '7' as bill_number, '8000' as action_code, 'Floor' as action_type, 'Passed/agreed to in House: agreed to by voice vote.' as action_text, '2026-03-01'::date as action_date
+          union all
+          select 119 as congress, 'hconres' as bill_type, '7' as bill_number, '17000' as action_code, 'Floor' as action_type, 'Passed/agreed to in Senate: agreed to without amendment.' as action_text, '2026-03-09'::date as action_date
+      - input: ref('bill_passage_vote')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "1", chamber: house, is_latest_in_chamber: true, yea_total: 290, nay_total: 130}
+          - {congress: 119, bill_type: hr, bill_number: "1", chamber: senate, is_latest_in_chamber: true, yea_total: 70, nay_total: 30}
+    expect:
+      rows:
+        - {bill_number: "1", passed_a_chamber: true, passed_both_chambers: true, became_law: true, vetoed: true, veto_overridden: true, outcome: overridden, public_law_number: "119-99", still_in_committee: false}
+        - {bill_number: "2", passed_a_chamber: true, passed_both_chambers: true, became_law: false, vetoed: true, veto_overridden: false, outcome: vetoed, public_law_number: null, still_in_committee: false}
+        - {bill_number: "3", passed_a_chamber: true, passed_both_chambers: true, became_law: true, vetoed: false, veto_overridden: false, outcome: law, public_law_number: "119-12", still_in_committee: false}
+        - {bill_number: "4", passed_a_chamber: true, passed_both_chambers: false, became_law: false, vetoed: false, veto_overridden: false, outcome: null, public_law_number: null, still_in_committee: false}
+        - {bill_number: "5", passed_a_chamber: false, passed_both_chambers: false, became_law: false, vetoed: false, veto_overridden: false, outcome: null, public_law_number: null, still_in_committee: true}
+        - {bill_number: "7", passed_a_chamber: true, passed_both_chambers: true, became_law: false, vetoed: false, veto_overridden: false, outcome: adopted, public_law_number: null, still_in_committee: false}
+        - {bill_number: "8", passed_a_chamber: true, passed_both_chambers: true, became_law: false, vetoed: false, veto_overridden: false, outcome: pending, public_law_number: null, still_in_committee: false}

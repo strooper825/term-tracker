@@ -14,7 +14,7 @@ export function SiteHeader({ active }: { active: string }) {
     </a>
   );
   return (
-    <header className="flex items-center justify-between gap-6 px-7 py-3.5 border-b border-rule">
+    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-7 py-3.5 border-b border-rule">
       <div className="flex items-baseline gap-2">
         <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
           Term Tracker
@@ -24,6 +24,7 @@ export function SiteHeader({ active }: { active: string }) {
         </span>
       </div>
       <nav className="flex gap-[22px] text-body">
+        {link('/congress', 'Congress')}
         {link('/members', 'Members')}
         {link(`${REPO_URL}/blob/main/docs/PLAN.md`, 'About')}
         {link(`${REPO_URL}/blob/main/docs/data-dictionary.md`, 'Data')}

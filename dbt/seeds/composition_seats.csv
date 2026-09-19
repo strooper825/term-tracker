@@ -1,0 +1,9 @@
+chamber,party_group,seats,caucus_with
+house,republican,218,
+house,democratic,214,
+house,independent,1,republican
+house,vacant,2,
+senate,republican,53,
+senate,democratic,45,
+senate,independent,2,democratic
+senate,vacant,0,
