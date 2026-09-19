@@ -1,7 +1,7 @@
 /** Design tokens for Term Tracker, copied from design/tailwind.config.js (Claude Design export).
  *  Only the content globs differ. Light theme only. Party colors are reserved for party badges
  *  and the member's own vote positions, never page chrome or a UI accent: red and blue mean
- *  Republican/Yea and Democratic/Nay and nothing else. `navy` is the site's own accent (wordmark,
+ *  Republican and Democratic on a badge, Yea (blue) and Nay (red) on a vote and nothing else. `navy` is the site's own accent (wordmark,
  *  term-progress and fundraising bars, "Chair"/"On the ballot" emphasis); event-type colors are
  *  a ramp on that one hue, not a separate hue per type -- see src/data/eventTypes.ts.
  *

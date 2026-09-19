@@ -11,14 +11,13 @@ const PAGE = 10;
 const POSITIONS: VotePosition[] = ['Yea', 'Nay', 'Present', 'Not Voting'];
 
 /* Red and blue are reserved for party badges and a member's own vote positions (see
-   tailwind.config.js): Yea is red and Nay blue, the pairing the design tokens already name.
-   Present and Not Voting stay neutral. */
+   tailwind.config.js). Here Yea is blue and Nay red; Present and Not Voting stay neutral. */
 function PositionChip({ position }: { position: VotePosition }) {
   const cls =
     position === 'Yea'
-      ? 'text-white bg-party-r border-party-r'
+      ? 'text-white bg-party-d border-party-d'
       : position === 'Nay'
-        ? 'text-white bg-party-d border-party-d'
+        ? 'text-white bg-party-r border-party-r'
         : 'text-ink3 bg-card border-rule';
   return (
     <span
