@@ -457,6 +457,7 @@ export interface ChamberComposition {
   seated: number;
   vacant: number;
   majority_threshold: number;
+  majority_pct: number;
   republican_caucus: number;
   democratic_caucus: number;
   majority_party: string | null;
@@ -481,21 +482,6 @@ export interface OverviewActivity {
   vetoed: number;
   vetoed_overridden: number;
   vetoed_not_overridden: number;
-  roll_call_votes: number;
-  roll_call_votes_house: number;
-  roll_call_votes_senate: number;
-  committee_actions: number;
-  resolutions: number;
-  still_in_committee: number;
-  still_in_committee_pct: number | null;
-}
-
-export interface OverviewMeasureType {
-  measure_type: 'house_bill' | 'senate_bill' | 'joint_resolution' | 'other';
-  label: string;
-  short_label: string;
-  bills: number;
-  bill_pct: number | null;
 }
 
 export interface PassedBothItem {
@@ -526,8 +512,8 @@ export interface CongressOverviewResponse {
     chambers: ChamberComposition[];
   };
   activity: OverviewActivity;
-  measure_types: OverviewMeasureType[];
   passed_both: {
+    bills_in_dataset: number;
     total: number;
     enacted: number;
     adopted: number;

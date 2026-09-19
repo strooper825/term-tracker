@@ -3,14 +3,21 @@ import { PARTY_COLOR, type PartyName } from '@/data/eventTypes';
 
 export const REPO_URL = 'https://github.com/strooper825/term-tracker';
 
+/* Anything off this site opens in a new tab, so a reader never loses their place. */
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+const newTab = (href: string) =>
+  isExternal(href) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
+
 export function SiteHeader({ active }: { active: string }) {
   const link = (href: string, label: string) => (
     <a
       key={label}
       href={href}
+      {...newTab(href)}
       className={active === label ? 'text-ink font-semibold' : 'text-ink2 hover:text-ink'}
     >
       {label}
+      {isExternal(href) && <span className="sr-only"> (opens in a new tab)</span>}
     </a>
   );
   return (
@@ -43,9 +50,10 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
       </p>
       <a
         href={`${REPO_URL}/blob/main/docs/data-dictionary.md`}
+        {...newTab(REPO_URL)}
         className="text-label uppercase text-ink3"
       >
-        Data dictionary ↗
+        Data dictionary ↗<span className="sr-only"> (opens in a new tab)</span>
       </a>
     </footer>
   );

@@ -78,3 +78,28 @@ reads the count from the mart.
 - The override path (a veto followed by a law) has no instance among tracked-member bills yet,
   so it is covered by a dbt test on a constructed case, not by live data.
 - A status field from Congress.gov would replace items 2 and 4.
+
+## Update 2026-09-19 (scope of the passed-both table, metrics cut)
+
+Reviewing the merged page: the table listed six measures and left out H.R. 1, the reconciliation
+act (Public Law 119-21), and the budget resolution H.Con.Res. 14, because both were sponsored
+by a member who is not tracked. Restricting the table to tracked sponsors answered a question a
+reader was not asking. Changes:
+
+- **The passed-both table reads every bill in `mart.bill`**, whoever sponsored it, and moves above
+  the scope-change divider. It says what it covers: the tracked members' bills plus any bill a
+  recorded roll call named, not every bill in Congress (about 19,000; PLAN.md section 12). A bill
+  that passed by voice vote and that no tracked member and no roll call touched is still missing.
+  On 2026-09-19 this gives 84 measures: 69 law, 6 adopted, 2 vetoed, 7 not yet law.
+- **`mart.congress_tracked_bill` became `mart.congress_bill_outcome`** with a `sponsor_is_tracked`
+  column. The four stat cards below the divider filter to it; the table does not.
+- **Removed** the measure-type bar, Roll call votes, Committee actions, Resolutions, and Still in
+  committee. The page is for a general reader first, and those five were the ones that needed a
+  paragraph to explain. Their marts and columns (`congress_overview_type`, `measure_type`,
+  `still_in_committee`, the vote and committee counts) are gone rather than left unused. The
+  definitions above for them no longer apply. Orphaned tables from the earlier build
+  (`mart.congress_tracked_bill`, `mart.congress_overview_type`) are not dropped by `dbt build`.
+- **"Passed a chamber" reads "22 House bills · 23 Senate bills"**, not "House-origin".
+- **Control is stated in words** ("Republicans control the House"), with the seat counts behind it
+  and a marker at the majority line, replacing the bare "R +5". `mart.chamber_majority.majority_pct`
+  places the marker.

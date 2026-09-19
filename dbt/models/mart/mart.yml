@@ -411,17 +411,13 @@ models:
       - name: majority_threshold
         tests: [not_null]
 
-  - name: congress_tracked_bill
+  - name: congress_bill_outcome
     description: >
-      One row per bill a tracked member sponsored, with the outcome facts the Congress overview
-      counts (ADR 0013).
+      One row per bill in mart.bill, with the outcome facts the Congress overview counts
+      (ADR 0013). sponsor_is_tracked scopes the tracked-member figures.
     columns:
       - name: label
         tests: [not_null]
-      - name: measure_type
-        tests:
-          - accepted_values:
-              arguments: { values: ["house_bill", "senate_bill", "joint_resolution", "other"] }
       - name: outcome
         tests:
           - accepted_values:
@@ -429,15 +425,9 @@ models:
               config: { where: "outcome is not null" }
 
   - name: congress_overview
-    description: "One row, every aggregate figure on /congress below the scope-change divider."
+    description: "One row, every aggregate figure on /congress."
     columns:
       - name: bills_introduced
         tests: [not_null]
       - name: tracked_members
         tests: [not_null]
-
-  - name: congress_overview_type
-    description: Bills the tracked members introduced by measure type, with the bar's shares.
-    columns:
-      - name: measure_type
-        tests: [unique, not_null]

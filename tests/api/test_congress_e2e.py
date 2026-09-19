@@ -36,6 +36,9 @@ def test_composition_is_the_seed_and_adds_up(built_mart: None, client: TestClien
     # Independents count with the party they caucus with, for the margin only.
     assert (house["republican_caucus"], house["democratic_caucus"]) == (219, 214)
     assert (house["majority_letter"], house["majority_margin"]) == ("R", 5)
+    # the majority line sits at threshold / seats along the bar
+    assert house["majority_pct"] == pytest.approx(50.11, abs=0.01)
+    assert senate["majority_pct"] == pytest.approx(51, abs=0.01)
     assert (senate["republican_caucus"], senate["democratic_caucus"]) == (53, 47)
     assert (senate["majority_letter"], senate["majority_margin"]) == ("R", 6)
 
@@ -56,21 +59,14 @@ def test_activity_figures_agree_with_each_other(built_mart: None, client: TestCl
         a["passed_chamber_house_origin"] + a["passed_chamber_senate_origin"]
         == (a["passed_chamber"])
     )
-    assert a["roll_call_votes_house"] + a["roll_call_votes_senate"] == a["roll_call_votes"]
     assert a["vetoed_overridden"] + a["vetoed_not_overridden"] == a["vetoed"]
-    assert sum(t["bills"] for t in body["measure_types"]) == a["bills_introduced"]
-    assert [t["measure_type"] for t in body["measure_types"]] == [
-        "house_bill",
-        "senate_bill",
-        "joint_resolution",
-        "other",
-    ]
 
 
 def test_passed_both_table_matches_its_header_counts(built_mart: None, client: TestClient) -> None:
     body = _overview(client)
     passed = body["passed_both"]
     assert passed["total"] == len(passed["items"])
+    assert passed["total"] <= passed["bills_in_dataset"]
     outcomes = [item["outcome"] for item in passed["items"]]
     assert passed["enacted"] == outcomes.count("law")
     assert passed["adopted"] == outcomes.count("adopted")

@@ -33,6 +33,8 @@ select
     sum(seated) over () as congress_seated,
     sum(coalesce(vacant, 0)) over () as congress_vacant,
     chamber_seats / 2 + 1 as majority_threshold,
+    -- where the majority line falls along the bar, as a share of the chamber's seats
+    round(100.0 * (chamber_seats / 2 + 1) / chamber_seats, 2) as majority_pct,
     coalesce(republican_caucus, 0) as republican_caucus,
     coalesce(democratic_caucus, 0) as democratic_caucus,
     case
