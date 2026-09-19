@@ -23,12 +23,23 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
 
       {model.filed ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4 border border-rule rounded-card p-4">
+          {/* Note: `sm` in this project is 390px, a phone, so the three-up row starts at `md`.
+              Below it each figure is a label-left, value-right row, so a seven-figure dollar
+              amount never has a third of a phone screen to fit in. */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3.5 border border-rule rounded-card p-4">
             {model.stats.map((s) => (
-              <div key={s.label} className="flex flex-col gap-1.5 min-w-0" title={s.title}>
+              <div
+                key={s.label}
+                className="flex items-baseline justify-between gap-3 min-w-0 md:flex-col md:items-start md:justify-start md:gap-1.5"
+                title={s.title}
+              >
                 <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
-                <div className="text-stat font-semibold text-ink tnum leading-none">{s.value}</div>
-                {s.note && <div className="text-meta text-ink3 tnum">{s.note}</div>}
+                <div className="flex items-baseline justify-end gap-x-2 flex-wrap min-w-0 md:flex-col md:items-start md:gap-1.5">
+                  <span className="text-stat font-semibold text-ink tnum leading-none whitespace-nowrap">
+                    {s.value}
+                  </span>
+                  {s.note && <span className="text-meta text-ink3 tnum">{s.note}</span>}
+                </div>
               </div>
             ))}
           </div>
