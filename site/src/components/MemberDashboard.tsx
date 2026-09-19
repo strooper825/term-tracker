@@ -1,37 +1,36 @@
-// Ported from design/src/pages/MemberDashboard.jsx. Server component: every prop is built at
-// build time in src/lib/model.ts from API rows; the two client islands (timeline, feed) only
-// filter and hover.
-import type { EventKey } from '@/data/eventTypes';
+// Ported from design/src/pages/MemberDashboard.jsx, then reorganised into tabs. Server
+// component: every prop is built at build time in src/lib/model.ts from API rows. The header
+// (identity, facts, stats, term progress) stays in view; everything below it is a tab, and each
+// tab is one function here, so a section can grow without touching the others.
 import type {
   CommitteeRow,
-  DateRange,
   ElectionModel,
-  FeedGroup,
+  FactRow,
   FundraisingModel,
-  PolicyAreaCount,
   KeyDateRow,
   MemberHeaderModel,
+  RecordModel,
   Stat,
   TermModel,
-  Week,
+  VoteRow,
 } from '@/lib/model';
-import { ActivityFeed } from './ActivityFeed';
-import { ActivityTimeline } from './ActivityTimeline';
 import { FundraisingCard } from './FundraisingCard';
-import { MemberHeader, StatStrip, TermProgress } from './MemberHeader';
-import { CommitteesCard, KeyDatesCard, LockedPanels, NextElectionCard } from './SideCards';
+import { MemberFacts, MemberHeader, StatStrip, TermProgress } from './MemberHeader';
+import { MemberTabs, type TabSpec } from './MemberTabs';
+import { RollCallVotes } from './RollCallVotes';
+import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from './SideCards';
 import { Breadcrumb, SiteFooter, SiteHeader } from './SiteChrome';
+import { CurrentTermCard, RecordCard } from './TermCards';
 
 export interface DashboardProps {
   member: MemberHeaderModel;
   stats: Stat[];
   term: TermModel;
-  weeks: Week[];
-  feedGroups: FeedGroup[];
-  eventTotals: Record<EventKey, number>;
-  totalLabel: string;
-  policyAreas: PolicyAreaCount[];
-  dateRanges: DateRange[];
+  votes: VoteRow[];
+  /** "119th Congress": the Congress the vote list covers. */
+  congressLabel: string;
+  termFacts: FactRow[];
+  record: RecordModel;
   election: ElectionModel | null;
   committees: CommitteeRow[];
   keyDates: KeyDateRow[];
@@ -39,20 +38,70 @@ export interface DashboardProps {
   lastUpdated: string | null;
 }
 
-/* Panels still to come (plan section 2, panels 8 to 10); Fundraising went live in Phase 2. */
-export function lockedPanels(member: MemberHeaderModel) {
+/* Congress activity: what the member does in the chamber. Votes take the wide column; who they
+   sit with, their record and their term sit beside it. */
+function CongressActivityTab(props: DashboardProps) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-main gap-7 items-start">
+      <div className="min-w-0">
+        <RollCallVotes votes={props.votes} congressLabel={props.congressLabel} />
+      </div>
+      <div className="flex flex-col gap-5 min-w-0">
+        <CommitteesCard committees={props.committees} />
+        <RecordCard record={props.record} />
+        <CurrentTermCard rows={props.termFacts} />
+      </div>
+    </div>
+  );
+}
+
+/* Election: fundraising takes the wide column at full size; the next election and the calendar
+   sit beside it. */
+function ElectionTab(props: DashboardProps) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-main gap-7 items-start">
+      <div className="min-w-0">
+        <FundraisingCard model={props.fundraising} />
+      </div>
+      <div className="flex flex-col gap-5 min-w-0">
+        <NextElectionCard election={props.election} />
+        <KeyDatesCard dates={props.keyDates} />
+      </div>
+    </div>
+  );
+}
+
+export function memberTabs(props: DashboardProps): TabSpec[] {
   return [
-    { title: 'Stock trades', desc: 'Periodic transaction reports filed under the STOCK Act.' },
+    { id: 'activity', label: 'Congress activity', content: <CongressActivityTab {...props} /> },
+    { id: 'election', label: 'Election', content: <ElectionTab {...props} /> },
     {
-      title: 'Public statements',
-      desc: 'Press releases, floor remarks and newsletter archives.',
+      id: 'stock-trades',
+      label: 'Stock trades',
+      locked: true,
+      content: (
+        <LockedTabPanel
+          title="Stock trades"
+          desc="Periodic transaction reports filed under the STOCK Act."
+        />
+      ),
     },
     {
-      title: member.chamber === 'Senate' ? 'State map' : 'District map',
-      desc:
-        member.chamber === 'Senate'
-          ? `Statewide map, county results and ${member.state} demographics.`
-          : `${member.seatShort} boundaries, county splits and district demographics.`,
+      id: 'statements',
+      label: 'Public statements',
+      locked: true,
+      content: (
+        <LockedTabPanel
+          title="Public statements"
+          desc="Press releases, floor remarks and newsletter archives."
+        />
+      ),
+    },
+    {
+      id: 'constituency',
+      label: 'Constituency',
+      locked: true,
+      content: <LockedTabPanel title="Constituency" desc="This section has not been published yet." />,
     },
   ];
 }
@@ -64,32 +113,16 @@ export function MemberDashboard(props: DashboardProps) {
       <div className="w-full max-w-[1280px] bg-sheet border-x border-rule">
         <SiteHeader active="Members" />
 
-        <section className="px-7 pt-5 pb-7 border-b border-rule flex flex-col gap-[18px]">
+        <section className="px-7 pt-5 pb-7 flex flex-col gap-[18px]">
           <Breadcrumb name={member.name} />
           <MemberHeader member={member} />
+          <MemberFacts facts={member.facts} />
           <StatStrip stats={props.stats} />
           <TermProgress term={props.term} />
         </section>
 
-        <main className="px-7 py-7 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-7 items-start">
-          <div className="flex flex-col gap-7 min-w-0">
-            <ActivityTimeline weeks={props.weeks} />
-            <ActivityFeed
-              groups={props.feedGroups}
-              totals={props.eventTotals}
-              totalLabel={props.totalLabel}
-              policyAreas={props.policyAreas}
-              dateRanges={props.dateRanges}
-            />
-          </div>
-          <div className="flex flex-col gap-5 min-w-0">
-            <NextElectionCard election={props.election} />
-            <CommitteesCard committees={props.committees} />
-            <KeyDatesCard dates={props.keyDates} />
-          </div>
-        </main>
+        <MemberTabs tabs={memberTabs(props)} />
 
-        <LockedPanels panels={lockedPanels(member)} live={<FundraisingCard model={props.fundraising} />} />
         <SiteFooter lastUpdated={props.lastUpdated} />
       </div>
     </div>
