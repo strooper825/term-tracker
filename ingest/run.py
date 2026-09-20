@@ -24,6 +24,7 @@ from ingest.sources import (
     house_votes,
     legislators,
     senate_votes,
+    statements,
 )
 
 log = logging.getLogger("ingest")
@@ -31,7 +32,9 @@ log = logging.getLogger("ingest")
 # name -> callable that runs that source end to end and returns rows loaded.
 # Order matters for --source all: legislators first (the FEC source reads its candidate ids),
 # votes before bills, so bills referenced by new roll calls are fetched the same night. The two
-# Census sources read nothing from the others and change once a year, so they go last.
+# Census sources read nothing from the others and change once a year, so they go near the end.
+# Statements read third-party office sites, so they run last: a failure there cannot hold up
+# the vote, bill, FEC or Census loads (ADR 0015).
 SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
     house_votes.SOURCE: house_votes.run,
@@ -40,6 +43,7 @@ SOURCES: dict[str, Callable[..., int]] = {
     fec.SOURCE: fec.run,
     census_geography.SOURCE: census_geography.run,
     census_acs.SOURCE: census_acs.run,
+    statements.SOURCE: statements.run,
 }
 
 

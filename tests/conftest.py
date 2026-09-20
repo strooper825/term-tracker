@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 from collections.abc import Iterator
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,7 @@ from ingest.sources import (
     house_votes,
     legislators,
     senate_votes,
+    statements,
 )
 from tests.fixtures.census import (
     ACS_MINIMUMS,
@@ -53,6 +55,8 @@ from tests.fixtures.fec import CYCLE as FEC_CYCLE
 from tests.fixtures.fec import PRINCIPAL as FEC_TRACKED
 from tests.fixtures.fec import fixture_client as fec_fixture_client
 from tests.fixtures.legislators import fixture_fetch as legislators_fixture_fetch
+from tests.fixtures.statements import TARGETS as STATEMENT_TARGETS
+from tests.fixtures.statements import feed_client as statements_feed_client
 from tests.fixtures.votes import house_client, senate_client
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -172,6 +176,7 @@ def built_mart(migrated_engine: Engine) -> None:
         if not covered:
             load_roll_call_fixture_bills(conn)
         fec.load(conn, fec_fixture_client(), sorted(FEC_TRACKED), FEC_CYCLE)
+        statements.load(conn, statements_feed_client(), STATEMENT_TARGETS, date(2025, 1, 3))
         census_geography.load(
             conn, FixtureFiles(), CENSUS_YEAR, full_refresh=True, minimums=GEOGRAPHY_MINIMUMS
         )

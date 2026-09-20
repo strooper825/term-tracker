@@ -15,6 +15,8 @@ import {
   buildTerm,
   buildConstituency,
   buildContact,
+  buildStatements,
+  type StatementsModel,
   buildDateRanges,
   policyAreaTotals,
   buildVoteRows,
@@ -44,6 +46,8 @@ import {
   NO_CONSTITUENCY,
   NO_CONTACT,
   STEIL_CONSTITUENCY,
+  SANDERS_STATEMENTS,
+  STEIL_STATEMENTS,
   STEIL_CONTACT,
   SESSIONS,
 } from './fixtures';
@@ -62,6 +66,7 @@ function dashboard(
   detail = STEIL,
   fundraising = STEIL_FUNDRAISING,
   contact = STEIL_CONTACT,
+  statements: StatementsModel | null = null,
   // the constituency fixtures are Steil's and Cotton's; any other member gets the not-yet-published tab
   constituency = detail === STEIL ? STEIL_CONSTITUENCY : NO_CONSTITUENCY,
 ) {
@@ -78,6 +83,7 @@ function dashboard(
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       contact={buildContact(contact)}
+      statements={statements}
       constituency={buildConstituency(constituency, detail.seat)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}
@@ -448,7 +454,7 @@ describe('member tabs', () => {
   });
 
   it('a senator gets the state map with no toggle, and the state figures', () => {
-    render(dashboard(COTTON, STEIL_FUNDRAISING, STEIL_CONTACT, COTTON_CONSTITUENCY));
+    render(dashboard(COTTON, STEIL_FUNDRAISING, STEIL_CONTACT, null, COTTON_CONSTITUENCY));
     fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
     const map = screen.getByRole('region', { name: 'Map' });
     expect(within(map).getByRole('heading', { name: 'Arkansas' })).toBeInTheDocument();
@@ -459,19 +465,19 @@ describe('member tabs', () => {
   });
 
   it('shows what exists when only the demographics or only the map is loaded', () => {
-    const { unmount } = render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, DEMOGRAPHICS_ONLY));
+    const { unmount } = render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, null, DEMOGRAPHICS_ONLY));
     fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
     expect(screen.queryByRole('region', { name: 'Map' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Demographics' })).toBeInTheDocument();
     unmount();
-    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, MAP_ONLY));
+    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, null, MAP_ONLY));
     fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
     expect(screen.getByRole('region', { name: 'Map' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Demographics' })).not.toBeInTheDocument();
   });
 
   it('with neither map nor demographics the tab is a coming-soon panel', () => {
-    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, NO_CONSTITUENCY));
+    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, null, NO_CONSTITUENCY));
     const tab = screen.getByRole('tab', { name: /Constituency/ });
     expect(tab).toHaveTextContent('Soon');
     fireEvent.click(tab);
@@ -482,6 +488,32 @@ describe('member tabs', () => {
     render(dashboard());
     fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
+  });
+});
+
+describe('member dashboard: public statements tab', () => {
+  it('stays a coming-soon tab for a member outside the statement sources seed', () => {
+    render(dashboard());
+    expect(screen.getByRole('tab', { name: /Public statements/ })).toHaveTextContent('Soon');
+  });
+
+  it('opens on the feed for a member with one, with no Soon marker', () => {
+    render(dashboard(SANDERS, STEIL_FUNDRAISING, STEIL_CONTACT, buildStatements(SANDERS_STATEMENTS)));
+    const tab = screen.getByRole('tab', { name: /Public statements/ });
+    expect(tab).not.toHaveTextContent('Soon');
+    fireEvent.click(tab);
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-statements');
+    expect(within(panel).getByRole('searchbox', { name: 'Search public statements' })).toBeInTheDocument();
+    expect(within(panel).getAllByRole('article')).toHaveLength(25);
+  });
+
+  it('opens on the press-page link for a member whose office has no feed', () => {
+    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, buildStatements(STEIL_STATEMENTS)));
+    fireEvent.click(screen.getByRole('tab', { name: /Public statements/ }));
+    expect(
+      within(screen.getByRole('tabpanel')).getByRole('link', { name: /Press releases on steil\.house\.gov/ }),
+    ).toHaveAttribute('href', 'https://steil.house.gov/media/press-releases');
   });
 });
 

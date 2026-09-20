@@ -131,7 +131,31 @@ equal the committee totals for all six tracked members (no second authorized com
 The key reports a 60-requests-per-minute limit in `X-RateLimit-Limit` on top of the
 documented 1,000 per hour; the client throttles on both.
 
-## Raw tables: Census boundaries and ACS (Alembic migration `0007`, ADR 0015)
+## Raw tables: press-release feeds (Alembic migration `0007`)
+
+Loaded by `python -m ingest.run --source statements` for every `seed.statement_sources` row with
+`mode = 'feed'` (ADR 0015). All rows share `payload jsonb`, `source_url text` (the feed URL),
+`fetched_at timestamptz`.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.statement` | `bioguide_id`, `guid` | item of the member's own RSS 2.0 press feed |
+
+`guid` is the feed's item id, not always a public URL (speaker.gov and jeffries.house.gov use
+admin-host `?p=` ids); the public link is `payload.link`. The payload is the parsed item:
+`title`, `link`, `guid`, `pub_date` (the feed's RFC 822 string), `creator`, `categories[]`,
+`description` (the feed's excerpt) and `content_html` (`content:encoded`, the full release, or null
+when the feed has none). Only what the feed gave since the tracked Congress began (2025-01-03 for
+the 119th) is stored; rows are only upserted, never deleted.
+
+Paging (verified 2026-09-19 against the six feeds): the feeds are WordPress, ten items a page
+(Sanders six), and accept `?paged=N`; a page past the end answers 404. The first load read every
+page back to 2025-01-03: 241 requests and 2,216 statements for six feeds (Jeffries 700, Ossoff 524,
+Speaker 381, Slotkin 269, Sanders 225, R. Johnson 117), 9.8 MB in `raw.statement`. A normal night
+reads page 1 of each feed (6 requests) and stops at the first page that holds a stored item. One
+item in Jeffries's history (2025-05-23) has an empty title and is skipped with a warning.
+
+## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
 
 Loaded by `python -m ingest.run --source census_geography` and `--source census_acs`, for the
 whole nation, not only the tracked members (ADR 0002). Both share `payload jsonb`,
@@ -151,7 +175,7 @@ simplifying and clipping cannot be done in dbt; `ingest/geometry.py`): `name`, `
 have not changed (a run that finds them unchanged loads nothing and still records a success).
 Source: `cb_{year}_us_{state,cd{congress},county}_500k.zip` from
 https://www2.census.gov/geo/tiger/GENZ{year}/shp/, the Census cartographic boundary files
-(shoreline-clipped; TIGERweb's polygons are not, ADR 0015). On 2026-09-20: 56 states, 441
+(shoreline-clipped; TIGERweb's polygons are not, ADR 0016). On 2026-09-20: 56 states, 441
 districts (435 plus five delegates and the Resident Commissioner), 3,235 counties, 497 rows,
 4.5 MB of payload.
 
@@ -171,6 +195,7 @@ every state and district. The Data API needs `CENSUS_API_KEY`.
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
 | `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
+| `seed.statement_sources` | `bioguide_id` | How the Public statements tab treats each tracked member (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
 | `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
 ## Staging views (`staging` schema, dbt)
@@ -203,6 +228,9 @@ FEC: `stg_fec_candidates` (one row per candidate id: `office`, `state`, `distric
 `last_file_date`), `stg_fec_committee_totals` (every amount typed as `numeric(14,2)`;
 `cash_on_hand` and `debts` from the `last_*` columns).
 
+Statements: `stg_statements` (one row per feed item: `title`, `url`, `published_at` cast from the
+feed's RFC 822 date, `author`, `categories` as `text[]`, `description`, `content_html`, `feed_url`).
+
 `stg_constituency_geometry` (typed `raw.constituency_geometry`: `fips_state`, `district` null for a
 state and 0 for at large or a delegate, the frame size, paths and counties) and `stg_acs_estimates`
 (one row per state and district: the ACS variables as numbers with their `_moe`; the Census
@@ -230,7 +258,7 @@ district (ADR 0001). States come from the FIPS seed; districts from current Hous
 Who lives in a state or House district, one row per geography per ACS 5-year release. Natural key
 `(acs_year, fips_state, district)`; `district` is null for the state, 0 at large (ADR 0001).
 `congress` is the Congress whose district lines the release uses (119 for 2020-2024), which is
-what joins a row to a member's term (ADR 0015). Every estimate has a margin of error `_moe` at 90
+what joins a row to a member's term (ADR 0016). Every estimate has a margin of error `_moe` at 90
 percent confidence; a null is a value the Census could not compute, never zero. `period` is
 `2020-2024`.
 
@@ -243,7 +271,7 @@ percent confidence; a null is a value the Census could not compute, never zero. 
 | `race_total`, `race_{white,black,native,asian,pacific,other,multiple,hispanic}_pct` | B03002 shares of the total, two decimals. Every group but `hispanic` is non-Hispanic, so they do not overlap and sum to 100 (`assert_constituency_demographics_consistent`). The shares carry no margin of error |
 
 `source` is `census_acs`; `source_url` the Data API endpoint (it needs a key to open, so the site
-links the public ACS page instead). Not loaded: urban/rural (no ACS table; ADR 0015), and
+links the public ACS page instead). Not loaded: urban/rural (no ACS table; ADR 0016), and
 anything for the 120th Congress's lines.
 
 ### `mart.member_constituency`
@@ -266,7 +294,7 @@ first, then state), `demographics`, and `sources`; each is null when not loaded.
 the paths as given. The dbt test `assert_tracked_constituencies_covered` warns when a tracked
 member has no map or no demographics for the tracked Congress.
 
-Verification (ADR 0015): the maps were checked by eye against real districts (WI-1, NY-14) and
+Verification (ADR 0016): the maps were checked by eye against real districts (WI-1, NY-14) and
 their county names; the demographics, once loaded, are to be checked against data.census.gov
 (American Community Survey, 2024 5-year, congressional district, 119th Congress) for each tracked
 member, read the same day as the ingest. The first nightly run logs each tracked member's
@@ -336,7 +364,36 @@ the source has no value: on 2026-09-19 all 20 members have website, phone, offic
 a contact form, 1 a fax and 11 an RSS feed. `GET /members/{id}/contact` returns it; the site's Contact tab shows
 what is present, and shows "coming soon" when none of the contact columns has a value. The data is
 the member's official office information as congress-legislators records it and can lag a change of
-office; it is not verified against the member's own site.
+office; it is not verified against the member's own site. `rss_url` here is congress-legislators'
+value and is not used for statements: it was stale or wrong for most tracked members when checked
+(ADR 0015).
+
+### `mart.statement_source`
+
+One row per tracked member: how the Public statements tab treats them (ADR 0015). Key
+`bioguide_id`. Columns `mode` (`feed` or `link`), `label`, `press_url`, `feed_url` (null for
+`link`), `statements` (rows in `mart.statement`, 0 for `link`), `oldest_published_at`,
+`newest_published_at`, `fetched_at` (latest fetch of the feed; for a `link` member the dbt var
+`statement_sources_checked_at`, the day a person checked the press URL), `source` (`press_feed` or
+`press_page`) and `source_url` (the press listing a reader can open to check the tab against).
+`GET /members/{id}/statements` returns `mode` `feed`, `link`, or `none` (not in the seed), the
+statements newest first when `feed`, and `total`. A feed member with nothing loaded yet is shown as
+a link by the site. The warning test `assert_statement_feeds_fresh` names any `feed` member whose
+newest statement is over 45 days old or that has none, which is how a feed that has gone stale or
+empty shows up.
+
+### `mart.statement`
+
+One row per press release of a `feed` member's own feed since the tracked Congress began. Natural
+key `(bioguide_id, guid)`. Columns `title`, `published_at`, `published_date` (Eastern), `url` (the
+release on the office's site), `author`, `categories` (`text[]`), `description` (the feed's excerpt),
+`content_html` (the full text as published, verbatim), `feed_url`, `source` (`press_feed`),
+`source_url` (= `url`, the release itself) and `fetched_at`. The site turns `content_html` into
+plain text at build time (tags dropped, entities decoded, cut at 3,000 characters), embeds it in the
+member page, and searches it in the browser. The cap matters for size: Jeffries (700 releases) is
+3.1 MB of text uncapped, and his built page is 2.3 MB (547 KB gzipped), the largest of the six feed
+members; a link-out member's page is about 0.5 MB (measured on the 2026-09-19 build). The releases
+are the members' offices' words, reproduced from their own feeds; the tab links each one back.
 
 ### `mart.committee`
 

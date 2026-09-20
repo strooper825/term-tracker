@@ -1,4 +1,4 @@
-# 0015. Constituency tab: Census boundary maps and ACS estimates, keyed by the Congress they describe
+# 0016. Constituency tab: Census boundary maps and ACS estimates, keyed by the Congress they describe
 
 Date: 2026-09-20
 Status: Accepted
@@ -98,8 +98,9 @@ number of tracked members.
   secret, and the tests use invented values (tests/fixtures/census/__init__.py says so). The first
   nightly run logs each tracked member's population, margin and median income for checking
   against data.census.gov.
-- Migration `0007` collides with the unmerged `election-context` branch's own `0007`
-  (`raw.election_return_contest`); whichever merges second must renumber and re-point
-  `down_revision`.
+- The migration is `0008`, after the Public statements migration `0007`, and this is ADR
+  0016 for the same reason: both were first numbered 0007 and 0015 on this branch and
+  renumbered when it was merged with main after the statements work landed. (The unmerged
+  `election-context` branch also claims `0007`; it will need renumbering too.)
 - Not covered, and not free from Census: county-level election results (the mockup copy
   promises them), demographics for the 120th Congress's lines, urban/rural.

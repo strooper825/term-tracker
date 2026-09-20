@@ -1,4 +1,4 @@
-"""Source: Census cartographic boundary files, the map of every state and district (ADR 0015).
+"""Source: Census cartographic boundary files, the map of every state and district (ADR 0016).
 
 Three national shapefiles at the 1:500,000 scale, all from the same vintage (the ``GENZ`` year
 names the Congress of the district file in it, see :data:`ingest.census.GEOGRAPHY_CONGRESS`):

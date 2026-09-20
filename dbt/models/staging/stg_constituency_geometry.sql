@@ -1,6 +1,6 @@
 -- One row per state and House district map in raw.constituency_geometry. `district` is null for
 -- a state and 0 for an at-large district (ADR 0001): Census codes at-large as 00 and the
--- delegate districts (DC, the territories) as 98. Paths are finished SVG data, see ADR 0015.
+-- delegate districts (DC, the territories) as 98. Paths are finished SVG data, see ADR 0016.
 select
     congress,
     geoid,

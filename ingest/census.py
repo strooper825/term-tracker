@@ -27,7 +27,7 @@ MAX_VARIABLES = 49
 
 # Which Congress's districts each Census product describes. A district number means nothing
 # without this: the 119th Congress holds until 2027-01-03, the 120th uses new lines in CA, TX
-# and other states (ADR 0015). Add a year only after reading Census's own statement of the
+# and other states (ADR 0016). Add a year only after reading Census's own statement of the
 # boundaries it uses; an unknown year stops the run rather than guessing.
 #   Boundary files: the GENZ vintage year names the Congress of the cd file in it
 #   (https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_cd119_500k.zip).
@@ -72,7 +72,7 @@ def congress_for(table: dict[int, int], year: int, what: str) -> int:
         raise SourceShapeError(
             f"{what} {year} is not in the table of years whose Congress is known ({known}); "
             "check which Congress's districts it describes on census.gov, then add it to "
-            "ingest/census.py and write an ADR if the boundaries changed (ADR 0015)."
+            "ingest/census.py and write an ADR if the boundaries changed (ADR 0016)."
         ) from None
 
 

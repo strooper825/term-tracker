@@ -1,5 +1,5 @@
 -- One row per tracked member: the constituency they represent in the tracked Congress and its
--- map (ADR 0015). A senator's constituency is the state; a House member's is the district.
+-- map (ADR 0016). A senator's constituency is the state; a House member's is the district.
 -- The map is finished SVG data, drawn by the site as it stands:
 --   map_state    the state outline and its county lines, with `district` (the member's district
 --                in the state's frame) when the member is in the House and the district is not

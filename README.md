@@ -99,7 +99,7 @@ history is paginated before filtering to the current Congress) and considerably 
 nightly run once everything is unchanged, throttled to 5,000 per hour; add `--full-refresh` to
 re-fetch every actions and cosponsors list regardless of Congress.gov `updateDate`.
 
-The two Census sources feed the Constituency tab (ADR 0015) and cover the whole nation, so
+The two Census sources feed the Constituency tab (ADR 0016) and cover the whole nation, so
 their cost does not grow with the tracked members. `census_geography` needs no key: it
 downloads three cartographic boundary zips (about 22 MB), builds the SVG maps of every state and
 district (about 15 seconds, 4.5 MB of stored path data) and, on every later run, compares the

@@ -17,6 +17,7 @@ import type {
   MemberDetail,
   MembersResponse,
   SessionsResponse,
+  StatementsResponse,
 } from './types';
 
 function baseUrl(): string {
@@ -27,12 +28,37 @@ function baseUrl(): string {
   return url.replace(/\/$/, '');
 }
 
+/** Waits before each retry of a request that failed with a server error or never connected. A
+ *  4xx is a real answer and is not retried. One transient 500 (the API's database pool timing
+ *  out under load, as on the 2026-09-20 deploy) must not fail a build of thousands of pages, and
+ *  the wait gives the API time to drain; a request that still fails after the last retry fails
+ *  the build as before. */
+export const RETRY_DELAYS_MS = [1_000, 3_000, 9_000];
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${baseUrl()}${path}`, { cache: 'force-cache' });
-  if (!response.ok) {
-    throw new Error(`${path} -> HTTP ${response.status}`);
+  for (let attempt = 0; ; attempt += 1) {
+    let problem = '';
+    let response: Response | undefined;
+    try {
+      response = await fetch(`${baseUrl()}${path}`, { cache: 'force-cache' });
+    } catch (error) {
+      problem = error instanceof Error ? error.message : String(error);
+    }
+    if (response) {
+      if (response.ok) return (await response.json()) as T;
+      if (response.status < 500) throw new Error(`${path} -> HTTP ${response.status}`);
+      problem = `HTTP ${response.status}`;
+    }
+    if (attempt >= RETRY_DELAYS_MS.length) {
+      throw new Error(`${path} -> ${problem} (after ${attempt + 1} attempts)`);
+    }
+    console.warn(
+      `${path} -> ${problem}; retrying in ${RETRY_DELAYS_MS[attempt] / 1000}s (attempt ${attempt + 2} of ${RETRY_DELAYS_MS.length + 1})`,
+    );
+    await sleep(RETRY_DELAYS_MS[attempt]);
   }
-  return (await response.json()) as T;
 }
 
 export const api = {
@@ -41,6 +67,8 @@ export const api = {
   committees: (bioguide: string) =>
     getJson<CommitteesResponse>(`/api/v1/members/${bioguide}/committees`),
   contact: (bioguide: string) => getJson<ContactResponse>(`/api/v1/members/${bioguide}/contact`),
+  statements: (bioguide: string) =>
+    getJson<StatementsResponse>(`/api/v1/members/${bioguide}/statements`),
   constituency: (bioguide: string) =>
     getJson<ConstituencyResponse>(`/api/v1/members/${bioguide}/constituency`),
   keyDates: (bioguide: string) => getJson<KeyDatesResponse>(`/api/v1/members/${bioguide}/key-dates`),

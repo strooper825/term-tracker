@@ -237,6 +237,38 @@ class ContactResponse(BaseModel):
     sources: list[SourceRef]
 
 
+StatementsMode = Literal["feed", "link", "none"]
+
+
+class StatementItem(BaseModel):
+    guid: str = Field(description="The feed's own item id; not always a public URL")
+    title: str
+    published_at: dt.datetime
+    published_date: dt.date = Field(description="Date in Eastern time")
+    url: str = Field(description="The release on the office's own site")
+    author: str | None
+    categories: list[str]
+    description: str | None = Field(description="The feed's excerpt, as published (may hold HTML)")
+    content_html: str | None = Field(
+        description="Full text as published (HTML), when the feed has it"
+    )
+
+
+class StatementsResponse(BaseModel):
+    bioguide_id: str
+    mode: StatementsMode = Field(
+        description="feed: the office's own feed is ingested; link: only the press page is "
+        "linked; none: the member is not in seed.statement_sources (ADR 0015)"
+    )
+    label: str | None = Field(description="Host the statements come from, e.g. sanders.senate.gov")
+    press_url: str | None = Field(description="The office's press-release listing")
+    feed_url: str | None
+    total: int = Field(description="Statements held for the member; items may be fewer")
+    newest_published_at: dt.datetime | None
+    items: list[StatementItem] = Field(description="Newest first")
+    sources: list[SourceRef]
+
+
 class KeyDate(BaseModel):
     date: dt.date
     label: str

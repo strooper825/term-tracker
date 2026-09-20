@@ -1,7 +1,7 @@
 -- Who lives in a constituency: one row per state and House district per ACS 5-year release
 -- (natural key acs_year, fips_state, district; district null is the state, 0 at large, ADR 0001).
 -- `congress` is the Congress whose district lines the release uses (119 for 2020-2024), which
--- is what ties a row to a member's term (ADR 0015). Every estimate carries its margin of error
+-- is what ties a row to a member's term (ADR 0016). Every estimate carries its margin of error
 -- (`_moe`, 90 percent confidence); a null is a value the Census could not compute. Race and
 -- ethnicity shares are of the B03002 total, so the eight categories sum to 100.
 select

@@ -53,6 +53,36 @@ seeds:
       - name: source_url
         tests: [not_null]
 
+  - name: statement_sources
+    description: >
+      How the Public statements tab treats each tracked member (ADR 0015). mode `feed`: the
+      office's own press-release RSS feed (feed_url) is ingested and the releases shown; mode
+      `link`: the tab links to press_url. A member is `feed` only after a person checked that the
+      feed is press-scoped, carries full text, and matches the listing's newest item. press_url
+      is the office's press listing, checked to load. Hand-maintained; the note records the check.
+    config:
+      column_types:
+        bioguide_id: text
+        mode: text
+        label: text
+        press_url: text
+        feed_url: text
+        note: text
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('tracked_members'), field: bioguide_id } }
+      - name: mode
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["feed", "link"] } }
+      - name: press_url
+        tests: [not_null]
+      - name: label
+        tests: [not_null]
+
   - name: composition_seats
     description: >
       Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012), one row per

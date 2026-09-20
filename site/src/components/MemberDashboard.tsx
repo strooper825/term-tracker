@@ -14,6 +14,7 @@ import type {
   PolicyAreaCount,
   RecordModel,
   Stat,
+  StatementsModel,
   TermModel,
   VoteRow,
 } from '@/lib/model';
@@ -25,6 +26,7 @@ import { MemberTabs, type TabSpec } from './MemberTabs';
 import { RollCallVotes } from './RollCallVotes';
 import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from './SideCards';
 import { Breadcrumb, SiteFooter, SiteHeader } from './SiteChrome';
+import { StatementsTab } from './StatementsTab';
 import { RecordCard } from './TermCards';
 
 export interface DashboardProps {
@@ -41,6 +43,8 @@ export interface DashboardProps {
   committees: CommitteeRow[];
   /** Null when the source has no contact information: the tab is then not yet published. */
   contact: ContactModel | null;
+  /** Null when the member is not in the statement sources seed: the tab is then not yet published. */
+  statements: StatementsModel | null;
   /** Null when the API has neither a map nor demographics: the tab is then not yet published. */
   constituency: ConstituencyModel | null;
   keyDates: KeyDateRow[];
@@ -113,17 +117,23 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
         />
       ),
     },
-    {
-      id: 'statements',
-      label: 'Public statements',
-      locked: true,
-      content: (
-        <LockedTabPanel
-          title="Public statements"
-          desc="Press releases, floor remarks and newsletter archives."
-        />
-      ),
-    },
+    props.statements
+      ? {
+          id: 'statements',
+          label: 'Public statements',
+          content: <StatementsTab model={props.statements} name={props.member.name} />,
+        }
+      : {
+          id: 'statements',
+          label: 'Public statements',
+          locked: true,
+          content: (
+            <LockedTabPanel
+              title="Public statements"
+              desc="Press releases from this member's office."
+            />
+          ),
+        },
     props.constituency
       ? {
           id: 'constituency',

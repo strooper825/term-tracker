@@ -41,6 +41,8 @@ from api.schemas.member import (
     ReceiptBreakdown,
     ReceiptSource,
     ServiceRecord,
+    StatementItem,
+    StatementsResponse,
     TermHistoryItem,
     TermSpan,
     TimelineResponse,
@@ -159,6 +161,15 @@ CONSTITUENCY_SQL = text(
     """
 )
 
+STATEMENT_SOURCE_SQL = text(
+    """
+    SELECT mode, label, press_url, feed_url, statements, newest_published_at,
+           source, source_url, fetched_at
+    FROM mart.statement_source
+    WHERE bioguide_id = :bioguide
+    """
+)
+
 DEMOGRAPHICS_SQL = text(
     """
     SELECT *
@@ -167,6 +178,17 @@ DEMOGRAPHICS_SQL = text(
       AND district IS NOT DISTINCT FROM CAST(:district AS int)
     ORDER BY acs_year DESC
     LIMIT 1
+    """
+)
+
+STATEMENTS_SQL = text(
+    """
+    SELECT guid, title, published_at, published_date, url, author, categories, description,
+           content_html
+    FROM mart.statement
+    WHERE bioguide_id = :bioguide
+    ORDER BY published_at DESC, guid DESC
+    LIMIT :limit
     """
 )
 
@@ -537,6 +559,48 @@ def member_constituency(
         map=_map(row),
         demographics=demographics,
         sources=_sources(sources),
+    )
+
+
+@router.get(
+    "/statements",
+    response_model=StatementsResponse,
+    summary="Press releases from the member's own feed, or the press page to link to",
+)
+def member_statements(
+    bioguide: str,
+    session: Annotated[Session, Depends(get_session)],
+    limit: Annotated[int, Query(ge=1, le=5000)] = 5000,
+) -> StatementsResponse:
+    _summary(session, bioguide)
+    source = session.execute(STATEMENT_SOURCE_SQL, {"bioguide": bioguide}).mappings().first()
+    if source is None:
+        return StatementsResponse(
+            bioguide_id=bioguide,
+            mode="none",
+            label=None,
+            press_url=None,
+            feed_url=None,
+            total=0,
+            newest_published_at=None,
+            items=[],
+            sources=[],
+        )
+    rows = (
+        session.execute(STATEMENTS_SQL, {"bioguide": bioguide, "limit": limit}).mappings().all()
+        if source["mode"] == "feed"
+        else []
+    )
+    return StatementsResponse(
+        bioguide_id=bioguide,
+        mode=source["mode"],
+        label=source["label"],
+        press_url=source["press_url"],
+        feed_url=source["feed_url"],
+        total=source["statements"],
+        newest_published_at=source["newest_published_at"],
+        items=[StatementItem(**{k: row[k] for k in StatementItem.model_fields}) for row in rows],
+        sources=_sources([source]),
     )
 
 

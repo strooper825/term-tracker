@@ -7,6 +7,7 @@ import {
   buildCommitteeRows,
   buildConstituency,
   buildContact,
+  buildStatements,
   buildElection,
   buildFundraising,
   buildHeader,
@@ -53,13 +54,33 @@ export async function congressPageProps(): Promise<{
   return { model: buildCongressModel(overview), lastUpdated: lastUpdated(freshness) };
 }
 
+/** The member's name for the page title. generateMetadata used to build the whole dashboard
+ *  just to read it, which fetched every endpoint twice per member; with a feed member's
+ *  statements at several MB a response, that doubled load starved the API's connection pool
+ *  during the 2026-09-20 deploy. */
+export async function memberTitle(bioguide: string): Promise<string> {
+  return buildHeader(await api.member(bioguide)).name;
+}
+
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
-  const [detail, feed, committees, contact, constituency, keyDates, fundraising, freshness, sessions] =
+  const [
+    detail,
+    feed,
+    committees,
+    contact,
+    statements,
+    constituency,
+    keyDates,
+    fundraising,
+    freshness,
+    sessions,
+  ] =
     await Promise.all([
     api.member(bioguide),
     api.feedAll(bioguide),
     api.committees(bioguide),
     api.contact(bioguide),
+    api.statements(bioguide),
     api.constituency(bioguide),
     api.keyDates(bioguide),
     api.fundraising(bioguide),
@@ -80,6 +101,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     election: buildElection(keyDates.items, detail, today),
     committees: buildCommitteeRows(committees.items),
     contact: buildContact(contact),
+    statements: buildStatements(statements),
     constituency: buildConstituency(constituency, detail.seat),
     keyDates: buildKeyDates(keyDates.items),
     fundraising: buildFundraising(fundraising, detail.seat.chamber),

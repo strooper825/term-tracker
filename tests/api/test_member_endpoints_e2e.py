@@ -258,6 +258,27 @@ def test_contact(built_mart: None, client: TestClient) -> None:
     assert steil["website_url"] and steil["website_url"].startswith("https://")
 
 
+def test_statements(built_mart: None, client: TestClient) -> None:
+    sanders = client.get("/api/v1/members/S000033/statements").json()
+    assert sanders["mode"] == "feed" and sanders["label"] == "sanders.senate.gov"
+    assert sanders["feed_url"] == "https://www.sanders.senate.gov/press-releases/feed/"
+    assert sanders["total"] == len(sanders["items"]) == 3
+    dates = [i["published_at"] for i in sanders["items"]]
+    assert dates == sorted(dates, reverse=True)
+    assert all(i["url"].startswith("https://www.sanders.senate.gov/") for i in sanders["items"])
+    assert all(i["content_html"] for i in sanders["items"])
+    assert sanders["sources"][0]["source"] == "press_feed"
+
+    # Jeffries's fixture page holds an untitled item the loader skipped
+    assert client.get(f"{JEFFRIES}/statements").json()["total"] == 2
+
+    # A member whose office publishes no usable feed gets the link only
+    steil = client.get(f"{STEIL}/statements").json()
+    assert steil["mode"] == "link" and steil["items"] == [] and steil["total"] == 0
+    assert steil["press_url"] == "https://steil.house.gov/media/press-releases"
+    assert steil["sources"][0]["source"] == "press_page"
+
+
 def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
     committees = client.get(f"{STEIL}/committees").json()
     assert {c["thomas_id"] for c in committees["items"]} >= {"HSBA", "HSHA", "HSBA21"}

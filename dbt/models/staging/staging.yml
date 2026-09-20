@@ -70,6 +70,14 @@ models:
         tests: [not_null]
       - name: full_name
         tests: [not_null]
+  - name: stg_statements
+    columns:
+      - name: title
+        tests: [not_null]
+      - name: url
+        tests: [not_null]
+      - name: published_at
+        tests: [not_null]
   - name: stg_bill_summaries
     columns:
       - name: version_code

@@ -35,6 +35,8 @@ vars:
   fips_fetched_at: "2026-09-12"
   # Provenance for seeds/key_dates.csv.
   key_dates_fetched_at: "2026-09-12"
+  # Provenance for seeds/statement_sources.csv (ADR 0015): the day the press URLs and feeds were checked.
+  statement_sources_checked_at: "2026-09-19"
   # Provenance for seeds/composition_seats.csv (ADR 0012): the day the counts were checked.
   composition_as_of: "2026-09-19"
   composition_house_source_url: "https://clerk.house.gov/Members"
