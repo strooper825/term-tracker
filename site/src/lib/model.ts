@@ -30,6 +30,8 @@ import type {
   CommitteeAssignment,
   ContactResponse,
   CongressSession,
+  ConstituencyResponse,
+  Estimate,
   FeedItem,
   FreshnessResponse,
   FundraisingResponse,
@@ -40,6 +42,7 @@ import type {
   MemberDetail,
   StatementsResponse,
   MemberListItem,
+  RaceKey,
 } from './types';
 
 export type Chamber = 'House' | 'Senate';
@@ -1361,5 +1364,194 @@ export function buildBillPage(detail: BillDetail): BillPageModel {
     rollCallsMeta: listMeta(detail.roll_call_count, 'most recent first'),
     journey: buildJourney(detail.journey),
     journeyDurationDays: journeyDurationDays(detail.journey),
+  };
+}
+
+export interface MapViewModel {
+  key: 'district' | 'state';
+  /** The toggle button's text. */
+  label: string;
+  ariaLabel: string;
+  viewBox: string;
+  outline: string;
+  counties: { geoid: string; name: string; d: string }[];
+  /** State view only: the member's district drawn in the state's frame. */
+  district: string | null;
+}
+
+export interface DemographicFact {
+  label: string;
+  value: string;
+  /** "± 1,023": the ACS margin of error at 90 percent confidence, null when Census gave none. */
+  margin: string | null;
+  note?: string;
+}
+
+export interface RaceRow {
+  key: RaceKey;
+  label: string;
+  pct: number;
+  text: string;
+}
+
+export interface DemographicsModel {
+  /** "2020–2024" */
+  period: string;
+  population: { value: string; margin: string | null };
+  facts: DemographicFact[];
+  race: RaceRow[];
+}
+
+export interface ConstituencyModel {
+  /** "Wisconsin’s 1st District", "Wisconsin" */
+  place: string;
+  /** What the figures describe: a district (House) or the whole state (Senate). */
+  area: 'district' | 'state';
+  views: MapViewModel[];
+  /** "119th Congress" when a map is drawn: the Congress whose district lines these are. */
+  boundaryCongress: string | null;
+  demographics: DemographicsModel | null;
+  sources: { label: string; href: string }[];
+}
+
+const RACE_LABELS: Record<RaceKey, string> = {
+  white: 'White',
+  black: 'Black or African American',
+  native: 'American Indian and Alaska Native',
+  asian: 'Asian',
+  pacific: 'Native Hawaiian and Pacific Islander',
+  other: 'Some other race',
+  multiple: 'Two or more races',
+  hispanic: 'Hispanic or Latino (any race)',
+};
+
+// Public pages behind the two Census sources; the API URLs in `sources` need a key to open.
+const SOURCE_LINKS: Record<string, { label: string; href: string }> = {
+  census_acs: {
+    label: 'American Community Survey',
+    href: 'https://www.census.gov/data/developers/data-sets/acs-5year.html',
+  },
+  census_boundary: {
+    label: 'Census boundary files',
+    href: 'https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html',
+  },
+};
+
+const shareMargin = (n: number) => `${n.toFixed(1)} pts`;
+
+interface FactSpec {
+  label: string;
+  field:
+    | 'median_age'
+    | 'median_household_income'
+    | 'households'
+    | 'bachelors_or_higher_pct'
+    | 'high_school_or_higher_pct'
+    | 'unemployment_pct'
+    | 'poverty_pct';
+  format: (n: number) => string;
+  marginFormat?: (n: number) => string;
+  note?: string;
+}
+
+const FACT_SPECS: FactSpec[] = [
+  { label: 'Median age', field: 'median_age', format: (n) => n.toFixed(1), note: 'years' },
+  { label: 'Median household income', field: 'median_household_income', format: formatMoney },
+  { label: 'Households', field: 'households', format: formatNumber },
+  {
+    label: 'Bachelor’s degree or higher',
+    field: 'bachelors_or_higher_pct',
+    format: formatShare,
+    marginFormat: shareMargin,
+    note: 'of adults 25 and over',
+  },
+  {
+    label: 'High school or higher',
+    field: 'high_school_or_higher_pct',
+    format: formatShare,
+    marginFormat: shareMargin,
+    note: 'of adults 25 and over',
+  },
+  {
+    label: 'Unemployment rate',
+    field: 'unemployment_pct',
+    format: formatShare,
+    marginFormat: shareMargin,
+    note: 'of the civilian labor force',
+  },
+  {
+    label: 'Below the poverty level',
+    field: 'poverty_pct',
+    format: formatShare,
+    marginFormat: shareMargin,
+    note: 'of all people',
+  },
+];
+
+function margin(e: Estimate, format: (n: number) => string): string | null {
+  return e.margin === null ? null : `± ${format(e.margin)}`;
+}
+
+/** The Constituency tab from mart.member_constituency and mart.constituency_demographics, or
+ *  null when the API has neither a map nor demographics, in which case the tab is shown as not
+ *  yet published. Every figure is the mart's; this formats, labels and sorts the race shares. */
+export function buildConstituency(
+  c: ConstituencyResponse,
+  seat: MemberDetail['seat'],
+): ConstituencyModel | null {
+  if (c.map === null && c.demographics === null) return null;
+  const state = seat.state_name ?? seat.state;
+  const area = c.chamber === 'house' && c.district !== 0 ? 'district' : 'state';
+  const place = c.chamber === 'house' && c.district !== 0 ? seatLong(seat) : state;
+
+  const views: MapViewModel[] = (c.map?.views ?? []).map((v) => ({
+    key: v.key,
+    label: v.key === 'district' ? 'District' : 'Statewide',
+    ariaLabel:
+      v.key === 'district'
+        ? `Map of ${place} with its county lines`
+        : v.district
+          ? `Map of ${state} with ${place} highlighted`
+          : `Map of ${state} with its county lines`,
+    viewBox: `0 0 ${v.width} ${v.height}`,
+    outline: v.outline,
+    counties: v.counties,
+    district: v.district,
+  }));
+
+  const d = c.demographics;
+  const demographics: DemographicsModel | null = d
+    ? {
+        period: d.period.replace('-', '–'),
+        population: {
+          value: d.population.value === null ? 'n/a' : formatNumber(d.population.value),
+          margin: margin(d.population, formatNumber),
+        },
+        facts: FACT_SPECS.map((f) => ({ f, e: d[f.field] }))
+          .filter(({ e }) => e.value !== null)
+          .map(({ f, e }) => ({
+            label: f.label,
+            value: f.format(e.value as number),
+            margin: margin(e, f.marginFormat ?? f.format),
+            ...(f.note ? { note: f.note } : {}),
+          })),
+        race: d.race
+          .filter((r): r is { key: RaceKey; pct: number } => r.pct !== null)
+          .sort((a, b) => b.pct - a.pct)
+          .map((r) => ({ key: r.key, label: RACE_LABELS[r.key], pct: r.pct, text: formatShare(r.pct) })),
+      }
+    : null;
+
+  const sources = [...new Set(c.sources.map((s) => s.source))]
+    .map((s) => SOURCE_LINKS[s])
+    .filter((s): s is { label: string; href: string } => s !== undefined);
+
+  return {
+    place,
+    area,
+    views,
+    boundaryCongress: views.length > 0 && c.congress ? `${ordinal(c.congress)} Congress` : null,
+    demographics,
+    sources,
   };
 }

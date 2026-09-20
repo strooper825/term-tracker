@@ -225,6 +225,63 @@ export interface ContactResponse {
   sources: SourceRef[];
 }
 
+export interface MapCounty {
+  geoid: string;
+  name: string;
+  d: string;
+}
+
+export interface MapView {
+  key: 'district' | 'state';
+  width: number;
+  height: number;
+  outline: string;
+  counties: MapCounty[];
+  /** State view only: the member's district in this view's frame. */
+  district: string | null;
+}
+
+export interface Estimate {
+  value: number | null;
+  margin: number | null;
+}
+
+export type RaceKey =
+  | 'white'
+  | 'black'
+  | 'native'
+  | 'asian'
+  | 'pacific'
+  | 'other'
+  | 'multiple'
+  | 'hispanic';
+
+export interface ConstituencyDemographics {
+  acs_year: number;
+  period: string;
+  name: string;
+  population: Estimate;
+  median_age: Estimate;
+  median_household_income: Estimate;
+  households: Estimate;
+  bachelors_or_higher_pct: Estimate;
+  high_school_or_higher_pct: Estimate;
+  unemployment_pct: Estimate;
+  poverty_pct: Estimate;
+  race: { key: RaceKey; pct: number | null }[];
+}
+
+export interface ConstituencyResponse {
+  bioguide_id: string;
+  chamber: 'house' | 'senate';
+  label: string | null;
+  congress: number | null;
+  district: number | null;
+  map: { views: MapView[] } | null;
+  demographics: ConstituencyDemographics | null;
+  sources: SourceRef[];
+}
+
 export interface StatementItem {
   guid: string;
   title: string;

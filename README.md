@@ -78,6 +78,14 @@ python -m ingest.run --source senate_votes
 python -m ingest.run --source fec
 ```
 
+```bash
+python -m ingest.run --source census_geography
+```
+
+```bash
+python -m ingest.run --source census_acs
+```
+
 The last command needs `FEC_API_KEY` in `.env`, the `tracked_members` seed, and the
 `legislators` source loaded first (it reads each member's FEC candidate ids from
 `raw.legislator`). It makes about four requests per member (68 for the twenty, in a few
@@ -90,6 +98,13 @@ on 2026-09-16, including several long-tenured members whose full sponsorship/cos
 history is paginated before filtering to the current Congress) and considerably less on a
 nightly run once everything is unchanged, throttled to 5,000 per hour; add `--full-refresh` to
 re-fetch every actions and cosponsors list regardless of Congress.gov `updateDate`.
+
+The two Census sources feed the Constituency tab (ADR 0016) and cover the whole nation, so
+their cost does not grow with the tracked members. `census_geography` needs no key: it
+downloads three cartographic boundary zips (about 22 MB), builds the SVG maps of every state and
+district (about 15 seconds, 4.5 MB of stored path data) and, on every later run, compares the
+files' `Last-Modified` and does nothing when they have not changed (`--full-refresh` forces it).
+`census_acs` needs `CENSUS_API_KEY` in `.env` and makes four Data API requests in all.
 
 ```bash
 PGPORT=5433 dbt build --project-dir dbt --profiles-dir dbt
@@ -135,9 +150,10 @@ All settings come from environment variables, optionally loaded from `.env` (git
 | `DATABASE_URL` | API, Alembic, tests | SQLAlchemy URL, `postgresql+psycopg://...` |
 | `CONGRESS_GOV_API_KEY` | Ingestion (Phase 1) | Issued via api.data.gov |
 | `FEC_API_KEY` | Ingestion (Phase 2) | Issued via api.data.gov |
+| `CENSUS_API_KEY` | Ingestion (Constituency tab) | Issued by the Census Bureau, free; the Data API refuses a request without one |
 
-GitHub Actions repository secrets use the same two names: `CONGRESS_GOV_API_KEY` and
-`FEC_API_KEY`. How the nightly job reaches the managed Postgres is decided in Phase 1e.
+GitHub Actions repository secrets use the same names: `CONGRESS_GOV_API_KEY`, `FEC_API_KEY` and
+`CENSUS_API_KEY`. How the nightly job reaches the managed Postgres is decided in Phase 1e.
 
 ## Repository layout
 

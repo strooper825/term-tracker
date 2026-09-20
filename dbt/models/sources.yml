@@ -35,5 +35,9 @@ sources:
         description: OpenFEC /candidate/{id}/committees/?cycle= item, every committee linked to the current-office candidate in the cycle.
       - name: fec_committee_totals
         description: OpenFEC /committee/{id}/totals/?cycle= record of the principal campaign committee.
+      - name: constituency_geometry
+        description: Finished SVG map of one state or House district per Congress, from the Census cartographic boundary files (ADR 0016).
+      - name: acs_estimate
+        description: ACS 5-year estimates and margins of error for one state or House district per release, verbatim from the Census Data API.
       - name: statement
         description: One press-release feed item of a tracked member (seed.statement_sources, ADR 0015); payload is the parsed item.

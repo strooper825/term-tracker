@@ -142,3 +142,23 @@ models:
         tests: [not_null]
       - name: coverage_end_date
         tests: [not_null]
+
+  - name: stg_constituency_geometry
+    description: One row per state and House district map, typed from raw.constituency_geometry.
+    columns:
+      - name: geoid
+        tests: [not_null]
+      - name: kind
+        tests:
+          - accepted_values: { arguments: { values: ["state", "district"] } }
+      - name: outline
+        tests: [not_null]
+
+  - name: stg_acs_estimates
+    description: One row per state and House district ACS release, typed, sentinels turned into null.
+    columns:
+      - name: geoid
+        tests: [not_null]
+      - name: kind
+        tests:
+          - accepted_values: { arguments: { values: ["state", "district"] } }

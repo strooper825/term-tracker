@@ -4,6 +4,7 @@
 // tab is one function here, so a section can grow without touching the others.
 import type {
   CommitteeRow,
+  ConstituencyModel,
   ContactModel,
   DateRange,
   ElectionModel,
@@ -17,6 +18,7 @@ import type {
   TermModel,
   VoteRow,
 } from '@/lib/model';
+import { ConstituencyTab } from './ConstituencyPanel';
 import { ContactTab } from './ContactCards';
 import { FundraisingCard } from './FundraisingCard';
 import { MemberFacts, MemberHeader, StatStrip, TermProgress } from './MemberHeader';
@@ -43,6 +45,8 @@ export interface DashboardProps {
   contact: ContactModel | null;
   /** Null when the member is not in the statement sources seed: the tab is then not yet published. */
   statements: StatementsModel | null;
+  /** Null when the API has neither a map nor demographics: the tab is then not yet published. */
+  constituency: ConstituencyModel | null;
   keyDates: KeyDateRow[];
   fundraising: FundraisingModel;
   lastUpdated: string | null;
@@ -130,12 +134,23 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
             />
           ),
         },
-    {
-      id: 'constituency',
-      label: 'Constituency',
-      locked: true,
-      content: <LockedTabPanel title="Constituency" desc="This section has not been published yet." />,
-    },
+    props.constituency
+      ? {
+          id: 'constituency',
+          label: 'Constituency',
+          content: <ConstituencyTab model={props.constituency} />,
+        }
+      : {
+          id: 'constituency',
+          label: 'Constituency',
+          locked: true,
+          content: (
+            <LockedTabPanel
+              title="Constituency"
+              desc="A map of the district or state and who lives there."
+            />
+          ),
+        },
   ];
 }
 

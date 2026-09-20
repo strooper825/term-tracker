@@ -348,3 +348,75 @@ class FundraisingResponse(BaseModel):
         description="Same, as a share of individual contributions only"
     )
     sources: list[SourceRef]
+
+
+class MapCounty(BaseModel):
+    geoid: str = Field(description="Census county GEOID (state + county FIPS)")
+    name: str = Field(description="Name and type as Census gives it, e.g. Milwaukee County")
+    d: str = Field(description="SVG path data in the view's frame; drawn with fill-rule evenodd")
+
+
+class MapView(BaseModel):
+    key: Literal["district", "state"]
+    width: float = Field(
+        description="Frame width in SVG user units; the viewBox is 0 0 width height"
+    )
+    height: float
+    outline: str = Field(description="SVG path data of the shape this view is about")
+    counties: list[MapCounty] = Field(
+        description="County lines; in the district view clipped to the district"
+    )
+    district: str | None = Field(
+        description="State view only: the member's district in this frame, null when the district "
+        "is the whole state or has no map"
+    )
+
+
+class ConstituencyMap(BaseModel):
+    views: list[MapView] = Field(description="First is the default; a House member has two")
+
+
+class Estimate(BaseModel):
+    value: float | None = Field(
+        description="The ACS estimate; null when Census could not compute it"
+    )
+    margin: float | None = Field(description="Margin of error at 90 percent confidence")
+
+
+class RaceShare(BaseModel):
+    key: Literal[
+        "white", "black", "native", "asian", "pacific", "other", "multiple", "hispanic"
+    ] = Field(description="B03002 category; every one but hispanic is non-Hispanic")
+    pct: float | None = Field(description="Share of the population, percent")
+
+
+class ConstituencyDemographics(BaseModel):
+    acs_year: int = Field(description="Last year of the 5-year estimates: 2024 is 2020-2024")
+    period: str = Field(description="For example 2020-2024")
+    name: str = Field(description="The Census's name for the geography")
+    population: Estimate
+    median_age: Estimate
+    median_household_income: Estimate = Field(description="In dollars of the last year")
+    households: Estimate
+    bachelors_or_higher_pct: Estimate = Field(description="Of people 25 and over")
+    high_school_or_higher_pct: Estimate = Field(description="Of people 25 and over")
+    unemployment_pct: Estimate = Field(description="Of the civilian labor force")
+    poverty_pct: Estimate = Field(description="Of all people")
+    race: list[RaceShare] = Field(description="Sums to 100; the shares carry no margin of error")
+
+
+class ConstituencyResponse(BaseModel):
+    bioguide_id: str
+    chamber: Literal["house", "senate"]
+    label: str | None = Field(
+        description="Wisconsin, WI-1, AK (At Large); null with no constituency row"
+    )
+    congress: int | None = Field(description="The Congress whose district lines the data uses")
+    district: int | None = Field(description="Null for a senator; 0 at large")
+    map: ConstituencyMap | None = Field(
+        description="Null until the Census boundary files are loaded"
+    )
+    demographics: ConstituencyDemographics | None = Field(
+        description="Null until the ACS release for this Congress's lines is loaded"
+    )
+    sources: list[SourceRef]

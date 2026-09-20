@@ -2,6 +2,7 @@
 import type {
   BillDetail,
   CommitteeAssignment,
+  ConstituencyResponse,
   ContactResponse,
   CongressSession,
   FeedItem,
@@ -1188,6 +1189,122 @@ export const NO_CONTACT: ContactResponse = {
   phone: null,
   office: null,
   address: null,
+  sources: [],
+};
+
+/* GET /members/{id}/constituency. The paths are small hand-drawn stand-ins for the real ones
+   (which are hundreds of points long), and every ACS figure below is INVENTED for the tests:
+   the shape of the response is real, the numbers are not. */
+const ACS_SOURCE = {
+  source: 'census_acs',
+  source_url: 'https://api.census.gov/data/2024/acs/acs5/profile',
+  fetched_at: '2026-09-21T06:20:00Z',
+};
+const BOUNDARY_SOURCES = [
+  {
+    source: 'census_boundary',
+    source_url: 'https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_cd119_500k.zip',
+    fetched_at: '2026-09-21T06:10:00Z',
+  },
+  {
+    source: 'census_boundary',
+    source_url: 'https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_county_500k.zip',
+    fetched_at: '2026-09-21T06:10:00Z',
+  },
+];
+const estimate = (value: number | null, margin: number | null = null) => ({ value, margin });
+const RACE = [
+  { key: 'white', pct: 78.5 },
+  { key: 'black', pct: 4.9 },
+  { key: 'native', pct: 0.2 },
+  { key: 'asian', pct: 3.1 },
+  { key: 'pacific', pct: 0.0 },
+  { key: 'other', pct: 0.4 },
+  { key: 'multiple', pct: 3.0 },
+  { key: 'hispanic', pct: 9.9 },
+] as const;
+
+export const STEIL_CONSTITUENCY: ConstituencyResponse = {
+  bioguide_id: 'S001213',
+  chamber: 'house',
+  label: 'WI-1',
+  congress: 119,
+  district: 1,
+  map: {
+    views: [
+      {
+        key: 'district',
+        width: 300,
+        height: 120,
+        outline: 'M4,4L296,4L296,116L4,116Z',
+        counties: [
+          { geoid: '55059', name: 'Kenosha County', d: 'M4,4L150,4L150,116L4,116Z' },
+          { geoid: '55101', name: 'Racine County', d: 'M150,4L296,4L296,116L150,116Z' },
+        ],
+        district: null,
+      },
+      {
+        key: 'state',
+        width: 240,
+        height: 300,
+        outline: 'M4,4L236,4L236,296L4,296Z',
+        counties: [{ geoid: '55079', name: 'Milwaukee County', d: 'M150,200L236,200L236,296L150,296Z' }],
+        district: 'M100,250L236,250L236,296L100,296Z',
+      },
+    ],
+  },
+  demographics: {
+    acs_year: 2024,
+    period: '2020-2024',
+    name: 'Congressional District 1 (119th Congress), Wisconsin',
+    population: estimate(742_318, 1_204),
+    median_age: estimate(41.2, 0.3),
+    median_household_income: estimate(83_450, 1_915),
+    households: estimate(292_400, 2_100),
+    bachelors_or_higher_pct: estimate(31.4, 1.1),
+    high_school_or_higher_pct: estimate(93.6, 0.6),
+    unemployment_pct: estimate(4.1, 0.5),
+    poverty_pct: estimate(8.2, 0.7),
+    race: RACE.map((r) => ({ ...r })),
+  },
+  sources: [ACS_SOURCE, ...BOUNDARY_SOURCES],
+};
+
+export const COTTON_CONSTITUENCY: ConstituencyResponse = {
+  ...STEIL_CONSTITUENCY,
+  bioguide_id: 'C001095',
+  chamber: 'senate',
+  label: 'Arkansas',
+  district: null,
+  map: {
+    views: [
+      {
+        key: 'state',
+        width: 280,
+        height: 250,
+        outline: 'M4,4L276,4L276,246L4,246Z',
+        counties: [{ geoid: '05119', name: 'Pulaski County', d: 'M120,100L180,100L180,150L120,150Z' }],
+        district: null,
+      },
+    ],
+  },
+};
+
+/** Demographics loaded, boundaries not (or the reverse): the tab shows what exists. */
+export const DEMOGRAPHICS_ONLY: ConstituencyResponse = {
+  ...STEIL_CONSTITUENCY,
+  map: null,
+  sources: [ACS_SOURCE],
+};
+export const MAP_ONLY: ConstituencyResponse = {
+  ...STEIL_CONSTITUENCY,
+  demographics: null,
+  sources: BOUNDARY_SOURCES,
+};
+export const NO_CONSTITUENCY: ConstituencyResponse = {
+  ...STEIL_CONSTITUENCY,
+  map: null,
+  demographics: null,
   sources: [],
 };
 

@@ -13,6 +13,7 @@ import {
   buildRecord,
   buildStats,
   buildTerm,
+  buildConstituency,
   buildContact,
   buildStatements,
   type StatementsModel,
@@ -39,7 +40,12 @@ import {
   STEIL_KEY_DATES,
   STEIL_LIST,
   BOOZMAN_CONTACT,
+  COTTON_CONSTITUENCY,
+  DEMOGRAPHICS_ONLY,
+  MAP_ONLY,
+  NO_CONSTITUENCY,
   NO_CONTACT,
+  STEIL_CONSTITUENCY,
   SANDERS_STATEMENTS,
   STEIL_STATEMENTS,
   STEIL_CONTACT,
@@ -61,6 +67,8 @@ function dashboard(
   fundraising = STEIL_FUNDRAISING,
   contact = STEIL_CONTACT,
   statements: StatementsModel | null = null,
+  // the constituency fixtures are Steil's and Cotton's; any other member gets the not-yet-published tab
+  constituency = detail === STEIL ? STEIL_CONSTITUENCY : NO_CONSTITUENCY,
 ) {
   return (
     <MemberDashboard
@@ -76,6 +84,7 @@ function dashboard(
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       contact={buildContact(contact)}
       statements={statements}
+      constituency={buildConstituency(constituency, detail.seat)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}
       lastUpdated="Sep 13, 2026 02:09 UTC"
@@ -87,7 +96,8 @@ describe('member dashboard: given these mart rows, this text renders', () => {
   it('header, breadcrumb, five stats, term bar, and footer', () => {
     render(dashboard());
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Rep. Bryan Steil');
-    expect(screen.getByText('Wisconsin’s 1st District')).toBeInTheDocument();
+    // the header names the seat; the Constituency tab's card repeats it
+    expect(screen.getAllByText('Wisconsin’s 1st District')[0]).toBeInTheDocument();
     expect(screen.getAllByText('REPUBLICAN').length).toBeGreaterThan(0);
     expect(screen.getByText('99.24%')).toBeInTheDocument(); // member_vote_stats.attendance_pct
     expect(screen.getByText('652 of 657 roll calls')).toBeInTheDocument();
@@ -119,11 +129,11 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
     expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
-    for (const title of ['Stock trades', 'Public statements', 'Constituency']) {
+    for (const title of ['Stock trades', 'Public statements']) {
       expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeInTheDocument();
       expect(screen.getByRole('region', { hidden: true, name: `${title} (not yet published)` })).toBeInTheDocument();
     }
-    expect(screen.getAllByText('Coming in a future release')).toHaveLength(3); // Fundraising is live
+    expect(screen.getAllByText('Coming in a future release')).toHaveLength(2); // Fundraising, Contact and Constituency are live
   });
 
   it('Senate member: Class 2 seat and the header facts, no map tab', () => {
@@ -139,7 +149,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
       Term: '3rd2nd in the Senate',
     });
     expect(screen.getByText('Senate Republican Conference Chair')).toBeInTheDocument(); // leadership_role
-    expect(screen.queryByText(/map/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/(state|district) map/i)).not.toBeInTheDocument(); // the map is the Constituency tab
   });
 
   it('header: age and service facts from bio and term_history; no chip without a leadership role', () => {
@@ -310,7 +320,7 @@ describe('member tabs', () => {
       'Contact',
       'Stock trades' + 'Soon',
       'Public statements' + 'Soon',
-      'Constituency' + 'Soon',
+      'Constituency',
     ]);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'panel-activity');
@@ -393,6 +403,85 @@ describe('member tabs', () => {
     fireEvent.click(tab);
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
     expect(screen.queryByText('Reach the office')).not.toBeInTheDocument();
+  });
+
+  it('the Constituency tab shows the district map with county lines and the ACS figures', () => {
+    render(dashboard());
+    fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-constituency');
+    const map = within(panel).getByRole('region', { name: 'Map' });
+    expect(within(map).getByRole('heading', { name: 'Wisconsin’s 1st District' })).toBeInTheDocument();
+    // a House member opens on the district, with county names as hover text
+    expect(within(map).getByRole('img', { name: 'Map of Wisconsin’s 1st District with its county lines' })).toBeInTheDocument();
+    expect(within(map).getByText('Kenosha County', { selector: 'title' })).toBeInTheDocument();
+    expect(within(map).getByText('Racine County', { selector: 'title' })).toBeInTheDocument();
+    expect(within(map).getByText(/119th Congress district lines/)).toBeInTheDocument();
+    const demographics = within(panel).getByRole('region', { name: 'Demographics' });
+    expect(within(demographics).getByText('People in the district')).toBeInTheDocument();
+    expect(within(demographics).getByText('742,318')).toBeInTheDocument(); // population
+    expect(within(demographics).getByText('± 1,204')).toBeInTheDocument(); // its margin of error
+    expect(within(demographics).getByText('2020–2024 American Community Survey estimate')).toBeInTheDocument();
+    expect(within(demographics).getByText('$83,450')).toBeInTheDocument(); // median household income
+    expect(within(demographics).getByText('± $1,915')).toBeInTheDocument();
+    expect(within(demographics).getByText('41.2')).toBeInTheDocument(); // median age
+    expect(within(demographics).getByText('31.4%')).toBeInTheDocument(); // bachelor's or higher
+    expect(within(demographics).getByText('± 1.1 pts')).toBeInTheDocument();
+    // race and ethnicity, largest first
+    const race = within(demographics).getAllByRole('listitem').map((li) => li.textContent);
+    expect(race[0]).toBe('White78.5%');
+    expect(race[1]).toBe('Hispanic or Latino (any race)9.9%');
+    expect(race).toHaveLength(8);
+  });
+
+  it('the map toggles between the district and the whole state', () => {
+    render(dashboard());
+    fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
+    const map = screen.getByRole('region', { name: 'Map' });
+    const district = within(map).getByRole('button', { name: 'District' });
+    const statewide = within(map).getByRole('button', { name: 'Statewide' });
+    expect(district).toHaveAttribute('aria-pressed', 'true');
+    expect(statewide).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(statewide);
+    expect(statewide).toHaveAttribute('aria-pressed', 'true');
+    expect(within(map).getByRole('img', { name: 'Map of Wisconsin with Wisconsin’s 1st District highlighted' })).toBeInTheDocument();
+    expect(within(map).getByText('Milwaukee County', { selector: 'title' })).toBeInTheDocument();
+    expect(within(map).queryByText('Kenosha County', { selector: 'title' })).not.toBeInTheDocument();
+    // the district is drawn in the state's frame and named on hover
+    expect(within(map).getByText('Wisconsin’s 1st District', { selector: 'title' })).toBeInTheDocument();
+    fireEvent.click(district);
+    expect(within(map).getByText('Kenosha County', { selector: 'title' })).toBeInTheDocument();
+  });
+
+  it('a senator gets the state map with no toggle, and the state figures', () => {
+    render(dashboard(COTTON, STEIL_FUNDRAISING, STEIL_CONTACT, null, COTTON_CONSTITUENCY));
+    fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
+    const map = screen.getByRole('region', { name: 'Map' });
+    expect(within(map).getByRole('heading', { name: 'Arkansas' })).toBeInTheDocument();
+    expect(within(map).getByRole('img', { name: 'Map of Arkansas with its county lines' })).toBeInTheDocument();
+    expect(within(map).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(map).getByText('Pulaski County', { selector: 'title' })).toBeInTheDocument();
+    expect(screen.getByText('People in the state')).toBeInTheDocument();
+  });
+
+  it('shows what exists when only the demographics or only the map is loaded', () => {
+    const { unmount } = render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, null, DEMOGRAPHICS_ONLY));
+    fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
+    expect(screen.queryByRole('region', { name: 'Map' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Demographics' })).toBeInTheDocument();
+    unmount();
+    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, null, MAP_ONLY));
+    fireEvent.click(screen.getByRole('tab', { name: 'Constituency' }));
+    expect(screen.getByRole('region', { name: 'Map' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Demographics' })).not.toBeInTheDocument();
+  });
+
+  it('with neither map nor demographics the tab is a coming-soon panel', () => {
+    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, null, NO_CONSTITUENCY));
+    const tab = screen.getByRole('tab', { name: /Constituency/ });
+    expect(tab).toHaveTextContent('Soon');
+    fireEvent.click(tab);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
   });
 
   it('a locked tab says it is not published yet', () => {

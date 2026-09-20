@@ -5,6 +5,7 @@ import { congressLabel, ordinal } from './format';
 import {
   buildBillPage,
   buildCommitteeRows,
+  buildConstituency,
   buildContact,
   buildStatements,
   buildElection,
@@ -62,13 +63,25 @@ export async function memberTitle(bioguide: string): Promise<string> {
 }
 
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
-  const [detail, feed, committees, contact, statements, keyDates, fundraising, freshness, sessions] =
+  const [
+    detail,
+    feed,
+    committees,
+    contact,
+    statements,
+    constituency,
+    keyDates,
+    fundraising,
+    freshness,
+    sessions,
+  ] =
     await Promise.all([
     api.member(bioguide),
     api.feedAll(bioguide),
     api.committees(bioguide),
     api.contact(bioguide),
     api.statements(bioguide),
+    api.constituency(bioguide),
     api.keyDates(bioguide),
     api.fundraising(bioguide),
     api.freshness(),
@@ -89,6 +102,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     committees: buildCommitteeRows(committees.items),
     contact: buildContact(contact),
     statements: buildStatements(statements),
+    constituency: buildConstituency(constituency, detail.seat),
     keyDates: buildKeyDates(keyDates.items),
     fundraising: buildFundraising(fundraising, detail.seat.chamber),
     lastUpdated: lastUpdated(freshness),

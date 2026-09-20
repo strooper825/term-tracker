@@ -18,7 +18,11 @@ from api.schemas.member import (
     BillItem,
     BillsResponse,
     CommitteesResponse,
+    ConstituencyDemographics,
+    ConstituencyMap,
+    ConstituencyResponse,
     ContactResponse,
+    Estimate,
     FecCandidateRef,
     FecCommitteeRef,
     FeedItem,
@@ -29,8 +33,11 @@ from api.schemas.member import (
     KeyDate,
     KeyDatesResponse,
     LeadershipRole,
+    MapCounty,
+    MapView,
     MemberBio,
     MemberDetail,
+    RaceShare,
     ReceiptBreakdown,
     ReceiptSource,
     ServiceRecord,
@@ -145,12 +152,32 @@ CONTACT_SQL = text(
     """
 )
 
+CONSTITUENCY_SQL = text(
+    """
+    SELECT congress, fips_state, district, label, map_state, map_district, map_source_url,
+           map_district_source_url, map_county_source_url, map_fetched_at
+    FROM mart.member_constituency
+    WHERE bioguide_id = :bioguide
+    """
+)
+
 STATEMENT_SOURCE_SQL = text(
     """
     SELECT mode, label, press_url, feed_url, statements, newest_published_at,
            source, source_url, fetched_at
     FROM mart.statement_source
     WHERE bioguide_id = :bioguide
+    """
+)
+
+DEMOGRAPHICS_SQL = text(
+    """
+    SELECT *
+    FROM mart.constituency_demographics
+    WHERE congress = :congress AND fips_state = :fips_state
+      AND district IS NOT DISTINCT FROM CAST(:district AS int)
+    ORDER BY acs_year DESC
+    LIMIT 1
     """
 )
 
@@ -435,6 +462,103 @@ def member_contact(
         bioguide_id=bioguide,
         **{f: row[f] if row else None for f in fields},
         sources=_sources([row]) if row else [],
+    )
+
+
+RACE_KEYS = ("white", "black", "native", "asian", "pacific", "other", "multiple", "hispanic")
+
+
+def _estimate(row: Any, column: str) -> Estimate:
+    return Estimate(value=row[column], margin=row[f"{column}_moe"])
+
+
+def _map(row: Any) -> ConstituencyMap | None:
+    """The views a member's map offers: the district (House, when the district is not the whole
+    state) first, then the state."""
+    if row is None or row["map_state"] is None:
+        return None
+    views = []
+    if row["map_district"] is not None:
+        views.append(MapView(key="district", district=None, **_frame(row["map_district"])))
+    views.append(
+        MapView(key="state", district=row["map_state"].get("district"), **_frame(row["map_state"]))
+    )
+    return ConstituencyMap(views=views)
+
+
+def _frame(view: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "width": view["width"],
+        "height": view["height"],
+        "outline": view["outline"],
+        "counties": [MapCounty(**c) for c in view["counties"]],
+    }
+
+
+@router.get(
+    "/constituency",
+    response_model=ConstituencyResponse,
+    summary="Who the member represents: a map and the ACS demographics",
+)
+def member_constituency(
+    bioguide: str, session: Annotated[Session, Depends(get_session)]
+) -> ConstituencyResponse:
+    summary = _summary(session, bioguide)
+    row = session.execute(CONSTITUENCY_SQL, {"bioguide": bioguide}).mappings().first()
+    demographics = None
+    sources: list[Any] = []
+    if row is not None:
+        d = (
+            session.execute(
+                DEMOGRAPHICS_SQL,
+                {
+                    "congress": row["congress"],
+                    "fips_state": row["fips_state"],
+                    "district": row["district"],
+                },
+            )
+            .mappings()
+            .first()
+        )
+        if d is not None:
+            demographics = ConstituencyDemographics(
+                acs_year=d["acs_year"],
+                period=d["period"],
+                name=d["name"],
+                population=_estimate(d, "population"),
+                median_age=_estimate(d, "median_age"),
+                median_household_income=_estimate(d, "median_household_income"),
+                households=_estimate(d, "households"),
+                bachelors_or_higher_pct=_estimate(d, "bachelors_or_higher_pct"),
+                high_school_or_higher_pct=_estimate(d, "high_school_or_higher_pct"),
+                unemployment_pct=_estimate(d, "unemployment_pct"),
+                poverty_pct=_estimate(d, "poverty_pct"),
+                race=[RaceShare(key=k, pct=d[f"race_{k}_pct"]) for k in RACE_KEYS],
+            )
+            sources.append(d)
+        if row["map_source_url"] is not None:
+            urls = (
+                row["map_source_url"],
+                row["map_district_source_url"],
+                row["map_county_source_url"],
+            )
+            for url in filter(None, urls):
+                sources.append(
+                    {
+                        "source": "census_boundary",
+                        "source_url": url,
+                        "fetched_at": row["map_fetched_at"],
+                    }
+                )
+    return ConstituencyResponse(
+        bioguide_id=bioguide,
+        chamber=summary["chamber"],
+        label=row["label"] if row else None,
+        congress=row["congress"] if row else None,
+        district=row["district"] if row else None,
+        map=_map(row),
+        demographics=demographics,
+        sources=_sources(sources),
     )
 
 

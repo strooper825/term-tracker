@@ -155,6 +155,39 @@ Speaker 381, Slotkin 269, Sanders 225, R. Johnson 117), 9.8 MB in `raw.statement
 reads page 1 of each feed (6 requests) and stops at the first page that holds a stored item. One
 item in Jeffries's history (2025-05-23) has an empty title and is skipped with a warning.
 
+## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
+
+Loaded by `python -m ingest.run --source census_geography` and `--source census_acs`, for the
+whole nation, not only the tracked members (ADR 0002). Both share `payload jsonb`,
+`source_url text`, `fetched_at timestamptz`.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.constituency_geometry` | `congress`, `geoid` | state (`geoid` 2 digits) or House district (`geoid` state + district: `5501`; `0200` at large; `1198` DC's delegate) in the Congress's lines |
+| `raw.acs_estimate` | `acs_year`, `geoid` | state or district in an ACS 5-year release; `acs_year` is its last year (2024 is 2020-2024) |
+
+`raw.constituency_geometry.payload` is finished SVG path data, not geometry (projection,
+simplifying and clipping cannot be done in dbt; `ingest/geometry.py`): `name`, `frame`
+(`width`, `height`, the viewBox is `0 0 width height`), `outline` (the shape in its own frame),
+`counties` (list of `geoid`, `name`, `d`), and `county_source_url`; a district row adds `in_state`
+(the district drawn in its state's frame) and `state_geoid`. `source_modified` holds the
+`Last-Modified` of the three source zips at load time, which is how the next run knows the files
+have not changed (a run that finds them unchanged loads nothing and still records a success).
+Source: `cb_{year}_us_{state,cd{congress},county}_500k.zip` from
+https://www2.census.gov/geo/tiger/GENZ{year}/shp/, the Census cartographic boundary files
+(shoreline-clipped; TIGERweb's polygons are not, ADR 0016). On 2026-09-20: 56 states, 441
+districts (435 plus five delegates and the Resident Commissioner), 3,235 counties, 497 rows,
+4.5 MB of payload.
+
+`raw.acs_estimate.payload` is `name` plus, per dataset, every variable the Data API returned
+for it, verbatim (strings, and the Census "-666666666" for a value it could not compute): `profile`
+(`DP05_0001E` population, `DP05_0018E` median age, `DP03_0062E` median household income,
+`DP02_0001E` households, `DP02_0068PE` bachelor's degree or higher, `DP02_0067PE` high school or
+higher, `DP03_0009PE` unemployment rate, `DP03_0128PE` poverty rate; each with its `M` margin of
+error) and `detail` (B03002, Hispanic or Latino origin by race). `congress` is the Congress whose
+district lines the release uses, from `ACS_CONGRESS` in `ingest/census.py`. Four requests load
+every state and district. The Data API needs `CENSUS_API_KEY`.
+
 ## Seeds (`seed` schema, dbt)
 
 | Table | Key | Description |
@@ -198,6 +231,12 @@ FEC: `stg_fec_candidates` (one row per candidate id: `office`, `state`, `distric
 Statements: `stg_statements` (one row per feed item: `title`, `url`, `published_at` cast from the
 feed's RFC 822 date, `author`, `categories` as `text[]`, `description`, `content_html`, `feed_url`).
 
+`stg_constituency_geometry` (typed `raw.constituency_geometry`: `fips_state`, `district` null for a
+state and 0 for at large or a delegate, the frame size, paths and counties) and `stg_acs_estimates`
+(one row per state and district: the ACS variables as numbers with their `_moe`; the Census
+"could not compute" sentinels, anything below -100,000,000, become null through the macro
+`acs_number`).
+
 ## Mart tables (`mart` schema, dbt)
 
 Every table carries `source` (`legislators` or `census_fips`), `source_url`, `fetched_at`.
@@ -213,6 +252,54 @@ district (ADR 0001). States come from the FIPS seed; districts from current Hous
 | `district` | int | NULL for the state; 0 for at-large |
 | `state_abbr`, `state_name` | text | From the FIPS seed |
 | `label` | text | `Wisconsin`, `WI-1`, `AK (At Large)` |
+
+### `mart.constituency_demographics`
+
+Who lives in a state or House district, one row per geography per ACS 5-year release. Natural key
+`(acs_year, fips_state, district)`; `district` is null for the state, 0 at large (ADR 0001).
+`congress` is the Congress whose district lines the release uses (119 for 2020-2024), which is
+what joins a row to a member's term (ADR 0016). Every estimate has a margin of error `_moe` at 90
+percent confidence; a null is a value the Census could not compute, never zero. `period` is
+`2020-2024`.
+
+| Column | Description |
+|---|---|
+| `population`, `median_age`, `median_household_income` (dollars of the last year), `households` | Estimates, each with `_moe` |
+| `bachelors_or_higher_pct`, `high_school_or_higher_pct` | Percent of people 25 and over, with `_moe` |
+| `unemployment_pct` | Percent of the civilian labor force, with `_moe` |
+| `poverty_pct` | Percent of all people below the poverty level, with `_moe` |
+| `race_total`, `race_{white,black,native,asian,pacific,other,multiple,hispanic}_pct` | B03002 shares of the total, two decimals. Every group but `hispanic` is non-Hispanic, so they do not overlap and sum to 100 (`assert_constituency_demographics_consistent`). The shares carry no margin of error |
+
+`source` is `census_acs`; `source_url` the Data API endpoint (it needs a key to open, so the site
+links the public ACS page instead). Not loaded: urban/rural (no ACS table; ADR 0016), and
+anything for the 120th Congress's lines.
+
+### `mart.member_constituency`
+
+One row per tracked member: the constituency they represent in the tracked Congress (dbt var
+`current_congress`) and its map. A senator's constituency is the state, a House member's the
+district. Key `bioguide_id`.
+
+| Column | Description |
+|---|---|
+| `chamber`, `congress`, `fips_state`, `state_abbr`, `district`, `label`, `geoid` | The seat; `district` null for a senator, 0 at large; `label` from `mart.constituency` |
+| `has_map` | The state's map exists for the tracked Congress. False rather than a wrong shape when the Census has not published that Congress's lines |
+| `map_state` | jsonb: the state view, `width`, `height`, `outline`, `counties` (list of `geoid`, `name`, `d`), and `district`, the member's district in the state's frame (null for a senator and at large) |
+| `map_district` | jsonb: the district view in its own frame, same keys minus `district`, county lines clipped to the district. Null for a senator and at large |
+| `map_source_url`, `map_district_source_url`, `map_county_source_url`, `map_fetched_at` | The three Census files the paths came from |
+
+`GET /members/{id}/constituency` returns it with `mart.constituency_demographics` (the latest
+`acs_year` for the member's `congress`, `fips_state` and `district`) as `map.views` (district view
+first, then state), `demographics`, and `sources`; each is null when not loaded. The site draws
+the paths as given. The dbt test `assert_tracked_constituencies_covered` warns when a tracked
+member has no map or no demographics for the tracked Congress.
+
+Verification (ADR 0016): the maps were checked by eye against real districts (WI-1, NY-14) and
+their county names; the demographics, once loaded, are to be checked against data.census.gov
+(American Community Survey, 2024 5-year, congressional district, 119th Congress) for each tracked
+member, read the same day as the ingest. The first nightly run logs each tracked member's
+population, margin and median household income for this. No real ACS value had been fetched when
+this was written; the figures in the test fixtures are invented.
 
 ### `mart.member`
 
