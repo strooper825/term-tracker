@@ -97,7 +97,9 @@ def test_ingest_workflow_shape() -> None:
     assert inputs["deploy"]["default"] is True
 
     ingest = workflow["jobs"]["ingest"]
-    assert {"DATABASE_URL", "CONGRESS_GOV_API_KEY", "FEC_API_KEY"} <= set(ingest["env"])
+    assert {"DATABASE_URL", "CONGRESS_GOV_API_KEY", "FEC_API_KEY", "CENSUS_API_KEY"} <= set(
+        ingest["env"]
+    )
     order = _step_order(
         ingest["steps"], ("Migrate", "dbt seed", "Ingest", "dbt build", "Freshness check")
     )

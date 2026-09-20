@@ -31,7 +31,23 @@ from sqlalchemy.exc import OperationalError
 from api.db import get_engine
 from api.main import app
 from ingest.db import connect
-from ingest.sources import congress_gov, fec, house_votes, legislators, senate_votes
+from ingest.sources import (
+    census_acs,
+    census_geography,
+    congress_gov,
+    fec,
+    house_votes,
+    legislators,
+    senate_votes,
+)
+from tests.fixtures.census import (
+    ACS_MINIMUMS,
+    ACS_YEAR,
+    GEOGRAPHY_MINIMUMS,
+    FixtureFiles,
+    census_client,
+)
+from tests.fixtures.census import YEAR as CENSUS_YEAR
 from tests.fixtures.congress_gov import CONGRESS, TRACKED, fixture_client, roll_call_fixtures_cover
 from tests.fixtures.fec import CYCLE as FEC_CYCLE
 from tests.fixtures.fec import PRINCIPAL as FEC_TRACKED
@@ -156,6 +172,10 @@ def built_mart(migrated_engine: Engine) -> None:
         if not covered:
             load_roll_call_fixture_bills(conn)
         fec.load(conn, fec_fixture_client(), sorted(FEC_TRACKED), FEC_CYCLE)
+        census_geography.load(
+            conn, FixtureFiles(), CENSUS_YEAR, full_refresh=True, minimums=GEOGRAPHY_MINIMUMS
+        )
+        census_acs.load(conn, census_client(), ACS_YEAR, minimums=ACS_MINIMUMS)
 
     result = subprocess.run(
         [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],

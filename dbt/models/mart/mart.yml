@@ -445,3 +445,34 @@ models:
         tests: [not_null]
       - name: tracked_members
         tests: [not_null]
+
+  - name: constituency_demographics
+    description: >
+      Who lives in a state or House district: population, age, income, education, unemployment,
+      poverty and race and ethnicity from the ACS 5-year, each estimate with its margin of error.
+    columns:
+      - name: acs_year
+        tests: [not_null]
+      - name: congress
+        tests: [not_null]
+      - name: fips_state
+        tests: [not_null]
+      - name: population
+        tests: [not_null]
+
+  - name: member_constituency
+    description: >
+      The constituency each tracked member represents in the tracked Congress (a senator's state,
+      a House member's district) with its map as finished SVG data.
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: congress
+        tests: [not_null]
+      - name: label
+        tests: [not_null]
+      - name: has_map
+        tests: [not_null]

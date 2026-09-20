@@ -2,6 +2,13 @@
 
 Date: 2026-09-20. Branch `constituency-research`. Research only: no ingestion, dbt, API or
 site code was written, and no ADR (this is input to the scope decision, not a decision).
+
+**Update, later the same day:** the tab was then built on this branch, and the decisions are in
+[ADR 0015](adr/0015-constituency-tab-census-sources.md). Where the build departs from this
+report: Albers instead of Equal Earth (the reviewer's choice); one PR instead of two; the
+1:500,000 files instead of 5m, so the district view can zoom to a district; and TIGERweb ruled
+out on a measurement made while building (it is not shoreline-clipped, section 1's fallback).
+Everything below is unchanged as the record of what was found.
 Everything below was checked on 2026-09-20 against live Census endpoints unless marked
 **not verified**. Files were downloaded to a scratch directory only, not to the repo.
 

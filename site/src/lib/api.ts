@@ -7,6 +7,7 @@ import type {
   BillsResponse,
   CommitteesResponse,
   CongressOverviewResponse,
+  ConstituencyResponse,
   FeedItem,
   FeedResponse,
   FreshnessResponse,
@@ -40,6 +41,8 @@ export const api = {
   committees: (bioguide: string) =>
     getJson<CommitteesResponse>(`/api/v1/members/${bioguide}/committees`),
   contact: (bioguide: string) => getJson<ContactResponse>(`/api/v1/members/${bioguide}/contact`),
+  constituency: (bioguide: string) =>
+    getJson<ConstituencyResponse>(`/api/v1/members/${bioguide}/constituency`),
   keyDates: (bioguide: string) => getJson<KeyDatesResponse>(`/api/v1/members/${bioguide}/key-dates`),
   fundraising: (bioguide: string) =>
     getJson<FundraisingResponse>(`/api/v1/members/${bioguide}/fundraising`),

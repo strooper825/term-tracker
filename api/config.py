@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     fec_requests_per_hour: int = 1000  # documented per-key limit
     fec_requests_per_minute: int = 60  # X-RateLimit-Limit reported by the API (2026-09-13)
 
+    # Ingestion (Census Bureau). The Data API refuses a request with no key (checked 2026-09-20),
+    # whatever its user guide says about a keyless daily allowance. The key travels in the URL
+    # query, so the client never logs a URL (ingest/census.py).
+    census_api_key: str | None = None
+    census_geography_year: int = 2025  # vintage of the cartographic boundary files
+    census_acs_year: int = 2024  # last year of the ACS 5-year estimates (2020-2024)
+
     @property
     def fec_cycle(self) -> int:
         """The two-year election cycle that ends with the current Congress (119 -> 2026)."""

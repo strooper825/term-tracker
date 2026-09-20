@@ -353,3 +353,54 @@ def test_sessions_cover_the_tracked_congress(built_mart: None, client: TestClien
     assert [s["session"] for s in body["sessions"]] == sorted(
         s["session"] for s in body["sessions"]
     )
+
+
+def test_constituency(built_mart: None, client: TestClient) -> None:
+    """Six fixture members against synthetic Census inputs (tests/fixtures/census): the maps are
+    rectangles and the ACS values are invented, so this checks the wiring, not the numbers."""
+    steil = client.get(f"{STEIL}/constituency").json()
+    assert (steil["label"], steil["chamber"], steil["congress"], steil["district"]) == (
+        "WI-1",
+        "house",
+        119,
+        1,
+    )
+    district, state = steil["map"]["views"]
+    assert district["key"] == "district" and state["key"] == "state"
+    # WI-1 is the west half of the fixture state: only the west county, clipped to it
+    assert [c["name"] for c in district["counties"]] == ["West Wisconsin County"]
+    assert [c["name"] for c in state["counties"]] == [
+        "West Wisconsin County",
+        "East Wisconsin County",
+    ]
+    assert state["district"].startswith("M") and district["district"] is None
+    assert steil["demographics"]["population"] == {"value": 700000, "margin": 7001.0}
+    assert steil["demographics"]["period"] == "2020-2024"
+    assert round(sum(r["pct"] for r in steil["demographics"]["race"]), 1) == 100.0
+    sources = {s["source_url"].rsplit("/", 1)[-1] for s in steil["sources"]}
+    assert {
+        "cb_2025_us_state_500k.zip",
+        "cb_2025_us_cd119_500k.zip",
+        "cb_2025_us_county_500k.zip",
+    } <= sources
+
+    # a senator's constituency is the state: one view, no highlighted district, state figures
+    cotton = client.get(f"{COTTON}/constituency").json()
+    assert (cotton["label"], cotton["district"]) == ("Arkansas", None)
+    assert [v["key"] for v in cotton["map"]["views"]] == ["state"]
+    assert cotton["map"]["views"][0]["district"] is None
+    assert cotton["demographics"]["population"]["value"] == 701000  # the state's, not a district's
+
+    # a median the Census could not compute (-666666666) is null, never a negative income
+    slotkin = client.get(f"{SLOTKIN}/constituency").json()
+    assert slotkin["demographics"]["median_household_income"]["value"] is None
+    assert slotkin["demographics"]["population"]["value"] == 703000
+
+    for path, label, population in [
+        (KILEY, "CA-3", 701000),
+        (JEFFRIES, "NY-8", 702000),
+        (SANDERS, "Vermont", 702000),
+    ]:
+        body = client.get(f"{path}/constituency").json()
+        assert body["label"] == label and body["map"] is not None
+        assert body["demographics"]["population"]["value"] == population
