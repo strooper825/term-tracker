@@ -248,6 +248,8 @@ def test_fetch_all_makes_four_requests_and_merges_by_geography() -> None:
         ("state", f) for f in ("55", "05", "50", "26", "06", "36")
     }
     assert {g for kind, g in merged if kind == "district"} == {"5501", "0603", "3608", "5000"}
+    # the response also holds a ZZ row (no district: water-only), which is not loaded
+    assert ("district", "26ZZ") not in merged
     wi1 = merged[("district", "5501")]
     assert wi1["name"].startswith("Congressional District 01") or "Wisconsin" in wi1["name"]
     assert set(wi1) == {"name", "profile", "detail"}

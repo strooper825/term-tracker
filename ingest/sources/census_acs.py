@@ -37,6 +37,11 @@ log = logging.getLogger("ingest.census_acs")
 
 SOURCE = "census_acs"
 MIN_STATES, MIN_DISTRICTS = 51, 435  # 50 states and DC; 435 districts
+# The Census's district code for the part of a state that has none (water-only areas). The API
+# returns these as rows ("Congressional Districts not defined"); the first nightly run to load
+# real ACS data (2026-09-20) stored them and dbt then failed casting "ZZ" to a number. Nobody
+# is represented there, so they are not loaded, and staging tolerates the ones already stored.
+NOT_DEFINED = "ZZ"
 
 
 def _with_margins(estimates: Sequence[str]) -> list[str]:
@@ -85,6 +90,8 @@ def fetch_all(
     for kind in ("state", "district"):
         for dataset, (path, variables) in DATASETS.items():
             for row in client.table(path.format(year=year), variables, kind):
+                if row.get("congressional district") == NOT_DEFINED:
+                    continue
                 entry = merged.setdefault((kind, geoid(row)), {"name": row["NAME"]})
                 entry[dataset] = {v: row[v] for v in variables}
     states = sum(1 for kind, _ in merged if kind == "state")

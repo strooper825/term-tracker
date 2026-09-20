@@ -181,6 +181,16 @@ def built_mart(migrated_engine: Engine) -> None:
             conn, FixtureFiles(), CENSUS_YEAR, full_refresh=True, minimums=GEOGRAPHY_MINIMUMS
         )
         census_acs.load(conn, census_client(), ACS_YEAR, minimums=ACS_MINIMUMS)
+        # The loader now skips the Census's ZZ (no district) rows, but the 2026-09-20 nightly
+        # had already stored some: staging must build with one in raw, or dbt fails on "ZZ".
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO raw.acs_estimate (acs_year, geoid, kind, congress, payload, "
+                "source_url, fetched_at) SELECT acs_year, '26ZZ', kind, congress, payload, "
+                "source_url, fetched_at FROM raw.acs_estimate WHERE geoid = '5501' "
+                "ON CONFLICT DO NOTHING"
+            )
+        conn.commit()
 
     result = subprocess.run(
         [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],

@@ -102,5 +102,12 @@ number of tracked members.
   0016 for the same reason: both were first numbered 0007 and 0015 on this branch and
   renumbered when it was merged with main after the statements work landed. (The unmerged
   `election-context` branch also claims `0007`; it will need renumbering too.)
+- **Update 2026-09-20, first real ACS load.** The API returns a row for the part of a state
+  with no district, coded `ZZ` ("Congressional Districts not defined"), which the fixtures
+  lacked; casting it to a district number failed dbt in that night's run. The loader now skips
+  `ZZ` rows and staging ignores any district code that is not two digits, because the failed
+  run had already stored some. The same run showed that Census gives no margin of error for a
+  state's population (`-555555555`, which staging turns into null), so a state's population
+  has none on the page, and gave real values to compare (WI-1 733,917 with margin 742).
 - Not covered, and not free from Census: county-level election results (the mockup copy
   promises them), demographics for the 120th Congress's lines, urban/rural.
