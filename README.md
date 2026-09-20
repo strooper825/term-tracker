@@ -200,7 +200,9 @@ after `dbt build`, or on demand) from an API started in the runner against the m
 database, and deployed with the Vercel CLI as prebuilt output (`VERCEL_TOKEN`,
 `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secrets). No runtime server; the built pages make no API calls. To build
 locally: start the API (`uvicorn api.main:app`), then in `site/` run
-`API_BASE_URL=http://127.0.0.1:8000 npm run build`.
+`API_BASE_URL=http://127.0.0.1:8000 npm run build`, then
+`node scripts/strip-prefetch-payloads.mjs out` to drop the client prefetch payloads the
+deploy does not upload (ADR 0017; it prints the page, file and byte counts that reach Vercel).
 
 ## Working agreements
 

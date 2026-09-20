@@ -124,13 +124,40 @@ jobs:
           cat api.log || echo "no api.log"
           echo "::endgroup::"
 
+      # Next writes four RSC payload files per page beside the HTML, purely so a <Link> can
+      # navigate without a page load. They were 307 MB of the 495 MB export and 18,464 of its
+      # 23,102 files on 2026-09-20, and Vercel bills deployment storage on the UNPACKED
+      # deployment, so they are dropped before the upload (ADR 0017). Runs before the static
+      # check so that check only reads what actually ships.
+      - name: Drop the client prefetch payloads and report the deployment size
+        working-directory: site
+        run: |
+          echo "## Deployment size" >> "$GITHUB_STEP_SUMMARY"
+          node scripts/strip-prefetch-payloads.mjs .vercel/output/static | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # A static export should produce no functions at all. Vercel reported 3.13 GB of function
+      # storage for this project on 2026-09-20, which nothing in the repo accounts for, so every
+      # deploy now records what the builder actually emitted.
+      - name: Report the function output (a static export should have none)
+        working-directory: site
+        run: |
+          {
+            echo "- Functions emitted by the build:"
+            if [ -d .vercel/output/functions ]; then
+              du -sh .vercel/output/functions | sed "s/^/  /"
+              find .vercel/output/functions -maxdepth 2 | head -30 | sed "s/^/  /"
+            else
+              echo "  none"
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Confirm the built site cannot reach the API
         working-directory: site
         run: node scripts/check-static.mjs .vercel/output/static
 
-      # --archive=tgz uploads the output as one tarball instead of file by file. The static
-      # export is 9,435 files (one HTML page plus four prefetch payloads per route, 1,884
-      # pages), and the free tier refuses a deployment of more than 5,000 files:
+      # --archive=tgz uploads the output as one tarball instead of file by file. Even with the
+      # prefetch payloads stripped the export is one file per page, and the free tier refuses a
+      # deployment of more than 5,000 files:
       # "Too many requests - try again in 24 hours (more than 5000, code: api-upload-free)".
       # `vercel build` has no such flag and needs none: it only writes .vercel/output locally,
       # and nothing is uploaded until this step.

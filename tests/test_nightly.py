@@ -145,13 +145,23 @@ def test_deploy_workflow_shape() -> None:
             "dbt build",
             "Start the API",
             "Build the site",
+            "Drop the client prefetch payloads",
             "Confirm the built site cannot reach the API",
             "Deploy the prebuilt",
         ),
     )
     assert order == sorted(order), (
-        "resolve -> migrate -> dbt build -> API -> build -> static check -> deploy"
+        "resolve -> migrate -> dbt build -> API -> build -> strip -> static check -> deploy"
     )
+
+    # Vercel bills deployment storage on the unpacked deployment, and the RSC payloads were 62
+    # percent of it (ADR 0017). Stripping before the static check also means that check reads
+    # only what ships.
+    strip = steps[order[5]]
+    assert "strip-prefetch-payloads.mjs .vercel/output/static" in strip["run"]
+    assert "GITHUB_STEP_SUMMARY" in strip["run"], "the size belongs in the run summary"
+    functions = next(s for s in steps if "function output" in s.get("name", ""))
+    assert "output/functions" in functions["run"]
 
     # The API here is this commit's code, so the mart must be rebuilt from this commit's
     # models before it serves anything. Skipping that renders the site against whatever the
@@ -214,3 +224,22 @@ def test_read_statuses_and_sizes_against_database(migrated_engine: Engine) -> No
     assert by_source["test_never"].last_success_at is None  # running rows do not count
     assert by_source["test_absent"].last_success_at is None
     assert total > 0 and {name for name, _ in schemas} >= {"raw", "meta"}
+
+
+def test_ci_strips_the_prefetch_payloads_before_the_static_check() -> None:
+    """The deploy drops the RSC payloads (ADR 0017); CI runs the same step so a break in it
+    fails on the pull request rather than at deploy time."""
+    workflow, _, _ = _workflow("ci.yml")
+    steps = workflow["jobs"]["test"]["steps"]
+    order = _step_order(
+        steps,
+        (
+            "Build the static site",
+            "Drop the client prefetch payloads",
+            "Confirm the built site cannot reach the API",
+        ),
+    )
+    assert order == sorted(order), "build -> strip -> static check"
+    assert "strip-prefetch-payloads.mjs out" in steps[order[1]]["run"]
+    # the build needs the API base URL; the strip step reads only the file tree
+    assert steps[order[0]]["env"]["API_BASE_URL"]

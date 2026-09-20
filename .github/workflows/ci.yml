@@ -80,6 +80,12 @@ jobs:
         working-directory: site
         env:
           API_BASE_URL: http://127.0.0.1:8000
+
+      # Same step the deploy runs, so a change that breaks it fails here rather than at deploy.
+      - name: Drop the client prefetch payloads (ADR 0017)
+        run: node scripts/strip-prefetch-payloads.mjs out
+        working-directory: site
+
       - name: Confirm the built site cannot reach the API
         run: node scripts/check-static.mjs out
         working-directory: site
