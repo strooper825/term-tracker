@@ -210,6 +210,12 @@ def _acs_rows(variables: list[str], geography: str, dataset: str) -> list[list[s
                 + [value(v, index) for v in variables]
                 + [fips, geoid[2:]]
             )
+        # the real response also has a row for the part of a state with no district (2026-09-20)
+        rows.append(
+            ["Congressional Districts not defined (119th Congress), Michigan"]
+            + [value(v, 9) for v in variables]
+            + ["26", "ZZ"]
+        )
     else:
         for index, (fips, (name, *_)) in enumerate(STATES.items()):
             rows.append([name] + [value(v, index) for v in variables] + [fips])

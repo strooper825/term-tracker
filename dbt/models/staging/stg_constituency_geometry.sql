@@ -21,3 +21,4 @@ select
     source_url,
     fetched_at
 from {{ source('raw', 'constituency_geometry') }}
+where kind = 'state' or substr(geoid, 3, 2) ~ '^[0-9][0-9]$'

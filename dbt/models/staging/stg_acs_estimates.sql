@@ -3,6 +3,9 @@
 -- acs_number). Every estimate has a margin of error `_moe` at the 90 percent level. Percent
 -- columns (`*_pct`) are the Data Profile's own; race counts are B03002 (Hispanic or Latino
 -- origin by race, non-overlapping) and are turned into shares in mart.constituency_demographics.
+-- A district code that is not two digits (the Census's "ZZ", the part of a state with no
+-- district) is not a place anyone represents; it is left out here as well as at load (the
+-- 2026-09-20 nightly stored such rows before the loader skipped them).
 with base as (
     select
         acs_year,
@@ -56,3 +59,4 @@ select
     source_url,
     fetched_at
 from base
+where kind = 'state' or substr(geoid, 3, 2) ~ '^[0-9][0-9]$'
