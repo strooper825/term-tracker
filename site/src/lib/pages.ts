@@ -53,6 +53,14 @@ export async function congressPageProps(): Promise<{
   return { model: buildCongressModel(overview), lastUpdated: lastUpdated(freshness) };
 }
 
+/** The member's name for the page title. generateMetadata used to build the whole dashboard
+ *  just to read it, which fetched every endpoint twice per member; with a feed member's
+ *  statements at several MB a response, that doubled load starved the API's connection pool
+ *  during the 2026-09-20 deploy. */
+export async function memberTitle(bioguide: string): Promise<string> {
+  return buildHeader(await api.member(bioguide)).name;
+}
+
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
   const [detail, feed, committees, contact, statements, keyDates, fundraising, freshness, sessions] =
     await Promise.all([
