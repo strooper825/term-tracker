@@ -5,6 +5,15 @@ Status: Research only — no ingestion code written. This answers the five quest
 panel 9 (docs/PLAN.md); it is not an ADR because no decision is made here, only a
 recommendation for whoever scopes the build.
 
+> **Corrected 2026-09-19, when the feeds were built against.** Two rows below were wrong and are
+> fixed in place: Ossoff's press feed is `/press-releases/feed/` (the `/feed/` this survey tested
+> is a stale generic post feed), and Ron Johnson has a working feed at
+> `/category/press-releases/feed/` and a press page at `/category/press-releases/` (not
+> `/press-releases`). Six tracked members, not five, have a usable feed: Sanders, Slotkin, Ossoff,
+> R. Johnson, Jeffries and the Speaker. The full-535 estimate in section 6 is a floor for the same
+> reason: the probes tried only a short list of feed paths. `dbt/seeds/statement_sources.csv` and
+> ADR 0015 are authoritative; details in `docs/verification-notes.md`.
+
 ## Why this exists
 
 Panel 9 ("Public statements") has shipped as a locked placeholder since Phase 1f
@@ -38,11 +47,11 @@ worth a second phase, not part of the same PR as the press-release feeds.
 | Kevin Kiley | K000401 | House CA-3 | Structured HTML | `kiley.house.gov/media` | `/feed/` 301s to an admin subdomain that doesn't resolve publicly — no accessible feed; static HTML card list is clean |
 | Hakeem Jeffries | J000294 | House NY-8 | **RSS feed, clean** | `jeffries.house.gov/feed/` | Full text via `content:encoded`; no `robots.txt` on the domain (default allow) |
 | Rick Crawford | C001087 | House AR-1 | Feed exists, needs filtering | `crawford.house.gov/rss.xml` | Sitewide feed (forms, tours mixed in with releases) |
-| Ron Johnson | J000293 | Senate WI | Structured HTML | `ronjohnson.senate.gov/press-releases` | No feed; ~180 pages, clean fields; repeat fetches intermittently 404'd — worth a resilience test before relying on it |
+| Ron Johnson | J000293 | Senate WI | **RSS feed, clean** | `ronjohnson.senate.gov/category/press-releases/feed/` | Corrected: full text, ten items a page, newest matches the listing at `/category/press-releases/`. The first pass found no feed and used `/press-releases`, which 404s for every client |
 | Tammy Baldwin | B001230 | Senate WI | Structured HTML | `baldwin.senate.gov/news/press-releases` | No feed (site pushes an email signup instead); ~180 pages, clean |
 | Mitch McConnell | M000355 | Senate KY | **Blocked — do not automate** | `mcconnell.senate.gov/public/index.cfm/pressreleases` | `robots.txt` disallows all crawlers except a narrow `gsa-crawler` carve-out that itself excludes RSS/feed URL patterns; legacy ColdFusion template, no feed anyway |
 | Mark Pocan | P000607 | House WI-2 | Feed exists, unusable | `pocan.house.gov/rss.xml` | Returns stale carousel/banner content, not press releases (duplicate 2022 items); HTML listing is the real source here |
-| Jon Ossoff | O000174 | Senate GA | **RSS feed, clean** | `ossoff.senate.gov/feed/` | Full text via `content:encoded`; freshest, most complete feed found |
+| Jon Ossoff | O000174 | Senate GA | **RSS feed, clean** | `ossoff.senate.gov/press-releases/feed/` | Full text via `content:encoded`, newest item matches the listing (corrected: the first pass tested `/feed/`, a stale generic post feed) |
 | John Boozman | B001236 | Senate AR | Structured HTML | `boozman.senate.gov/public/index.cfm/press-releases` | No feed; legacy ColdFusion, 257 pages, plain table |
 | Chris Murphy | M001169 | Senate CT | Structured HTML | `murphy.senate.gov/newsroom/press-releases` | No feed; card list with filters, clean |
 | Adam Schiff | S001150 | Senate CA | Structured HTML | `schiff.senate.gov/newsroom/press-releases/` | No feed; card list, `robots.txt` fully open |
@@ -236,6 +245,12 @@ main survey found:
 - **Wrong content type entirely**: Subramanyam's `/rss.xml` is a photo-gallery feed; Onder's is a
   newsletter feed. The URL pattern that works for one office's press releases is a different
   content type for another's, even on similar-looking sites.
+
+**Update 2026-09-19.** With Ron Johnson moved from None to Clean, the Senate row reads 7 of 30
+(23 percent) and the total 9 of 65 (14 percent); weighted by chamber size that is about 23
+senators and 25 representatives, roughly 48 of 535 (9 percent). Treat every figure here as a
+floor: the sample probes tried `/feed/`, `/rss.xml` and a few press paths, and missed both of
+the custom feed paths above, so some "None" offices likely have a feed at a path nobody tried.
 
 **Good news for the link-out plan**: most of the "None" members (11 of 14 in the House sample, 13
 of 20 in the Senate sample) have clean, fresh, actively-maintained press pages — they simply don't
