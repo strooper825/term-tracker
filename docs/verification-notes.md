@@ -3,6 +3,57 @@
 Corrections and source checks that belong with the record but arrived after the PR they
 concern was merged. Newest first.
 
+## 2026-09-20: the first deploy after PR #41 failed with HTTP 500s from the API
+
+**What happened.** The deploy job that follows the first nightly with statements (run
+35479480801, `main`) failed while prerendering `/members/O000174`:
+`/api/v1/members/O000174/fundraising -> HTTP 500`. The API log printed by the workflow shows 25
+500s in 4,832 requests, every one `sqlalchemy.exc.TimeoutError: QueuePool limit of size 5
+overflow 10 reached, connection timed out, timeout 30.00`, and all of them on lightweight
+endpoints (`contact`, `fundraising`, `committees`, the member detail) that had nothing to do with
+statements. The build log shows why they lost: the member pages are generated last, the first
+big `/statements` responses (6.1 MB for Jeffries) return at 02:26:17, and Ossoff's returns at
+02:26:49, 32 seconds later, the length of one pool wait. Ingest and dbt passed; the run before
+#41 deployed fine.
+
+**Cause.** Two things multiplied. `generateMetadata` in `site/src/app/members/[bioguide]/page.tsx`
+called `dashboardProps`, so every member page fetched every endpoint twice (the log shows each
+statements response cached twice); that was harmless while the responses were small. `/statements`
+made them large: a feed member's response is 2 to 6 MB because it carries every release in full,
+and the API's database connection is checked out while it reads that from Neon. About 20 pages
+rendered several at a time (the log's requests arrive over eight keep-alive connections), each
+asking for the biggest response twice, kept all fifteen pooled connections busy long enough for
+the rest to time out. The slow read is inferred from the timing, not observed on Neon.
+
+**What I got wrong first, and how it was checked.** I first suspected the connection was held
+while the API sent the body to a slow client, and tested it: with a reader draining 4.5 MB
+slowly, zero connections were checked out for the whole transfer (FastAPI 0.141.1 returns the
+connection before sending). That was false, and the `session.close()` change I had planned for it
+would have done nothing. What holds the connection is the read from the database, which is
+instant locally and not on a remote one. So I put a proxy between the API and a local database
+that caps throughput at 3 MB/s with 15 ms of latency, and replayed what the site build does for
+the twenty member pages (`member`, `feed`, `committees`, `contact`, `statements`, `key-dates`,
+`fundraising` in parallel, eight pages at a time), against the API code that was deployed:
+
+| Site behaviour | Data received | Result |
+|---|---|---|
+| As deployed (metadata builds the whole dashboard) | 64 MB | 23 failed requests, 20 pool timeouts |
+| Metadata fetches only the member | 32 MB | 0 failed, 12.8 s |
+| Same, link halved to 1.5 MB/s | 32 MB | 0 failed, 20.5 s |
+
+The failure reproduces with the deployed code and goes away when the duplicate fetch does.
+
+**Fix.** `generateMetadata` now reads only the member's name (`memberTitle` in `site/src/lib/pages.ts`),
+and `getJson` in `site/src/lib/api.ts` retries a 5xx or a failed connection after 1, 3 and 9
+seconds before failing the build (a 4xx is never retried). A real production `next build` of the
+fixed site was run through the same 3 MB/s link; its result is in the pull request.
+
+**What this does not establish.** The link speed is my assumption; Neon's real throughput to a
+GitHub runner was not measured, so the margin on the real system is unknown (at least 2x on the
+emulated one). The API still returns 2 to 6 MB per feed member, about 90 percent of it
+`content_html`, of which the site keeps the first 3,000 characters of text; sending plain text
+capped at that length would cut it roughly fourfold and is the next step if this recurs.
+
 ## 2026-09-19: press-feed checks behind the Public statements tab (ADR 0015)
 
 Every feed and press URL in `dbt/seeds/statement_sources.csv` was fetched on 2026-09-19 with the

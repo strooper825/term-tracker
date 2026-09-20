@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { MemberDashboard } from '@/components/MemberDashboard';
-import { dashboardProps, trackedBioguides } from '@/lib/pages';
+import { dashboardProps, memberTitle, trackedBioguides } from '@/lib/pages';
 
 export const dynamic = 'force-static';
 export const dynamicParams = false;
@@ -17,8 +17,7 @@ export async function generateMetadata({
   params: Promise<{ bioguide: string }>;
 }): Promise<Metadata> {
   const { bioguide } = await params;
-  const props = await dashboardProps(bioguide);
-  return { title: `${props.member.name} · Term Tracker` };
+  return { title: `${await memberTitle(bioguide)} · Term Tracker` };
 }
 
 export default async function MemberPage({ params }: { params: Promise<{ bioguide: string }> }) {
