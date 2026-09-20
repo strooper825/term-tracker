@@ -3,56 +3,78 @@
 Corrections and source checks that belong with the record but arrived after the PR they
 concern was merged. Newest first.
 
-## 2026-09-20: the first deploy after PR #41 failed with HTTP 500s from the API
+## 2026-09-20: the first deploys after PR #41 failed with HTTP 500s from the API
 
-**What happened.** The deploy job that follows the first nightly with statements (run
-35479480801, `main`) failed while prerendering `/members/O000174`:
-`/api/v1/members/O000174/fundraising -> HTTP 500`. The API log printed by the workflow shows 25
-500s in 4,832 requests, every one `sqlalchemy.exc.TimeoutError: QueuePool limit of size 5
-overflow 10 reached, connection timed out, timeout 30.00`, and all of them on lightweight
-endpoints (`contact`, `fundraising`, `committees`, the member detail) that had nothing to do with
-statements. The build log shows why they lost: the member pages are generated last, the first
-big `/statements` responses (6.1 MB for Jeffries) return at 02:26:17, and Ossoff's returns at
-02:26:49, 32 seconds later, the length of one pool wait. Ingest and dbt passed; the run before
-#41 deployed fine.
+**What happened.** The deploy that follows the first nightly with statements (run 35479480801,
+`main`) failed prerendering `/members/O000174` with `/api/v1/members/O000174/fundraising ->
+HTTP 500`. The API log the workflow prints shows 25 500s in 4,832 requests, every one
+`sqlalchemy.exc.TimeoutError: QueuePool limit of size 5 overflow 10 reached, connection timed
+out, timeout 30.00`, and all on lightweight endpoints (`contact`, `fundraising`, `committees`)
+that have nothing to do with statements. The member pages are generated last; the first big
+`/statements` responses return at 02:26:17 and Ossoff's at 02:26:49, one pool wait later. The
+run before #41 deployed fine.
 
-**Cause.** Two things multiplied. `generateMetadata` in `site/src/app/members/[bioguide]/page.tsx`
-called `dashboardProps`, so every member page fetched every endpoint twice (the log shows each
-statements response cached twice); that was harmless while the responses were small. `/statements`
-made them large: a feed member's response is 2 to 6 MB because it carries every release in full,
-and the API's database connection is checked out while it reads that from Neon. About 20 pages
-rendered several at a time (the log's requests arrive over eight keep-alive connections), each
-asking for the biggest response twice, kept all fifteen pooled connections busy long enough for
-the rest to time out. The slow read is inferred from the timing, not observed on Neon.
+**The first fix was not enough.** PR #44 stopped `generateMetadata` from fetching the whole
+dashboard (every member page had fetched every endpoint twice) and added retries. Its deploy
+(run 35485402971) failed the same way: statements requests fell from 22 to 19, the same 25 500s
+came back, and the retries at 1, 3 and 9 seconds all landed inside the stall. That change was
+worth keeping, but it was not the cause.
 
-**What I got wrong first, and how it was checked.** I first suspected the connection was held
-while the API sent the body to a slow client, and tested it: with a reader draining 4.5 MB
-slowly, zero connections were checked out for the whole transfer (FastAPI 0.141.1 returns the
-connection before sending). That was false, and the `session.close()` change I had planned for it
-would have done nothing. What holds the connection is the read from the database, which is
-instant locally and not on a remote one. So I put a proxy between the API and a local database
-that caps throughput at 3 MB/s with 15 ms of latency, and replayed what the site build does for
-the twenty member pages (`member`, `feed`, `committees`, `contact`, `statements`, `key-dates`,
-`fundraising` in parallel, eight pages at a time), against the API code that was deployed:
+**What the database showed.** A throwaway branch sampled `pg_stat_activity` every 2 seconds
+during the real build (run 35486480731, which failed identically). Normally 5 to 8 connections
+are open. At 03:30:00 all **15** were `idle in transaction` (`Client/ClientRead`) at the same
+moment, each on the last query of a request that had already returned it (committees, contact,
+key-dates, feed, fundraising, the statements source and list), and they stayed that way, idle
+for 1.2 s, then 5.5, 11.9, 16.3, 20.6, 27.0 s, until 03:30:31. Nothing was slow in the database;
+zero queries were active. The API was not closing finished requests' sessions.
 
-| Site behaviour | Data received | Result |
+**Cause.** FastAPI runs an endpoint, the serialising of its response, and the cleanup of a plain
+generator dependency (`session.close()`) in one pool of 40 worker threads. When many requests
+cannot get a pooled connection, their threads block waiting for one, and they can take all 40.
+The finished requests that hold the 15 connections then cannot get a thread to serialise their
+response or close their session, so the connections are never returned, so the waiters never
+get one, and nothing moves until the pool's 30 second wait expires and turns the waiters into
+500s (which is also when the connections were freed). It needs a burst of requests to outrun the
+pool; `/statements` made requests slow enough (2 to 6 MB reads over a link that moves about
+3 MB/s, with about 90 ms round trips to Neon) that the member pages reached it. Earlier deploys
+had the same latent bug with requests fast enough to stay under it.
+
+**How it was checked.** A small deterministic reproduction (a pool of 3, a wait of 3 s, 8 worker
+threads, 60 concurrent requests, each running one query):
+
+| Session dependency | Failed requests | Time |
 |---|---|---|
-| As deployed (metadata builds the whole dashboard) | 64 MB | 23 failed requests, 20 pool timeouts |
-| Metadata fetches only the member | 32 MB | 0 failed, 12.8 s |
-| Same, link halved to 1.5 MB/s | 32 MB | 0 failed, 20.5 s |
+| As deployed (plain generator) | 56 of 60 | 21.1 s |
+| Closing in a separate thread pool | 54 of 60 | 21.1 s |
+| At most pool-many sessions at once, the rest wait on the event loop | 0 of 60 | 0.5 s |
 
-The failure reproduces with the deployed code and goes away when the duplicate fetch does.
+The second row is a fix I tried first and rejected: closing in another pool does not help
+because the response serialising also needs a worker thread.
 
-**Fix.** `generateMetadata` now reads only the member's name (`memberTitle` in `site/src/lib/pages.ts`),
-and `getJson` in `site/src/lib/api.ts` retries a 5xx or a failed connection after 1, 3 and 9
-seconds before failing the build (a 4xx is never retried). A real production `next build` of the
-fixed site was run through the same 3 MB/s link; its result is in the pull request.
+**Fix.** `api/db.py`: `get_session` is an async dependency that admits at most
+`POOL_SIZE + MAX_OVERFLOW` sessions at once. A request past that waits on the event loop holding
+no thread and no connection, so a thread can never block on a checkout. The regression tests
+are in `tests/api/test_db_session.py`, including a 60-request burst against a pool of 3.
+Replaying the twenty member pages against the real API through a proxy that caps the database
+link at 3 MB/s with 90 ms round trips, at 24 renders at once: 21 s and no failures with the fix,
+against 36 s for the old code. The full suite passes (207 tests).
 
-**What this does not establish.** The link speed is my assumption; Neon's real throughput to a
-GitHub runner was not measured, so the margin on the real system is unknown (at least 2x on the
-emulated one). The API still returns 2 to 6 MB per feed member, about 90 percent of it
-`content_html`, of which the site keeps the first 3,000 characters of text; sending plain text
-capped at that length would cut it roughly fourfold and is the next step if this recurs.
+**What I got wrong along the way.** I first blamed the API holding a connection while sending a
+large body to a slow reader (measured: it does not; the connection is returned before the body
+is sent). I then blamed data volume through a slow link, and showed that a proxy at 3 MB/s and
+15 ms reproduced pool timeouts under double load. That emulation used a fifth of Neon's real
+latency and did not reproduce the deadlock at single load, so it could not validate the fix; a
+run on the fix branch failed the same way. The `pg_stat_activity` samples are what identified
+the cause.
+
+**Measured from the runner** (run 35486272323): reading Jeffries's 4.4 MB from Neon takes 1.4 to
+1.6 s (about 3 MB/s); a small endpoint takes about 0.27 s; six 2 to 4 MB statements requests at
+once finish in about 1.5 s with small requests unaffected. The API still returns 2 to 6 MB per
+feed member, about 90 percent of it `content_html`, of which the site keeps the first 3,000
+characters; sending capped plain text would cut that about fourfold and remains worth doing.
+
+**Still to confirm.** The fix is verified on a reproduction and a local replay, not yet on the
+real deploy against Neon.
 
 ## 2026-09-19: press-feed checks behind the Public statements tab (ADR 0015)
 
