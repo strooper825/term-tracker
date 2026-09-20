@@ -38,6 +38,7 @@ import type {
   KeyDate,
   PassageVote,
   MemberDetail,
+  StatementsResponse,
   MemberListItem,
 } from './types';
 
@@ -543,6 +544,126 @@ export function buildContact(c: ContactResponse): ContactModel | null {
   if (c.address) visit.push({ label: 'Mailing address', value: c.address });
   if (reach.length === 0 && visit.length === 0) return null;
   return { reach, visit, sourceUrl: c.sources[0]?.source_url ?? null };
+}
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+  bull: '•',
+};
+
+/** Decodes the named and numeric character references press releases actually use; anything
+ *  else is left as written rather than guessed. */
+export function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, ref: string) => {
+    if (ref[0] === '#') {
+      const code = ref[1].toLowerCase() === 'x' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return match;
+      }
+    }
+    return NAMED_ENTITIES[ref.toLowerCase()] ?? match;
+  });
+}
+
+/** A press release's HTML as plain text, paragraphs separated by a blank line. Tags are
+ *  dropped before entities are decoded, so text that spells out a tag cannot become one. */
+export function htmlToText(html: string): string {
+  const stripped = html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)\s*>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '');
+  return decodeEntities(stripped)
+    .replace(/[ \t ]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** How much of each release travels with the page: search covers this much, and a page with
+ *  seven hundred releases stays around a megabyte and a half. */
+export const STATEMENT_TEXT_CAP = 3000;
+
+function capText(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max - 40))}…`;
+}
+
+const GENERIC_CATEGORIES = new Set(['press releases', 'press release', 'uncategorized', 'news']);
+
+export interface StatementRow {
+  key: string;
+  title: string;
+  isoDate: string;
+  dateLabel: string;
+  /** The release on the office's own site. */
+  url: string;
+  /** Topic tags the office gave it; the generic ones every release carries are dropped. */
+  categories: string[];
+  /** Plain text of the release, cut at STATEMENT_TEXT_CAP characters. */
+  text: string;
+}
+
+export interface StatementsModel {
+  /** feed: the releases below are shown; link: only the office's press page is linked. */
+  mode: 'feed' | 'link';
+  /** The host the statements come from, e.g. sanders.senate.gov. */
+  label: string;
+  pressUrl: string;
+  statements: StatementRow[];
+  /** Newest first. Every release the office's feed gave since the tracked Congress began. */
+  total: number;
+  newest: string | null;
+  sourceUrl: string | null;
+}
+
+/** The Public statements tab from mart.statement_source and mart.statement, or null when the
+ *  member is not in the seed (the tab is then not yet published). A feed member with nothing
+ *  loaded yet falls back to the link, so the tab is never empty. */
+export function buildStatements(r: StatementsResponse): StatementsModel | null {
+  if (r.mode === 'none' || !r.press_url || !r.label) return null;
+  const base = {
+    label: r.label,
+    pressUrl: r.press_url,
+    sourceUrl: r.sources[0]?.source_url ?? null,
+  };
+  if (r.mode === 'link' || r.items.length === 0) {
+    return { ...base, mode: 'link', statements: [], total: 0, newest: null };
+  }
+  const statements = r.items.map<StatementRow>((s) => ({
+    key: s.guid,
+    title: decodeEntities(s.title).trim(),
+    isoDate: s.published_date,
+    dateLabel: formatDate(s.published_date),
+    url: s.url,
+    categories: s.categories
+      .map((c) => decodeEntities(c).trim())
+      .filter((c) => c && !GENERIC_CATEGORIES.has(c.toLowerCase())),
+    text: capText(htmlToText(s.content_html ?? s.description ?? ''), STATEMENT_TEXT_CAP),
+  }));
+  return {
+    ...base,
+    mode: 'feed',
+    statements,
+    total: r.total,
+    newest: statements[0].dateLabel,
+  };
 }
 
 export function buildKeyDates(dates: KeyDate[]): KeyDateRow[] {

@@ -11,6 +11,8 @@ import type {
   MemberDetail,
   MemberIds,
   MemberListItem,
+  StatementItem,
+  StatementsResponse,
   TermHistoryItem,
   WeekBucket,
 } from '@/lib/types';
@@ -1186,5 +1188,111 @@ export const NO_CONTACT: ContactResponse = {
   phone: null,
   office: null,
   address: null,
+  sources: [],
+};
+
+/** Real titles and dates from sanders.senate.gov/press-releases/feed/ (2026-09-19); the bodies
+ *  are short stand-ins in the feed's own HTML shape (paragraphs, entities, a link, a tag). */
+const SANDERS_RELEASES: StatementItem[] = [
+  {
+    guid: 'https://www.sanders.senate.gov/?post_type=press_releases&p=102556',
+    title: 'NEWS: Sanders Statement on Federal Judge Restoring $7 Billion for Solar for All',
+    published_at: '2026-09-19T15:39:36Z',
+    published_date: '2026-09-19',
+    url: 'https://www.sanders.senate.gov/press-releases/news-sanders-statement-on-federal-judge-restoring-7-billion-forsolar-for-all/',
+    author: 'Sanders',
+    categories: [],
+    description: 'WASHINGTON, September 19 – Senator Bernie Sanders (I-Vt.) released the following statement.',
+    content_html:
+      '<p>WASHINGTON, September 19 &#8211; Senator Bernie Sanders (I-Vt.) released the following statement on the ruling.</p><p>&#8220;Working families deserve lower energy bills,&#8221; Sanders said. <a href="https://example.gov">More</a></p>',
+  },
+  {
+    guid: 'https://www.sanders.senate.gov/?post_type=press_releases&p=102548',
+    title: 'PREPARED REMARKS: Sanders: Regulating AI &#8220;is as american as apple pie.&#8221;',
+    published_at: '2026-09-15T14:00:00Z',
+    published_date: '2026-09-15',
+    url: 'https://www.sanders.senate.gov/press-releases/prepared-remarks-sanders-regulating-ai-is-as-american-as-apple-pie/',
+    author: 'Sanders',
+    categories: ['Press Releases', 'Technology'],
+    description: 'Remarks on artificial intelligence.',
+    content_html:
+      '<p>Thank you all for being here. Artificial intelligence is transforming our economy &amp; our democracy.</p><p>Let me say a word about Medicare and the health care workforce before turning to the Senate floor.</p>',
+  },
+  {
+    guid: 'https://www.sanders.senate.gov/?post_type=press_releases&p=102101',
+    title: 'NEWS: Sanders, Takano Reintroduce Bill to Move Toward 32-Hour Workweek',
+    published_at: '2026-09-08T13:00:00Z',
+    published_date: '2026-09-08',
+    url: 'https://www.sanders.senate.gov/press-releases/news-sanders-takano-reintroduce-bill-32-hour-workweek/',
+    author: 'Sanders',
+    categories: ['Press Releases'],
+    description: null,
+    content_html: '<p>The bill would reduce the standard workweek to 32 hours without a cut in pay.</p>',
+  },
+];
+
+/** `count` more releases, older than the real ones, each with a distinct title and body. */
+function fillerReleases(count: number): StatementItem[] {
+  return Array.from({ length: count }, (_, i) => {
+    const n = i + 1;
+    const day = String(Math.max(1, 28 - (i % 28))).padStart(2, '0');
+    const month = String(8 - Math.floor(i / 28)).padStart(2, '0');
+    return {
+      guid: `https://www.sanders.senate.gov/?post_type=press_releases&p=${9000 - n}`,
+      title: `Release number ${n} on the budget`,
+      published_at: `2026-${month}-${day}T12:00:00Z`,
+      published_date: `2026-${month}-${day}`,
+      url: `https://www.sanders.senate.gov/press-releases/release-${n}/`,
+      author: 'Sanders',
+      categories: ['Press Releases'],
+      description: null,
+      content_html: `<p>Statement ${n}. ${n === 40 ? 'The ' + 'filler '.repeat(60) + 'unmistakable-needle appears late.' : 'Nothing further.'}</p>`,
+    };
+  });
+}
+
+const STATEMENT_SOURCE = {
+  source: 'press_feed',
+  source_url: 'https://www.sanders.senate.gov/press-releases/',
+  fetched_at: '2026-09-19T23:00:00Z',
+};
+
+/** GET /members/{id}/statements for a member with a feed: 3 real releases and 42 filler ones. */
+export const SANDERS_STATEMENTS: StatementsResponse = {
+  bioguide_id: 'S000033',
+  mode: 'feed',
+  label: 'sanders.senate.gov',
+  press_url: 'https://www.sanders.senate.gov/press-releases/',
+  feed_url: 'https://www.sanders.senate.gov/press-releases/feed/',
+  total: 45,
+  newest_published_at: '2026-09-19T15:39:36Z',
+  items: [...SANDERS_RELEASES, ...fillerReleases(42)],
+  sources: [STATEMENT_SOURCE],
+};
+
+/** A member whose office has no feed: the tab links to the press page. */
+export const STEIL_STATEMENTS: StatementsResponse = {
+  bioguide_id: 'S001213',
+  mode: 'link',
+  label: 'steil.house.gov',
+  press_url: 'https://steil.house.gov/media/press-releases',
+  feed_url: null,
+  total: 0,
+  newest_published_at: null,
+  items: [],
+  sources: [
+    { ...STATEMENT_SOURCE, source: 'press_page', source_url: 'https://steil.house.gov/media/press-releases' },
+  ],
+};
+
+export const NO_STATEMENTS: StatementsResponse = {
+  bioguide_id: 'S001213',
+  mode: 'none',
+  label: null,
+  press_url: null,
+  feed_url: null,
+  total: 0,
+  newest_published_at: null,
+  items: [],
   sources: [],
 };
