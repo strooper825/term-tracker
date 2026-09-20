@@ -19,6 +19,7 @@ also recorded here once made.
 - [0012. Chamber composition is a hand-maintained seed, cross-checked against congress-legislators](0012-chamber-composition-seed.md)
 - [0013. Congress overview: what the tracked-member figures count](0013-congress-overview-definitions.md)
 - [0014. The Senate's control threshold counts the Vice President's tiebreak](0014-senate-control-threshold.md)
+- [0015. Public statements: official press feeds from a hand-verified seed, link-out for everyone else](0015-public-statements-feeds.md)
 
 ## Format
 

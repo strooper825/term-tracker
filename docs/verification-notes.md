@@ -3,6 +3,38 @@
 Corrections and source checks that belong with the record but arrived after the PR they
 concern was merged. Newest first.
 
+## 2026-09-19: press-feed checks behind the Public statements tab (ADR 0015)
+
+Every feed and press URL in `dbt/seeds/statement_sources.csv` was fetched on 2026-09-19 with the
+project's own user agent, and each feed's newest item compared with the newest on the office's
+listing. This corrects `docs/research/public-statements-source-survey.md`, which was written the
+same day and is wrong in two places:
+
+- **Ossoff has a good feed; the survey tested the wrong URL.** `ossoff.senate.gov/feed/` is the
+  generic WordPress post feed: three items, newest 2025-06-10, while his listing shows
+  2026-09-18. His press releases are a custom post type with its own feed,
+  `/press-releases/feed/` (ten items a page, newest 2026-09-18, full text, `?paged=N` works, 524
+  items back to 2025-01-03). The survey called `/feed/` "freshest"; its sample dates (2024 and
+  2025) were the clue and were not checked against the listing.
+- **Ron Johnson has a feed; the survey found none.** `/category/press-releases/feed/` returns ten
+  full-text items, newest 2026-09-16, matching his listing. The survey tried only `/rss.xml` and
+  `/press-releases/feed/`. His press page is `/category/press-releases/`; the survey's
+  `/press-releases` answers 404 to every user agent, not only bots.
+
+So six of the twenty tracked members have a usable feed, not five; the random-sample "None" results
+used a similar short list of paths and are best read as a floor (survey section 6 is updated).
+
+Other checks that day: `robots.txt` for sanders, slotkin, ronjohnson, ossoff and speaker.gov allows
+everything (speaker.gov and ossoff disallow only `/wp-admin/`); jeffries.house.gov has none (404).
+All twenty press URLs load except that one. On feed paths `cotton.senate.gov/feed/` and both
+`schiff.senate.gov` paths tried answer 503 (Cotton's press-release path answers 404); nothing
+further was tried.
+
+Separately, the local Docker database carries revision `0007` from the unmerged `election-context`
+branch (`raw.election_return_contest`), and this branch's statements migration is also `0007`.
+Whichever merges second needs renumbering, and a database that ran the other one needs
+`alembic stamp 0006` before `upgrade head`. Verification here used a scratch clone.
+
 ## 2026-09-13: Phase 1f verification table (PR #9)
 
 **What is wrong in the PR description.** The section "Every number on both members' pages,

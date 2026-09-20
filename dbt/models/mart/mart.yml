@@ -63,6 +63,45 @@ models:
           - not_null
           - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
 
+  - name: statement_source
+    description: >
+      One row per tracked member: `feed` (releases ingested from the office's own feed) or `link`
+      (the tab links to the press page). Counts and dates are zero/null for a link member.
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: mode
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["feed", "link"] } }
+      - name: press_url
+        tests: [not_null]
+      - name: statements
+        tests: [not_null]
+
+  - name: statement
+    description: >
+      Press releases from the official feeds of `feed` members, since the tracked Congress began.
+      content_html is verbatim and sanitised by the site.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: guid
+        tests: [not_null]
+      - name: title
+        tests: [not_null]
+      - name: published_at
+        tests: [not_null]
+      - name: url
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
   - name: term_history
     description: Every term a tracked member has served, in source order.
     columns:

@@ -225,6 +225,30 @@ export interface ContactResponse {
   sources: SourceRef[];
 }
 
+export interface StatementItem {
+  guid: string;
+  title: string;
+  published_at: string;
+  published_date: string;
+  url: string;
+  author: string | null;
+  categories: string[];
+  description: string | null;
+  content_html: string | null;
+}
+
+export interface StatementsResponse {
+  bioguide_id: string;
+  mode: 'feed' | 'link' | 'none';
+  label: string | null;
+  press_url: string | null;
+  feed_url: string | null;
+  total: number;
+  newest_published_at: string | null;
+  items: StatementItem[];
+  sources: SourceRef[];
+}
+
 export interface KeyDatesResponse {
   bioguide_id: string;
   items: KeyDate[];

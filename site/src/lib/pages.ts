@@ -6,6 +6,7 @@ import {
   buildBillPage,
   buildCommitteeRows,
   buildContact,
+  buildStatements,
   buildElection,
   buildFundraising,
   buildHeader,
@@ -53,12 +54,13 @@ export async function congressPageProps(): Promise<{
 }
 
 export async function dashboardProps(bioguide: string, today = new Date()): Promise<DashboardProps> {
-  const [detail, feed, committees, contact, keyDates, fundraising, freshness, sessions] =
+  const [detail, feed, committees, contact, statements, keyDates, fundraising, freshness, sessions] =
     await Promise.all([
     api.member(bioguide),
     api.feedAll(bioguide),
     api.committees(bioguide),
     api.contact(bioguide),
+    api.statements(bioguide),
     api.keyDates(bioguide),
     api.fundraising(bioguide),
     api.freshness(),
@@ -78,6 +80,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     election: buildElection(keyDates.items, detail, today),
     committees: buildCommitteeRows(committees.items),
     contact: buildContact(contact),
+    statements: buildStatements(statements),
     keyDates: buildKeyDates(keyDates.items),
     fundraising: buildFundraising(fundraising, detail.seat.chamber),
     lastUpdated: lastUpdated(freshness),

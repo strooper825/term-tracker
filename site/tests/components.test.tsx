@@ -14,6 +14,8 @@ import {
   buildStats,
   buildTerm,
   buildContact,
+  buildStatements,
+  type StatementsModel,
   buildDateRanges,
   policyAreaTotals,
   buildVoteRows,
@@ -38,6 +40,8 @@ import {
   STEIL_LIST,
   BOOZMAN_CONTACT,
   NO_CONTACT,
+  SANDERS_STATEMENTS,
+  STEIL_STATEMENTS,
   STEIL_CONTACT,
   SESSIONS,
 } from './fixtures';
@@ -52,7 +56,12 @@ function facts(): Record<string, string> {
   );
 }
 
-function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING, contact = STEIL_CONTACT) {
+function dashboard(
+  detail = STEIL,
+  fundraising = STEIL_FUNDRAISING,
+  contact = STEIL_CONTACT,
+  statements: StatementsModel | null = null,
+) {
   return (
     <MemberDashboard
       member={buildHeader(detail)}
@@ -66,6 +75,7 @@ function dashboard(detail = STEIL, fundraising = STEIL_FUNDRAISING, contact = ST
       election={buildElection(STEIL_KEY_DATES, detail, TODAY)}
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       contact={buildContact(contact)}
+      statements={statements}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}
       lastUpdated="Sep 13, 2026 02:09 UTC"
@@ -389,6 +399,32 @@ describe('member tabs', () => {
     render(dashboard());
     fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
+  });
+});
+
+describe('member dashboard: public statements tab', () => {
+  it('stays a coming-soon tab for a member outside the statement sources seed', () => {
+    render(dashboard());
+    expect(screen.getByRole('tab', { name: /Public statements/ })).toHaveTextContent('Soon');
+  });
+
+  it('opens on the feed for a member with one, with no Soon marker', () => {
+    render(dashboard(SANDERS, STEIL_FUNDRAISING, STEIL_CONTACT, buildStatements(SANDERS_STATEMENTS)));
+    const tab = screen.getByRole('tab', { name: /Public statements/ });
+    expect(tab).not.toHaveTextContent('Soon');
+    fireEvent.click(tab);
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-statements');
+    expect(within(panel).getByRole('searchbox', { name: 'Search public statements' })).toBeInTheDocument();
+    expect(within(panel).getAllByRole('article')).toHaveLength(25);
+  });
+
+  it('opens on the press-page link for a member whose office has no feed', () => {
+    render(dashboard(STEIL, STEIL_FUNDRAISING, STEIL_CONTACT, buildStatements(STEIL_STATEMENTS)));
+    fireEvent.click(screen.getByRole('tab', { name: /Public statements/ }));
+    expect(
+      within(screen.getByRole('tabpanel')).getByRole('link', { name: /Press releases on steil\.house\.gov/ }),
+    ).toHaveAttribute('href', 'https://steil.house.gov/media/press-releases');
   });
 });
 

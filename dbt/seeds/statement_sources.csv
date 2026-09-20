@@ -1,0 +1,21 @@
+bioguide_id,mode,label,press_url,feed_url,note
+S001213,link,steil.house.gov,https://steil.house.gov/media/press-releases,,Only a sitewide rss.xml (excerpts; mixes pages with releases)
+C001095,link,cotton.senate.gov,https://www.cotton.senate.gov/news/press-releases,,Feed paths answer 503 or 404
+S000033,feed,sanders.senate.gov,https://www.sanders.senate.gov/press-releases/,https://www.sanders.senate.gov/press-releases/feed/,"Verified 2026-09-19: press-scoped, full text, newest item matches the listing; robots.txt allows all"
+S001208,feed,slotkin.senate.gov,https://www.slotkin.senate.gov/category/press-releases/,https://www.slotkin.senate.gov/category/press-releases/feed/,"Verified 2026-09-19: press-scoped, full text, newest item matches the listing; robots.txt allows all"
+K000401,link,kiley.house.gov,https://kiley.house.gov/media,,/feed redirects to an admin host that does not resolve
+J000294,feed,jeffries.house.gov,https://jeffries.house.gov/media-center/press-releases/,https://jeffries.house.gov/feed/,"Verified 2026-09-19: full text, newest item matches the listing; no robots.txt (404)"
+C001087,link,crawford.house.gov,https://crawford.house.gov/media/press-releases,,Only a sitewide rss.xml (excerpts; mixes pages with releases)
+J000293,feed,ronjohnson.senate.gov,https://www.ronjohnson.senate.gov/category/press-releases/,https://www.ronjohnson.senate.gov/category/press-releases/feed/,"Verified 2026-09-19: press-scoped, full text, fresh; the listing is /category/press-releases/ (/press-releases 404s)"
+B001230,link,baldwin.senate.gov,https://www.baldwin.senate.gov/news/press-releases,,No feed found
+M000355,link,mcconnell.senate.gov,https://www.mcconnell.senate.gov/public/index.cfm/pressreleases,,robots.txt disallows all crawlers; link out only
+P000607,link,pocan.house.gov,https://pocan.house.gov/media-center/press-releases,,rss.xml serves banner content rather than press releases
+O000174,feed,ossoff.senate.gov,https://www.ossoff.senate.gov/press-releases/,https://www.ossoff.senate.gov/press-releases/feed/,"Verified 2026-09-19: press-scoped, full text, newest item matches the listing; the generic /feed/ is stale and is not used; robots.txt allows all"
+B001236,link,boozman.senate.gov,https://www.boozman.senate.gov/public/index.cfm/press-releases,,No feed found
+M001169,link,murphy.senate.gov,https://www.murphy.senate.gov/newsroom/press-releases,,No feed found
+S001150,link,schiff.senate.gov,https://www.schiff.senate.gov/newsroom/press-releases/,,Feed paths answer 503
+M001184,link,massie.house.gov,https://massie.house.gov/news/,,No feed found
+K000389,link,khanna.house.gov,https://khanna.house.gov/media/press-releases,,Only a sitewide rss.xml that trails the listing by over a year
+O000172,link,ocasio-cortez.house.gov,https://ocasio-cortez.house.gov/media/press-releases,,Only a sitewide rss.xml that trails the listing
+J000299,feed,speaker.gov,https://www.speaker.gov/category/press-releases/,https://www.speaker.gov/feed/,"Verified 2026-09-19: the Speaker's office feed, full text, fresh; robots.txt disallows only /wp-admin/. mikejohnson.house.gov has no feed"
+P000605,link,perry.house.gov,https://perry.house.gov/news/documentquery.aspx?DocumentTypeID=2608,,No feed found
