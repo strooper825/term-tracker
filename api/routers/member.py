@@ -34,6 +34,8 @@ from api.schemas.member import (
     ReceiptBreakdown,
     ReceiptSource,
     ServiceRecord,
+    StatementItem,
+    StatementsResponse,
     TermHistoryItem,
     TermSpan,
     TimelineResponse,
@@ -140,6 +142,26 @@ CONTACT_SQL = text(
            source, source_url, fetched_at
     FROM mart.member_contact
     WHERE bioguide_id = :bioguide
+    """
+)
+
+STATEMENT_SOURCE_SQL = text(
+    """
+    SELECT mode, label, press_url, feed_url, statements, newest_published_at,
+           source, source_url, fetched_at
+    FROM mart.statement_source
+    WHERE bioguide_id = :bioguide
+    """
+)
+
+STATEMENTS_SQL = text(
+    """
+    SELECT guid, title, published_at, published_date, url, author, categories, description,
+           content_html
+    FROM mart.statement
+    WHERE bioguide_id = :bioguide
+    ORDER BY published_at DESC, guid DESC
+    LIMIT :limit
     """
 )
 
@@ -413,6 +435,48 @@ def member_contact(
         bioguide_id=bioguide,
         **{f: row[f] if row else None for f in fields},
         sources=_sources([row]) if row else [],
+    )
+
+
+@router.get(
+    "/statements",
+    response_model=StatementsResponse,
+    summary="Press releases from the member's own feed, or the press page to link to",
+)
+def member_statements(
+    bioguide: str,
+    session: Annotated[Session, Depends(get_session)],
+    limit: Annotated[int, Query(ge=1, le=5000)] = 5000,
+) -> StatementsResponse:
+    _summary(session, bioguide)
+    source = session.execute(STATEMENT_SOURCE_SQL, {"bioguide": bioguide}).mappings().first()
+    if source is None:
+        return StatementsResponse(
+            bioguide_id=bioguide,
+            mode="none",
+            label=None,
+            press_url=None,
+            feed_url=None,
+            total=0,
+            newest_published_at=None,
+            items=[],
+            sources=[],
+        )
+    rows = (
+        session.execute(STATEMENTS_SQL, {"bioguide": bioguide, "limit": limit}).mappings().all()
+        if source["mode"] == "feed"
+        else []
+    )
+    return StatementsResponse(
+        bioguide_id=bioguide,
+        mode=source["mode"],
+        label=source["label"],
+        press_url=source["press_url"],
+        feed_url=source["feed_url"],
+        total=source["statements"],
+        newest_published_at=source["newest_published_at"],
+        items=[StatementItem(**{k: row[k] for k in StatementItem.model_fields}) for row in rows],
+        sources=_sources([source]),
     )
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -63,6 +63,7 @@ def teardown_function() -> None:
         "/bills",
         "/committees",
         "/contact",
+        "/statements",
         "/key-dates",
         "/fundraising",
     ],
@@ -93,6 +94,8 @@ def test_malformed_cursor_is_400(client: TestClient) -> None:
         ("/feed?limit=0", 422),
         ("/feed?limit=201", 422),
         ("/votes?limit=0", 422),
+        ("/statements?limit=0", 422),
+        ("/statements?limit=5001", 422),
         ("/bills?role=author", 422),
         ("/timeline?from=2026-02-01&to=2026-01-01", 400),
         ("/timeline?from=yesterday", 422),
@@ -114,6 +117,7 @@ def test_openapi_lists_every_section_6_endpoint(client: TestClient) -> None:
         "/api/v1/members/{bioguide}/bills",
         "/api/v1/members/{bioguide}/committees",
         "/api/v1/members/{bioguide}/contact",
+        "/api/v1/members/{bioguide}/statements",
         "/api/v1/members/{bioguide}/key-dates",
         "/api/v1/members/{bioguide}/fundraising",
         "/api/v1/meta/freshness",
@@ -389,3 +393,72 @@ def test_fundraising_missing_data_keeps_the_status_and_no_zeros(
     for key in nulls:
         assert body[key] is None, key
     assert body["small_donor_pct"] is None
+
+
+def _source_row(mode: str, **overrides: object) -> dict:
+    return {
+        "mode": mode,
+        "label": "sanders.senate.gov",
+        "press_url": "https://www.sanders.senate.gov/press-releases/",
+        "feed_url": "https://www.sanders.senate.gov/press-releases/feed/"
+        if mode == "feed"
+        else None,
+        "statements": 2 if mode == "feed" else 0,
+        "newest_published_at": datetime(2026, 9, 19, 15, 39, tzinfo=UTC)
+        if mode == "feed"
+        else None,
+        "source": "press_feed" if mode == "feed" else "press_page",
+        "source_url": "https://www.sanders.senate.gov/press-releases/",
+        "fetched_at": datetime(2026, 9, 19, 23, 0, tzinfo=UTC),
+        **overrides,
+    }
+
+
+def _statement_row(n: int) -> dict:
+    return {
+        "guid": f"https://www.sanders.senate.gov/?p={n}",
+        "title": f"Statement {n}",
+        "published_at": datetime(2026, 9, 19 - n, 12, 0, tzinfo=UTC),
+        "published_date": date(2026, 9, 19 - n),
+        "url": f"https://www.sanders.senate.gov/press-releases/statement-{n}/",
+        "author": "Sanders",
+        "categories": ["Press Releases"],
+        "description": "Excerpt",
+        "content_html": "<p>Full text</p>",
+    }
+
+
+def test_statements_for_a_feed_member(client: TestClient) -> None:
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.statement_source": [_source_row("feed")],
+            "ORDER BY published_at DESC, guid DESC": [_statement_row(0), _statement_row(1)],
+        },
+    )
+    body = client.get("/api/v1/members/S001213/statements").json()
+    assert body["mode"] == "feed" and body["total"] == 2
+    assert [i["title"] for i in body["items"]] == ["Statement 0", "Statement 1"]
+    assert body["items"][0]["content_html"] == "<p>Full text</p>"
+    assert body["feed_url"].endswith("/feed/")
+    assert body["sources"][0]["source"] == "press_feed"
+
+
+def test_statements_for_a_link_member_carry_no_items(client: TestClient) -> None:
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.statement_source": [_source_row("link")],
+            "ORDER BY published_at DESC, guid DESC": [_statement_row(0)],
+        },
+    )
+    body = client.get("/api/v1/members/S001213/statements").json()
+    assert body["mode"] == "link" and body["items"] == [] and body["total"] == 0
+    assert body["press_url"] == "https://www.sanders.senate.gov/press-releases/"
+    assert body["feed_url"] is None
+
+
+def test_statements_for_a_member_not_in_the_seed_are_none(client: TestClient) -> None:
+    _use_rows([_summary_row()], {"mart.statement_source": []})
+    body = client.get("/api/v1/members/S001213/statements").json()
+    assert body["mode"] == "none" and body["items"] == [] and body["sources"] == []
