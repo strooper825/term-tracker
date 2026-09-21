@@ -21,6 +21,7 @@ also recorded here once made.
 - [0014. The Senate's control threshold counts the Vice President's tiebreak](0014-senate-control-threshold.md)
 - [0015. Public statements: official press feeds from a hand-verified seed, link-out for everyone else](0015-public-statements-feeds.md)
 - [0016. Constituency tab: Census boundary maps and ACS estimates, keyed by the Congress they describe](0016-constituency-tab-census-sources.md)
+- [0018. Stock trades: House PTRs from the Clerk's own files, no Senate, no OCR](0018-house-ptr-stock-trades.md)
 - [0017. The deployment ships pages, not prefetch payloads](0017-strip-prefetch-payloads.md)
 
 ## Format

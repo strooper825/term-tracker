@@ -155,6 +155,44 @@ Speaker 381, Slotkin 269, Sanders 225, R. Johnson 117), 9.8 MB in `raw.statement
 reads page 1 of each feed (6 requests) and stops at the first page that holds a stored item. One
 item in Jeffries's history (2025-05-23) has an empty title and is skipped with a warning.
 
+## Raw tables: House Periodic Transaction Reports (Alembic migration `0009`, ADR 0018)
+
+Loaded by `python -m ingest.run --source house_ptr` for every tracked member whose latest term is
+in the House. Two files are read from `disclosures-clerk.house.gov/public_disc`, both public and
+keyless: `financial-pdfs/{year}FD.zip` (the filing index, one per calendar year of the tracked
+Congress) and `ptr-pdfs/{year}/{DocID}.pdf` (the report). The index has a name and a
+state-district but no bioguide id, so a `P` (Periodic Transaction Report) row is matched to a member
+when state, district and normalised last name all equal those of the member's current House term.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.house_ptr_filing` | `doc_id` | PTR of a tracked member; columns `bioguide_id`, `year`, `status` (`parsed`, `scanned`, `failed`), `error`, `payload` (`index`: the index row as the Clerk prints it; `pdf`: `pages`, `text_chars`, `filer_name`, `state_district`), `source_url` (the PDF), `fetched_at` |
+| `raw.house_ptr_transaction` | `doc_id`, `row_number` | transaction row of a `parsed` filing; `payload` holds every cell as printed (`owner`, `asset`, `type`, `trade_date`, `notification_date`, `amount`, `page`, and `detail`: `filing_status`, `subholding_of`, `description`, `location`, `comments`), `source_url` is the PDF with `#page=N` |
+
+`status`: `parsed` is a PDF with a text layer whose table read back as whole rows; `scanned` is a paper
+form photographed to an image (CCITT, no text, so nothing can be read without OCR; ADR 0018 declines
+OCR); `failed` is text with no whole table, or a PDF header that disagrees with the index, and `error`
+says why. A filing whose reading fails on any row stores no rows at all, so a partial list never looks
+complete. `parsed` and `scanned` filings are fetched once; `failed` ones are retried every night; a
+`--full-refresh` reads all again and replaces each filing's rows. A PDF that cannot be fetched is not
+stored and is retried the next night.
+
+Source shape (verified 2026-09-20 on every 2025 and 2026 PTR, 910 filings, all House filers): the index
+(4,599 rows for the two years) is tab separated with header `Prefix Last First Suffix FilingType
+StateDst Year FilingDate DocID`, and names can hold bare quotation marks (`Eric A. "Rick"`), so it is
+read with quoting off. Electronic filings have DocIDs starting `2`; paper ones start `8` or `9`. Of the
+910, 798 have text (10,936 transaction rows) and 112 are scans. Every table row is on one line with the
+owner, asset, type and dates, and the asset name and amount may wrap onto further lines, including
+across a page break; the detail lines beneath use a smaller font. Some PDFs print the detail labels
+("Filing Status:") with unmapped glyphs, so a label is identified by its first letter. Amounts: 10,911 bands, 10 "Spouse/DC Over $1,000,000", 15 exact figures. Codes seen: types
+`P` 5,493, `S` 3,645, `S (partial)` 1,733, `E` 65; owners self 5,800, `SP` 2,912, `JT` 1,631, `DC` 593;
+asset types `ST`, `GS`, `OT`, `CS`, `HN`, `OI`, `OP`, `CT`, `PS`, `VA`, `OL`, `AB`, `ET`, `RS`.
+
+Tracked members with PTRs, 2025-01-03 to 2026-09-20: only Ro Khanna (`K000389`), 20 filings, 590 pages,
+all scanned. The other nine House members filed annual reports and extensions but no PTR. First
+ingest: 4,599 index rows, 20 filings fetched, 22 requests, 17.5 MB, 21 seconds at one request a second;
+a normal night is 2 requests.
+
 ## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
 
 Loaded by `python -m ingest.run --source census_geography` and `--source census_acs`, for the
@@ -196,6 +234,9 @@ every state and district. The Data API needs `CENSUS_API_KEY`.
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
 | `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
 | `seed.statement_sources` | `bioguide_id` | How the Public statements tab treats each tracked member (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
+| `seed.ptr_transaction_types` | `code` | Transaction-type codes on a House PTR (ADR 0018): `code` (`P`, `S`, `S (partial)`, `E`), `label` (Purchase, Sale, Partial sale, Exchange), `direction` (`purchase`, `sale`, `exchange`; the mart groups by it). |
+| `seed.ptr_owner_codes` | `code` | Owner codes: `SELF` (a blank owner cell), `SP` spouse, `DC` dependent child, `JT` joint. |
+| `seed.ptr_asset_types` | `code` | All 48 asset-type codes the Clerk lists (https://fd.house.gov/reference/asset-type-codes.aspx, copied 2026-09-20), whether or not a tracked member used one. A code that is not here keeps its row and is flagged (`has_unmapped_code`). |
 | `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
 ## Staging views (`staging` schema, dbt)
@@ -230,6 +271,15 @@ FEC: `stg_fec_candidates` (one row per candidate id: `office`, `state`, `distric
 
 Statements: `stg_statements` (one row per feed item: `title`, `url`, `published_at` cast from the
 feed's RFC 822 date, `author`, `categories` as `text[]`, `description`, `content_html`, `feed_url`).
+
+House PTRs: `stg_house_ptr_filings` (typed `raw.house_ptr_filing`: `filing_date` cast from the
+index's m/d/yyyy, `pages`, `status`, `error`, `pdf_url`) and `stg_house_ptr_transactions` (the strings
+of `raw.house_ptr_transaction` read out: `owner_code` with a blank as `SELF`, `asset_type_code` the
+bracketed two-character code that ends the asset cell, `ticker` the last parenthetical when it looks
+like one (a CUSIP such as `91282CGH8` does not, so a bond keeps it in `asset_name`), `asset_name` the
+cell without the code or ticker, `trade_date` and `notification_date` cast, and `amount_kind`
+(`band`, `top_band`, `exact`) with `amount_low` and `amount_high` as `numeric(14,2)`; `amount_high` is null
+for a top band). A date or amount Postgres cannot read fails the build rather than becoming a null.
 
 `stg_constituency_geometry` (typed `raw.constituency_geometry`: `fips_state`, `district` null for a
 state and 0 for at large or a delegate, the frame size, paths and counties) and `stg_acs_estimates`
@@ -394,6 +444,64 @@ member page, and searches it in the browser. The cap matters for size: Jeffries 
 3.1 MB of text uncapped, and his built page is 2.3 MB (547 KB gzipped), the largest of the six feed
 members; a link-out member's page is about 0.5 MB (measured on the 2026-09-19 build). The releases
 are the members' offices' words, reproduced from their own feeds; the tab links each one back.
+
+### `mart.member_stock_trades`
+
+One row per tracked member: what the Stock trades tab says (ADR 0018). Key `bioguide_id`.
+
+| Column | Description |
+|---|---|
+| `chamber` | `house` / `senate`, from the latest term |
+| `status` | `senate_unavailable` (a senator: the Senate eFD system blocks automated access, so nothing is ingested), `no_filings` (a House member the Clerk index lists no PTR for since the Congress began), `filed` (a House member with at least one PTR) |
+| `filings`, `filings_parsed`, `filings_scanned`, `filings_failed` | Reports by what reading the PDF gave; the last three sum to `filings` |
+| `latest_filing_date` | Newest report's filing date |
+| `trades`, `purchases`, `sales`, `exchanges` | Rows in `mart.stock_trade` by `direction`; a trade with an unmapped type code is `other` and counts only in `trades` |
+| `purchases_low`, `purchases_high`, `sales_low`, `sales_high` | Sums of the low and high ends of the disclosed bands. They bracket the true total; a trade's real value lies inside its band |
+| `purchases_high_is_open`, `sales_high_is_open` | A top-band trade ("Over $50,000,000") has no high end, so the high sum is a floor, not a ceiling, and the site reads "$X or more" |
+| `first_trade_date`, `last_trade_date` | Range of trade dates listed |
+| `covers_from` | The dbt var `current_congress_start`: what "no reports" is measured from |
+| `lookup_url`, `source`, `source_url` | The official search a person can check against: the Clerk's for House members (`house_clerk_ptr`), the Senate's for senators (`senate_efd`) |
+| `checked_at`, `fetched_at` | Last successful `house_ptr` run (`meta.ingest_run`), and the latest fetch of a member's filings (else the same) |
+
+Verified against the ingest 2026-09-20: Khanna `filed`, 20 filings all scanned, 0 trades; the other nine
+House members `no_filings`; the ten senators `senate_unavailable`. `assert_stock_trade_counts_consistent`
+checks every count against the rows beside it and that no senator has a PTR row.
+
+`GET /api/v1/members/{id}/stock-trades` returns the row as `status`, `chamber`, `covers_from`,
+`lookup_url`, `checked_at` and `summary` (the counts and totals above), with `filings` (every
+report, newest first) and `items` (every trade, newest first). The site formats those and computes
+nothing: the tab shows the empty-record message for `no_filings`, a "not available for the Senate"
+message for `senate_unavailable`, and for `filed` the summary, a notice for scanned and unreadable
+reports, the trade list and the report list.
+
+### `mart.stock_trade_filing`
+
+One row per PTR a tracked House member has filed since the tracked Congress began, whatever reading its
+PDF gave. Key `doc_id`. Columns `bioguide_id`, `year`, `filing_date`, `status` (`parsed`, `scanned`,
+`failed`), `error`, `pages`, `trades` (rows in `mart.stock_trade`; 0 unless `parsed`), `source`
+(`house_clerk_ptr`), `source_url` (the PDF), `fetched_at`. The dbt warning `assert_ptr_filings_parsed`
+names each `failed` filing with its reason. `scanned` filings are expected and not warned.
+
+### `mart.stock_trade`
+
+One row per transaction on a tracked House member's PTR, the trade list. Natural key `(doc_id,
+row_number)` (`assert_stock_trade_key_unique`). Columns `bioguide_id`, `filing_date`, `trade_date`,
+`notification_date`, `days_to_file` (filing date minus trade date), `owner_code`/`owner_label`,
+`asset_name`, `ticker`, `asset_type_code`/`asset_type_label`, `transaction_type_code`/
+`transaction_type_label`, `direction` (`purchase`, `sale`, `exchange`, `other`), `amount_raw` (as printed),
+`amount_kind`, `amount_low`, `amount_high`, the detail lines `filing_status`, `subholding_of`,
+`description`, `location`, `comments`, `has_unmapped_code`, `source` (`house_clerk_ptr`), `source_url`
+(the PDF with `#page=N`) and `fetched_at`. An unmapped code keeps its row, is labelled by its raw code and
+sets `has_unmapped_code`; the warning `assert_stock_trade_codes_mapped` counts each. The disclosed amount
+is a band, not a figure: a filer may instead enter one exact amount (`amount_kind` `exact`, low equal to
+high).
+
+Checked across the sweep of every 2025 and 2026 House PTR (798 parsed filings, none from a tracked member,
+so 0 rows in this table today): 10,936 rows, every type, owner and asset code mapped, and the row count of
+every filing equal to an independent count of its adjacent trade-date and notification-date pairs made with
+a different PDF library. The warning `assert_stock_trade_dates_sane` names a trade dated after its filing
+or notified before it was made; these are typos in the filing as the Clerk publishes it and are shown as
+printed (46 of the 10,936 sweep rows, one filing printing a notification date of 03/28/1935).
 
 ### `mart.committee`
 

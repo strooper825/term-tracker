@@ -21,6 +21,7 @@ from ingest.sources import (
     census_geography,
     congress_gov,
     fec,
+    house_ptr,
     house_votes,
     legislators,
     senate_votes,
@@ -34,7 +35,8 @@ log = logging.getLogger("ingest")
 # votes before bills, so bills referenced by new roll calls are fetched the same night. The two
 # Census sources read nothing from the others and change once a year, so they go near the end.
 # Statements read third-party office sites, so they run last: a failure there cannot hold up
-# the vote, bill, FEC or Census loads (ADR 0015).
+# the vote, bill, FEC or Census loads (ADR 0015). House PTRs read the Clerk's public files and
+# come just before them for the same reason (ADR 0018), so statements stay last.
 SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
     house_votes.SOURCE: house_votes.run,
@@ -43,6 +45,7 @@ SOURCES: dict[str, Callable[..., int]] = {
     fec.SOURCE: fec.run,
     census_geography.SOURCE: census_geography.run,
     census_acs.SOURCE: census_acs.run,
+    house_ptr.SOURCE: house_ptr.run,
     statements.SOURCE: statements.run,
 }
 

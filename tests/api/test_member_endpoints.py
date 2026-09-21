@@ -40,7 +40,7 @@ class _StubSession:
         for table, rows in self.by_table.items():
             if table in sql:
                 return _Result(rows)
-        if "mart.term_history" in sql or "mart.leadership_role" in sql:
+        if any(t in sql for t in ("mart.term_history", "mart.leadership_role", "mart.stock_trade")):
             return _Result([])
         return _Result(self.rows)
 
@@ -65,6 +65,7 @@ def teardown_function() -> None:
         "/contact",
         "/constituency",
         "/statements",
+        "/stock-trades",
         "/key-dates",
         "/fundraising",
     ],
@@ -120,6 +121,7 @@ def test_openapi_lists_every_section_6_endpoint(client: TestClient) -> None:
         "/api/v1/members/{bioguide}/contact",
         "/api/v1/members/{bioguide}/constituency",
         "/api/v1/members/{bioguide}/statements",
+        "/api/v1/members/{bioguide}/stock-trades",
         "/api/v1/members/{bioguide}/key-dates",
         "/api/v1/members/{bioguide}/fundraising",
         "/api/v1/meta/freshness",
@@ -464,3 +466,168 @@ def test_statements_for_a_member_not_in_the_seed_are_none(client: TestClient) ->
     _use_rows([_summary_row()], {"mart.statement_source": []})
     body = client.get("/api/v1/members/S001213/statements").json()
     assert body["mode"] == "none" and body["items"] == [] and body["sources"] == []
+
+
+PTR_URL = "https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/20033945.pdf"
+CLERK_SEARCH = "https://disclosures-clerk.house.gov/FinancialDisclosure"
+
+
+def _trades_summary(status: str, **overrides: object) -> dict:
+    return {
+        "bioguide_id": "S001213",
+        "chamber": "senate" if status == "senate_unavailable" else "house",
+        "status": status,
+        "filings": 0,
+        "filings_parsed": 0,
+        "filings_scanned": 0,
+        "filings_failed": 0,
+        "latest_filing_date": None,
+        "trades": 0,
+        "purchases": 0,
+        "sales": 0,
+        "exchanges": 0,
+        "purchases_low": 0,
+        "purchases_high": 0,
+        "purchases_high_is_open": False,
+        "sales_low": 0,
+        "sales_high": 0,
+        "sales_high_is_open": False,
+        "first_trade_date": None,
+        "last_trade_date": None,
+        "covers_from": date(2025, 1, 3),
+        "lookup_url": "https://efdsearch.senate.gov/search/"
+        if status == "senate_unavailable"
+        else CLERK_SEARCH,
+        "source": "senate_efd" if status == "senate_unavailable" else "house_clerk_ptr",
+        "source_url": CLERK_SEARCH,
+        "fetched_at": datetime(2026, 9, 20, 6, 0, tzinfo=UTC),
+        "checked_at": datetime(2026, 9, 20, 6, 0, tzinfo=UTC),
+        **overrides,
+    }
+
+
+def _trade_row(n: int, **overrides: object) -> dict:
+    return {
+        "doc_id": "20033945",
+        "row_number": n,
+        "trade_date": date(2026, 1, 14),
+        "notification_date": date(2026, 2, 4),
+        "filing_date": date(2026, 2, 17),
+        "days_to_file": 34,
+        "owner_code": "SP",
+        "owner_label": "Spouse",
+        "asset_name": "Paychex, Inc. - Common Stock",
+        "ticker": "PAYX",
+        "asset_type_code": "ST",
+        "asset_type_label": "Stocks (including ADRs)",
+        "transaction_type_code": "S",
+        "transaction_type_label": "Sale",
+        "direction": "sale",
+        "amount_raw": "$15,001 - $50,000",
+        "amount_kind": "band",
+        "amount_low": 15001,
+        "amount_high": 50000,
+        "filing_status": "New",
+        "subholding_of": "LIVTR",
+        "description": None,
+        "location": None,
+        "comments": None,
+        "has_unmapped_code": False,
+        "source_url": f"{PTR_URL}#page=1",
+        **overrides,
+    }
+
+
+def _filing_row(doc_id: str, status: str, trades: int) -> dict:
+    return {
+        "doc_id": doc_id,
+        "year": 2026,
+        "filing_date": date(2026, 2, 17),
+        "status": status,
+        "error": "page 1: text before the first transaction" if status == "failed" else None,
+        "pages": 2,
+        "trades": trades,
+        "source_url": f"https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/{doc_id}.pdf",
+    }
+
+
+def test_stock_trades_for_a_member_with_reports(client: TestClient) -> None:
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.member_stock_trades": [
+                _trades_summary(
+                    "filed",
+                    filings=3,
+                    filings_parsed=1,
+                    filings_scanned=1,
+                    filings_failed=1,
+                    trades=2,
+                    sales=2,
+                    sales_low=30002,
+                    sales_high=100000,
+                    latest_filing_date=date(2026, 2, 17),
+                )
+            ],
+            "mart.stock_trade_filing": [
+                _filing_row("20033945", "parsed", 2),
+                _filing_row("8221322", "scanned", 0),
+                _filing_row("20034201", "failed", 0),
+            ],
+            "ORDER BY trade_date DESC, doc_id DESC": [_trade_row(1), _trade_row(2)],
+        },
+    )
+    body = client.get("/api/v1/members/S001213/stock-trades").json()
+    assert body["status"] == "filed" and body["chamber"] == "house"
+    assert body["summary"]["filings_scanned"] == 1 and body["summary"]["sales_high"] == 100000
+    assert [f["status"] for f in body["filings"]] == ["parsed", "scanned", "failed"]
+    assert body["filings"][2]["error"].startswith("page 1")
+    assert [t["row_number"] for t in body["items"]] == [1, 2]
+    assert body["items"][0]["amount_high"] == 50000
+    assert body["items"][0]["source_url"].endswith("#page=1")
+    assert body["lookup_url"] == CLERK_SEARCH
+    assert body["sources"][0]["source"] == "house_clerk_ptr"
+
+
+def test_a_top_band_trade_has_no_high_end(client: TestClient) -> None:
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.member_stock_trades": [
+                _trades_summary("filed", filings=1, filings_parsed=1, trades=1, sales=1)
+            ],
+            "mart.stock_trade_filing": [_filing_row("20033945", "parsed", 1)],
+            "ORDER BY trade_date DESC, doc_id DESC": [
+                _trade_row(
+                    1,
+                    amount_raw="Over $50,000,000",
+                    amount_kind="top_band",
+                    amount_low=50000000,
+                    amount_high=None,
+                )
+            ],
+        },
+    )
+    item = client.get("/api/v1/members/S001213/stock-trades").json()["items"][0]
+    assert item["amount_low"] == 50000000 and item["amount_high"] is None
+
+
+def test_stock_trades_for_a_house_member_with_no_reports(client: TestClient) -> None:
+    _use_rows([_summary_row()], {"mart.member_stock_trades": [_trades_summary("no_filings")]})
+    body = client.get("/api/v1/members/S001213/stock-trades").json()
+    assert body["status"] == "no_filings" and body["filings"] == [] and body["items"] == []
+    assert body["summary"]["trades"] == 0 and body["covers_from"] == "2025-01-03"
+
+
+def test_stock_trades_for_a_senator_are_unavailable_not_empty(client: TestClient) -> None:
+    _use_rows(
+        [_summary_row()], {"mart.member_stock_trades": [_trades_summary("senate_unavailable")]}
+    )
+    body = client.get("/api/v1/members/S001213/stock-trades").json()
+    assert body["status"] == "senate_unavailable" and body["chamber"] == "senate"
+    assert body["items"] == [] and body["lookup_url"] == "https://efdsearch.senate.gov/search/"
+
+
+def test_stock_trades_without_a_mart_row_is_404(client: TestClient) -> None:
+    _use_rows([_summary_row()], {"mart.member_stock_trades": []})
+    assert client.get("/api/v1/members/S001213/stock-trades").status_code == 404

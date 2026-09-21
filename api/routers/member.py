@@ -43,6 +43,10 @@ from api.schemas.member import (
     ServiceRecord,
     StatementItem,
     StatementsResponse,
+    StockTradeFiling,
+    StockTradeItem,
+    StockTradesResponse,
+    StockTradesSummary,
     TermHistoryItem,
     TermSpan,
     TimelineResponse,
@@ -189,6 +193,36 @@ STATEMENTS_SQL = text(
     WHERE bioguide_id = :bioguide
     ORDER BY published_at DESC, guid DESC
     LIMIT :limit
+    """
+)
+
+STOCK_TRADES_SUMMARY_SQL = text(
+    """
+    SELECT *
+    FROM mart.member_stock_trades
+    WHERE bioguide_id = :bioguide
+    """
+)
+
+STOCK_TRADE_FILINGS_SQL = text(
+    """
+    SELECT doc_id, year, filing_date, status, error, pages, trades, source_url
+    FROM mart.stock_trade_filing
+    WHERE bioguide_id = :bioguide
+    ORDER BY filing_date DESC, doc_id DESC
+    """
+)
+
+STOCK_TRADES_SQL = text(
+    """
+    SELECT doc_id, row_number, trade_date, notification_date, filing_date, days_to_file,
+           owner_code, owner_label, asset_name, ticker, asset_type_code, asset_type_label,
+           transaction_type_code, transaction_type_label, direction, amount_raw, amount_kind,
+           amount_low, amount_high, filing_status, subholding_of, description, location, comments,
+           has_unmapped_code, source_url
+    FROM mart.stock_trade
+    WHERE bioguide_id = :bioguide
+    ORDER BY trade_date DESC, doc_id DESC, row_number
     """
 )
 
@@ -601,6 +635,38 @@ def member_statements(
         newest_published_at=source["newest_published_at"],
         items=[StatementItem(**{k: row[k] for k in StatementItem.model_fields}) for row in rows],
         sources=_sources([source]),
+    )
+
+
+@router.get(
+    "/stock-trades",
+    response_model=StockTradesResponse,
+    summary="House Periodic Transaction Reports: the trades, and what could not be read",
+)
+def member_stock_trades(
+    bioguide: str, session: Annotated[Session, Depends(get_session)]
+) -> StockTradesResponse:
+    _summary(session, bioguide)
+    row = session.execute(STOCK_TRADES_SUMMARY_SQL, {"bioguide": bioguide}).mappings().first()
+    if row is None:
+        raise HTTPException(
+            status_code=404, detail=f"No stock trade status for {bioguide}; rebuild the mart"
+        )
+    filings = session.execute(STOCK_TRADE_FILINGS_SQL, {"bioguide": bioguide}).mappings().all()
+    trades = session.execute(STOCK_TRADES_SQL, {"bioguide": bioguide}).mappings().all()
+    return StockTradesResponse(
+        bioguide_id=bioguide,
+        chamber=row["chamber"],
+        status=row["status"],
+        covers_from=row["covers_from"],
+        lookup_url=row["lookup_url"],
+        checked_at=row["checked_at"],
+        summary=StockTradesSummary(**{k: row[k] for k in StockTradesSummary.model_fields}),
+        filings=[
+            StockTradeFiling(**{k: f[k] for k in StockTradeFiling.model_fields}) for f in filings
+        ],
+        items=[StockTradeItem(**{k: t[k] for k in StockTradeItem.model_fields}) for t in trades],
+        sources=_sources([row]),
     )
 
 

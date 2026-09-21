@@ -41,6 +41,7 @@ import type {
   PassageVote,
   MemberDetail,
   StatementsResponse,
+  StockTradesResponse,
   MemberListItem,
   RaceKey,
 } from './types';
@@ -666,6 +667,141 @@ export function buildStatements(r: StatementsResponse): StatementsModel | null {
     statements,
     total: r.total,
     newest: statements[0].dateLabel,
+  };
+}
+
+/* ---- Stock trades (ADR 0018) ------------------------------------------------------------ */
+
+export type StockTradesStatus = 'filed' | 'no_filings' | 'senate_unavailable';
+export type FilingStatus = 'parsed' | 'scanned' | 'failed';
+
+export interface StockTradeRow {
+  /** doc id and row number: unique per trade */
+  key: string;
+  isoDate: string;
+  dateLabel: string;
+  /** "Filed 34 days later", from mart.stock_trade.days_to_file. */
+  filedLabel: string;
+  asset: string;
+  ticker: string | null;
+  assetType: string;
+  /** Self, Spouse, Dependent child or Joint, from the seed mapping. */
+  owner: string;
+  /** "Purchase", "Sale", "Partial sale", "Exchange": the mart's label for the code. */
+  transaction: string;
+  direction: 'purchase' | 'sale' | 'exchange' | 'other';
+  /** The band as the report prints it, e.g. "$1,001 - $15,000". */
+  amount: string;
+  /** The holding account or fund the report names ("Subholding of"), when it does. */
+  heldIn: string | null;
+  description: string | null;
+  /** The PDF, at the page the row is printed on. */
+  url: string;
+}
+
+export interface StockFilingRow {
+  key: string;
+  isoDate: string;
+  dateLabel: string;
+  status: FilingStatus;
+  statusLabel: string;
+  pages: number | null;
+  trades: number;
+  tradesLabel: string;
+  error: string | null;
+  url: string;
+}
+
+export interface StockTradesModel {
+  status: StockTradesStatus;
+  lookupUrl: string;
+  /** First day of the tracked Congress: what "no reports" is measured from. */
+  coversFrom: string;
+  checkedAt: string | null;
+  filings: number;
+  filingsParsed: number;
+  filingsScanned: number;
+  filingsFailed: number;
+  trades: number;
+  purchases: number;
+  sales: number;
+  exchanges: number;
+  /** Summed value bands, null when there are none: "$16,002 - $65,000", "$50,001,001 or more". */
+  purchasesRange: string | null;
+  salesRange: string | null;
+  firstTrade: string | null;
+  lastTrade: string | null;
+  tradeRows: StockTradeRow[];
+  filingRows: StockFilingRow[];
+}
+
+const FILING_STATUS_LABEL: Record<FilingStatus, string> = {
+  parsed: 'Trades read',
+  scanned: 'Scanned paper form',
+  failed: 'Could not be read',
+};
+
+/** A summed value band. An open top band has no high end, so only the floor is stated. */
+function valueRange(low: number, high: number, open: boolean, count: number): string | null {
+  if (count === 0) return null;
+  if (open) return `${formatMoney(low)} or more`;
+  return low === high ? formatMoney(low) : `${formatMoney(low)} \u2013 ${formatMoney(high)}`;
+}
+
+/** The Stock trades tab from mart.member_stock_trades, mart.stock_trade_filing and
+ *  mart.stock_trade. Formats and labels only: every count and total is a mart column. */
+export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
+  const sum = r.summary;
+  const tradeRows = r.items.map<StockTradeRow>((t) => ({
+    key: `${t.doc_id}-${t.row_number}`,
+    isoDate: t.trade_date,
+    dateLabel: formatDate(t.trade_date),
+    filedLabel:
+      t.days_to_file === 0
+        ? 'Filed the same day'
+        : `Filed ${formatNumber(t.days_to_file)} day${t.days_to_file === 1 ? '' : 's'} later`,
+    asset: t.asset_name,
+    ticker: t.ticker,
+    assetType: t.asset_type_label,
+    owner: t.owner_label,
+    transaction: t.transaction_type_label,
+    direction: t.direction,
+    amount: t.amount_raw,
+    heldIn: t.subholding_of,
+    description: t.description,
+    url: t.source_url,
+  }));
+  const filingRows = r.filings.map<StockFilingRow>((f) => ({
+    key: f.doc_id,
+    isoDate: f.filing_date,
+    dateLabel: formatDate(f.filing_date),
+    status: f.status,
+    statusLabel: FILING_STATUS_LABEL[f.status],
+    pages: f.pages,
+    trades: f.trades,
+    tradesLabel: f.status === 'parsed' ? `${formatNumber(f.trades)} trade${f.trades === 1 ? '' : 's'}` : '',
+    error: f.error,
+    url: f.source_url,
+  }));
+  return {
+    status: r.status,
+    lookupUrl: r.lookup_url,
+    coversFrom: formatDate(r.covers_from),
+    checkedAt: r.checked_at ? formatTimestampUtc(r.checked_at) : null,
+    filings: sum.filings,
+    filingsParsed: sum.filings_parsed,
+    filingsScanned: sum.filings_scanned,
+    filingsFailed: sum.filings_failed,
+    trades: sum.trades,
+    purchases: sum.purchases,
+    sales: sum.sales,
+    exchanges: sum.exchanges,
+    purchasesRange: valueRange(sum.purchases_low, sum.purchases_high, sum.purchases_high_is_open, sum.purchases),
+    salesRange: valueRange(sum.sales_low, sum.sales_high, sum.sales_high_is_open, sum.sales),
+    firstTrade: sum.first_trade_date ? formatDate(sum.first_trade_date) : null,
+    lastTrade: sum.last_trade_date ? formatDate(sum.last_trade_date) : null,
+    tradeRows,
+    filingRows,
   };
 }
 

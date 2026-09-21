@@ -16,12 +16,14 @@ import {
   buildConstituency,
   buildContact,
   buildStatements,
+  buildStockTrades,
   type StatementsModel,
   buildDateRanges,
   policyAreaTotals,
   buildVoteRows,
 } from '@/lib/model';
 import { KeyDatesCard } from '@/components/SideCards';
+import type { StockTradesResponse } from '@/lib/types';
 import {
   COTTON,
   COTTON_FUNDRAISING,
@@ -46,6 +48,8 @@ import {
   NO_CONSTITUENCY,
   NO_CONTACT,
   STEIL_CONSTITUENCY,
+  STEIL_NO_FILINGS,
+  COTTON_SENATE,
   SANDERS_STATEMENTS,
   STEIL_STATEMENTS,
   STEIL_CONTACT,
@@ -69,6 +73,7 @@ function dashboard(
   statements: StatementsModel | null = null,
   // the constituency fixtures are Steil's and Cotton's; any other member gets the not-yet-published tab
   constituency = detail === STEIL ? STEIL_CONSTITUENCY : NO_CONSTITUENCY,
+  stockTrades: StockTradesResponse = detail === COTTON ? COTTON_SENATE : STEIL_NO_FILINGS,
 ) {
   return (
     <MemberDashboard
@@ -84,6 +89,7 @@ function dashboard(
       committees={buildCommitteeRows(STEIL_COMMITTEES)}
       contact={buildContact(contact)}
       statements={statements}
+      stockTrades={buildStockTrades(stockTrades)}
       constituency={buildConstituency(constituency, detail.seat)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}
@@ -129,11 +135,11 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(within(card).getAllByText('Chair')).toHaveLength(2); // agrees with the stat note
     expect(within(card).getByText('Subcommittee chair')).toBeInTheDocument();
     expect(screen.getByText('Wisconsin partisan primary')).toBeInTheDocument();
-    for (const title of ['Stock trades', 'Public statements']) {
+    for (const title of ['Public statements']) {
       expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeInTheDocument();
       expect(screen.getByRole('region', { hidden: true, name: `${title} (not yet published)` })).toBeInTheDocument();
     }
-    expect(screen.getAllByText('Coming in a future release')).toHaveLength(2); // Fundraising, Contact and Constituency are live
+    expect(screen.getAllByText('Coming in a future release')).toHaveLength(1); // only Public statements is not live for a member with no feed
   });
 
   it('Senate member: Class 2 seat and the header facts, no map tab', () => {
@@ -318,7 +324,7 @@ describe('member tabs', () => {
       'Congress activity',
       'Election',
       'Contact',
-      'Stock trades' + 'Soon',
+      'Stock trades',
       'Public statements' + 'Soon',
       'Constituency',
     ]);
@@ -486,7 +492,7 @@ describe('member tabs', () => {
 
   it('a locked tab says it is not published yet', () => {
     render(dashboard());
-    fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Public statements/ }));
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Coming in a future release');
   });
 });
@@ -640,5 +646,38 @@ describe('fundraising card: given a mart.member_fundraising row, this text rende
     render(dashboard(STEIL, NO_CANDIDATE_FUNDRAISING));
     expect(within(card()).getByText(/The FEC has no House candidate record for this member/)).toBeInTheDocument();
     expect(within(card()).queryByRole('link', { name: /source/ })).not.toBeInTheDocument();
+  });
+});
+
+
+describe('member dashboard: stock trades tab', () => {
+  it('is a live tab, not a locked placeholder', () => {
+    render(dashboard());
+    const tab = screen.getByRole('tab', { name: /Stock trades/ });
+    expect(tab).not.toHaveTextContent('Soon');
+    fireEvent.click(tab);
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-stock-trades');
+    expect(panel).not.toHaveTextContent('Coming in a future release');
+  });
+
+  it('a House member with no reports on file gets the empty-record message', () => {
+    render(dashboard());
+    fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveTextContent('No reports on file');
+    expect(panel).toHaveTextContent('since Jan 3, 2025');
+  });
+
+  it('a senator gets the not-available-for-the-Senate message, not the same empty record', () => {
+    render(dashboard(COTTON));
+    fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveTextContent('Not available for the Senate');
+    expect(panel).not.toHaveTextContent('No reports on file');
+    expect(within(panel).getByRole('link', { name: /Senate disclosure site/ })).toHaveAttribute(
+      'href',
+      'https://efdsearch.senate.gov/search/',
+    );
   });
 });

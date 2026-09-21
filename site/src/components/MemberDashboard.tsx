@@ -15,6 +15,7 @@ import type {
   RecordModel,
   Stat,
   StatementsModel,
+  StockTradesModel,
   TermModel,
   VoteRow,
 } from '@/lib/model';
@@ -27,6 +28,7 @@ import { RollCallVotes } from './RollCallVotes';
 import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from './SideCards';
 import { Breadcrumb, SiteFooter, SiteHeader } from './SiteChrome';
 import { StatementsTab } from './StatementsTab';
+import { StockTradesTab } from './StockTradesTab';
 import { RecordCard } from './TermCards';
 
 export interface DashboardProps {
@@ -45,6 +47,8 @@ export interface DashboardProps {
   contact: ContactModel | null;
   /** Null when the member is not in the statement sources seed: the tab is then not yet published. */
   statements: StatementsModel | null;
+  /** Always present: a House member's reports, or the reason there are none to show. */
+  stockTrades: StockTradesModel;
   /** Null when the API has neither a map nor demographics: the tab is then not yet published. */
   constituency: ConstituencyModel | null;
   keyDates: KeyDateRow[];
@@ -109,13 +113,7 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
     {
       id: 'stock-trades',
       label: 'Stock trades',
-      locked: true,
-      content: (
-        <LockedTabPanel
-          title="Stock trades"
-          desc="Periodic transaction reports filed under the STOCK Act."
-        />
-      ),
+      content: <StockTradesTab model={props.stockTrades} name={props.member.name} />,
     },
     props.statements
       ? {

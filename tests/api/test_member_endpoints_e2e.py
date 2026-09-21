@@ -279,6 +279,27 @@ def test_statements(built_mart: None, client: TestClient) -> None:
     assert steil["sources"][0]["source"] == "press_page"
 
 
+def test_stock_trades_statuses(built_mart: None, client: TestClient) -> None:
+    # The fixture index holds only filers who are not tracked, so no House member has reports.
+    steil = client.get(f"{STEIL}/stock-trades").json()
+    assert steil["status"] == "no_filings" and steil["chamber"] == "house"
+    assert steil["filings"] == [] and steil["items"] == []
+    assert steil["summary"]["filings"] == steil["summary"]["trades"] == 0
+    assert steil["covers_from"] == "2025-01-03"
+    assert steil["lookup_url"] == "https://disclosures-clerk.house.gov/FinancialDisclosure"
+    assert steil["checked_at"] is not None  # the run that loaded the fixture index
+    assert steil["sources"][0]["source"] == "house_clerk_ptr"
+    assert client.get(f"{JEFFRIES}/stock-trades").json()["status"] == "no_filings"
+
+    # A senator is "not available", never an empty record.
+    cotton = client.get(f"{COTTON}/stock-trades").json()
+    assert cotton["status"] == "senate_unavailable" and cotton["chamber"] == "senate"
+    assert cotton["items"] == [] and cotton["filings"] == []
+    assert cotton["lookup_url"] == "https://efdsearch.senate.gov/search/"
+    assert cotton["sources"][0]["source"] == "senate_efd"
+    assert client.get(f"{SANDERS}/stock-trades").json()["status"] == "senate_unavailable"
+
+
 def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
     committees = client.get(f"{STEIL}/committees").json()
     assert {c["thomas_id"] for c in committees["items"]} >= {"HSBA", "HSHA", "HSBA21"}
