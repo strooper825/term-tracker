@@ -1,0 +1,49 @@
+code,label
+4K,401K and other non-federal retirement accounts
+5C,529 college savings plan
+5F,529 portfolio
+5P,529 prepaid tuition plan
+AB,Asset-backed securities
+BA,"Bank accounts, money market accounts and CDs"
+BK,Brokerage accounts
+CO,Collectibles
+CS,Corporate securities (bonds and notes)
+CT,Cryptocurrency
+DB,Defined benefit pension
+DO,Debts owed to the filer
+DS,Delaware statutory trust
+EF,Exchange traded funds (ETF)
+EQ,Excepted/qualified blind trust
+ET,Exchange traded notes
+FA,Farms
+FE,Foreign exchange position (currency)
+FN,Fixed annuity
+FU,Futures
+GS,Government securities and agency debt
+HE,Hedge funds and private equity funds (EIF)
+HN,Hedge funds and private equity funds (non-EIF)
+IC,Investment club
+IH,IRA (held in cash)
+IP,Intellectual property and royalties
+IR,IRA
+MA,Managed accounts (e.g. SMA and UMA)
+MF,Mutual funds
+MO,Mineral/oil/solar energy rights
+OI,Ownership interest (holding investments)
+OL,Ownership interest (engaged in a trade or business)
+OP,Options
+OT,Other
+PE,Pensions
+PM,Precious metals
+PS,Stock (not publicly traded)
+RE,Real estate investment trust (REIT)
+RF,REIT (EIF)
+RN,REIT (non-EIF)
+RP,Real property
+RS,Restricted stock units (RSUs)
+SA,Stock appreciation right
+ST,Stocks (including ADRs)
+TR,Trust
+VA,Variable annuity
+VI,Variable insurance
+WU,Whole/universal insurance

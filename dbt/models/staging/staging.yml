@@ -104,6 +104,26 @@ models:
           - accepted_values:
               arguments: { values: ["found", "not_found", "disallowed", "unreachable"] }
       - name: site_url
+  - name: stg_house_ptr_filings
+    columns:
+      - name: doc_id
+        tests: [unique, not_null]
+      - name: status
+        tests:
+          - accepted_values: { arguments: { values: ["parsed", "scanned", "failed"] } }
+      - name: filing_date
+        tests: [not_null]
+  - name: stg_house_ptr_transactions
+    columns:
+      - name: trade_date
+        tests: [not_null]
+      - name: notification_date
+        tests: [not_null]
+      - name: amount_low
+        tests: [not_null]
+      - name: asset_type_code
+        tests: [not_null]
+      - name: transaction_type_code
         tests: [not_null]
   - name: stg_statements
     columns:

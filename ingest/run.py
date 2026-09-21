@@ -29,6 +29,7 @@ from ingest.sources import (
     census_geography,
     congress_gov,
     fec,
+    house_ptr,
     house_votes,
     legislators,
     press_pages,
@@ -43,7 +44,8 @@ log = logging.getLogger("ingest")
 # votes before bills, so bills referenced by new roll calls are fetched the same night. The two
 # Census sources read nothing from the others and change once a year, so they go near the end.
 # Statements and the press-page probe read third-party office sites, so they run last
-# (ADR 0015). A failing source no longer stops the ones after it, but the order still decides
+# (ADR 0015). House PTRs read the Clerk's public files and come just before them (ADR 0018).
+# A failing source no longer stops the ones after it, but the order still decides
 # what a later source can read.
 SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
@@ -53,6 +55,7 @@ SOURCES: dict[str, Callable[..., int]] = {
     fec.SOURCE: fec.run,
     census_geography.SOURCE: census_geography.run,
     census_acs.SOURCE: census_acs.run,
+    house_ptr.SOURCE: house_ptr.run,
     statements.SOURCE: statements.run,
     press_pages.SOURCE: press_pages.run,
 }
