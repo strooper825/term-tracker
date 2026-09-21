@@ -1,0 +1,5 @@
+code,label,direction
+P,Purchase,purchase
+S,Sale,sale
+S (partial),Partial sale,sale
+E,Exchange,exchange

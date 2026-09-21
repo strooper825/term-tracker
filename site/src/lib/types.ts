@@ -306,6 +306,79 @@ export interface StatementsResponse {
   sources: SourceRef[];
 }
 
+export interface StockTradeItem {
+  doc_id: string;
+  row_number: number;
+  trade_date: string;
+  notification_date: string;
+  filing_date: string;
+  days_to_file: number;
+  owner_code: string;
+  owner_label: string;
+  asset_name: string;
+  ticker: string | null;
+  asset_type_code: string;
+  asset_type_label: string;
+  transaction_type_code: string;
+  transaction_type_label: string;
+  direction: 'purchase' | 'sale' | 'exchange' | 'other';
+  amount_raw: string;
+  amount_kind: 'band' | 'top_band' | 'exact';
+  amount_low: number;
+  amount_high: number | null;
+  filing_status: string | null;
+  subholding_of: string | null;
+  description: string | null;
+  location: string | null;
+  comments: string | null;
+  has_unmapped_code: boolean;
+  source_url: string;
+}
+
+export interface StockTradeFiling {
+  doc_id: string;
+  year: number;
+  filing_date: string;
+  status: 'parsed' | 'scanned' | 'failed';
+  error: string | null;
+  pages: number | null;
+  trades: number;
+  source_url: string;
+}
+
+export interface StockTradesSummary {
+  filings: number;
+  filings_parsed: number;
+  filings_scanned: number;
+  filings_failed: number;
+  latest_filing_date: string | null;
+  trades: number;
+  purchases: number;
+  sales: number;
+  exchanges: number;
+  purchases_low: number;
+  purchases_high: number;
+  purchases_high_is_open: boolean;
+  sales_low: number;
+  sales_high: number;
+  sales_high_is_open: boolean;
+  first_trade_date: string | null;
+  last_trade_date: string | null;
+}
+
+export interface StockTradesResponse {
+  bioguide_id: string;
+  chamber: 'house' | 'senate';
+  status: 'filed' | 'no_filings' | 'senate_unavailable';
+  covers_from: string;
+  lookup_url: string;
+  checked_at: string | null;
+  summary: StockTradesSummary;
+  filings: StockTradeFiling[];
+  items: StockTradeItem[];
+  sources: SourceRef[];
+}
+
 export interface KeyDatesResponse {
   bioguide_id: string;
   items: KeyDate[];

@@ -83,6 +83,47 @@ seeds:
       - name: label
         tests: [not_null]
 
+  - name: ptr_transaction_types
+    description: >
+      Transaction-type codes printed on a House Periodic Transaction Report (ADR 0018), with the
+      direction the mart groups them by. `S (partial)` is a partial sale, printed as such.
+    config:
+      column_types:
+        code: text
+        label: text
+        direction: text
+    columns:
+      - name: code
+        tests: [unique, not_null]
+      - name: direction
+        tests:
+          - accepted_values: { arguments: { values: ["purchase", "sale", "exchange"] } }
+
+  - name: ptr_owner_codes
+    description: >
+      Owner codes on a House PTR (ADR 0018). A blank owner cell is the filer; the staging model
+      writes it as SELF.
+    config:
+      column_types:
+        code: text
+        label: text
+    columns:
+      - name: code
+        tests: [unique, not_null]
+
+  - name: ptr_asset_types
+    description: >
+      Asset-type codes the Clerk defines (https://fd.house.gov/reference/asset-type-codes.aspx,
+      copied 2026-09-20; ADR 0018). Every code the Clerk lists is here, whether or not a
+      tracked member has used it.
+    config:
+      column_types:
+        code: text
+        label: text
+    columns:
+      - name: code
+        tests: [unique, not_null]
+
   - name: composition_seats
     description: >
       Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012), one row per

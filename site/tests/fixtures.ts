@@ -14,6 +14,10 @@ import type {
   MemberListItem,
   StatementItem,
   StatementsResponse,
+  StockTradeFiling,
+  StockTradeItem,
+  StockTradesResponse,
+  StockTradesSummary,
   TermHistoryItem,
   WeekBucket,
 } from '@/lib/types';
@@ -1412,4 +1416,250 @@ export const NO_STATEMENTS: StatementsResponse = {
   newest_published_at: null,
   items: [],
   sources: [],
+};
+
+
+/* ---- GET /members/{id}/stock-trades ----------------------------------------------------- */
+
+const CLERK_SEARCH = 'https://disclosures-clerk.house.gov/FinancialDisclosure';
+const PTR = 'https://disclosures-clerk.house.gov/public_disc/ptr-pdfs';
+
+const NO_TRADES_SUMMARY: StockTradesSummary = {
+  filings: 0,
+  filings_parsed: 0,
+  filings_scanned: 0,
+  filings_failed: 0,
+  latest_filing_date: null,
+  trades: 0,
+  purchases: 0,
+  sales: 0,
+  exchanges: 0,
+  purchases_low: 0,
+  purchases_high: 0,
+  purchases_high_is_open: false,
+  sales_low: 0,
+  sales_high: 0,
+  sales_high_is_open: false,
+  first_trade_date: null,
+  last_trade_date: null,
+};
+
+const STOCK_SOURCE = {
+  source: 'house_clerk_ptr',
+  source_url: CLERK_SEARCH,
+  fetched_at: '2026-09-20T06:10:00Z',
+};
+
+/** Steil: the Clerk's index (2025-2026) lists annual reports for him and no periodic transaction
+ *  report, which is the case this fixture stands for (checked 2026-09-20). */
+export const STEIL_NO_FILINGS: StockTradesResponse = {
+  bioguide_id: 'S001213',
+  chamber: 'house',
+  status: 'no_filings',
+  covers_from: '2025-01-03',
+  lookup_url: CLERK_SEARCH,
+  checked_at: '2026-09-20T06:10:00Z',
+  summary: NO_TRADES_SUMMARY,
+  filings: [],
+  items: [],
+  sources: [STOCK_SOURCE],
+};
+
+export const COTTON_SENATE: StockTradesResponse = {
+  bioguide_id: 'C001095',
+  chamber: 'senate',
+  status: 'senate_unavailable',
+  covers_from: '2025-01-03',
+  lookup_url: 'https://efdsearch.senate.gov/search/',
+  checked_at: '2026-09-20T06:10:00Z',
+  summary: NO_TRADES_SUMMARY,
+  filings: [],
+  items: [],
+  sources: [{ ...STOCK_SOURCE, source: 'senate_efd', source_url: 'https://efdsearch.senate.gov/search/' }],
+};
+
+function scanned(doc: string, date: string, pages: number, year: number): StockTradeFiling {
+  return {
+    doc_id: doc,
+    year,
+    filing_date: date,
+    status: 'scanned',
+    error: null,
+    pages,
+    trades: 0,
+    source_url: `${PTR}/${year}/${doc}.pdf`,
+  };
+}
+
+/** Khanna: the real shape of the one tracked member with reports. All 20 of his 2025-2026 reports
+ *  are scanned paper forms; three are listed here (DocIDs, dates and page counts are the Clerk's). */
+export const KHANNA_ALL_SCANNED: StockTradesResponse = {
+  bioguide_id: 'K000389',
+  chamber: 'house',
+  status: 'filed',
+  covers_from: '2025-01-03',
+  lookup_url: CLERK_SEARCH,
+  checked_at: '2026-09-20T06:10:00Z',
+  summary: {
+    ...NO_TRADES_SUMMARY,
+    filings: 3,
+    filings_scanned: 3,
+    latest_filing_date: '2026-09-04',
+  },
+  filings: [
+    scanned('9116328', '2026-09-04', 18, 2026),
+    scanned('9115726', '2026-04-07', 43, 2026),
+    scanned('8221322', '2026-02-06', 56, 2026),
+  ],
+  items: [],
+  sources: [STOCK_SOURCE],
+};
+
+function trade(n: number, over: Partial<StockTradeItem> = {}): StockTradeItem {
+  return {
+    doc_id: '20000001',
+    row_number: n,
+    trade_date: '2026-01-14',
+    notification_date: '2026-02-04',
+    filing_date: '2026-02-17',
+    days_to_file: 34,
+    owner_code: 'SP',
+    owner_label: 'Spouse',
+    asset_name: 'Example Water Works Company, Inc. Common Stock',
+    ticker: 'EWW',
+    asset_type_code: 'ST',
+    asset_type_label: 'Stocks (including ADRs)',
+    transaction_type_code: 'P',
+    transaction_type_label: 'Purchase',
+    direction: 'purchase',
+    amount_raw: '$15,001 - $50,000',
+    amount_kind: 'band',
+    amount_low: 15001,
+    amount_high: 50000,
+    filing_status: 'New',
+    subholding_of: 'Example Advisors LLC',
+    description: null,
+    location: null,
+    comments: null,
+    has_unmapped_code: false,
+    source_url: `${PTR}/2026/20000001.pdf#page=1`,
+    ...over,
+  };
+}
+
+/** An invented member with one read report, one scanned paper form and one that did not parse.
+ *  Not a real member's filing: the trade rows exist to exercise the list. */
+export const EXAMPLE_MIXED: StockTradesResponse = {
+  bioguide_id: 'X000001',
+  chamber: 'house',
+  status: 'filed',
+  covers_from: '2025-01-03',
+  lookup_url: CLERK_SEARCH,
+  checked_at: '2026-09-20T06:10:00Z',
+  summary: {
+    ...NO_TRADES_SUMMARY,
+    filings: 3,
+    filings_parsed: 1,
+    filings_scanned: 1,
+    filings_failed: 1,
+    latest_filing_date: '2026-03-31',
+    trades: 3,
+    purchases: 2,
+    sales: 1,
+    purchases_low: 30002,
+    purchases_high: 100000,
+    sales_low: 100001,
+    sales_high: 250000,
+    first_trade_date: '2026-01-14',
+    last_trade_date: '2026-01-26',
+  },
+  filings: [
+    {
+      doc_id: '20000002',
+      year: 2026,
+      filing_date: '2026-03-31',
+      status: 'failed',
+      error: 'row 3 (page 1): amount ""',
+      pages: 2,
+      trades: 0,
+      source_url: `${PTR}/2026/20000002.pdf`,
+    },
+    scanned('8000001', '2026-03-02', 9, 2026),
+    {
+      doc_id: '20000001',
+      year: 2026,
+      filing_date: '2026-02-17',
+      status: 'parsed',
+      error: null,
+      pages: 2,
+      trades: 3,
+      source_url: `${PTR}/2026/20000001.pdf`,
+    },
+  ],
+  items: [
+    trade(3, {
+      trade_date: '2026-01-26',
+      days_to_file: 22,
+      owner_code: 'SELF',
+      owner_label: 'Self',
+      asset_name: 'US Treasury Note 3.5% DUE 01/31/28 (91282CGH8)',
+      ticker: null,
+      asset_type_code: 'GS',
+      asset_type_label: 'Government securities and agency debt',
+      amount_raw: '$100,001 - $250,000',
+      amount_low: 100001,
+      amount_high: 250000,
+      subholding_of: null,
+    }),
+    trade(2, {
+      asset_name: 'Example Paper Co.',
+      ticker: 'EPC',
+      transaction_type_code: 'S',
+      transaction_type_label: 'Sale',
+      direction: 'sale',
+      amount_raw: '$100,001 - $250,000',
+      amount_low: 100001,
+      amount_high: 250000,
+      description: 'The full transaction included sales of 20 shares at $14.50.',
+    }),
+    trade(1),
+  ],
+  sources: [STOCK_SOURCE],
+};
+
+/** A top-band purchase has no high end, so the combined figure reads "or more". */
+export const EXAMPLE_TOP_BAND: StockTradesResponse = {
+  ...EXAMPLE_MIXED,
+  summary: {
+    ...EXAMPLE_MIXED.summary,
+    filings: 1,
+    filings_parsed: 1,
+    filings_scanned: 0,
+    filings_failed: 0,
+    trades: 1,
+    purchases: 1,
+    sales: 0,
+    purchases_low: 50000000,
+    purchases_high: 0,
+    purchases_high_is_open: true,
+    sales_low: 0,
+    sales_high: 0,
+  },
+  filings: [EXAMPLE_MIXED.filings[2]],
+  items: [
+    trade(1, {
+      amount_raw: 'Over $50,000,000',
+      amount_kind: 'top_band',
+      amount_low: 50000000,
+      amount_high: null,
+    }),
+  ],
+};
+
+/** Thirty trades, for the "show more" paging. */
+export const EXAMPLE_MANY: StockTradesResponse = {
+  ...EXAMPLE_MIXED,
+  summary: { ...EXAMPLE_MIXED.summary, filings: 1, filings_parsed: 1, filings_scanned: 0, filings_failed: 0, trades: 30, purchases: 30, sales: 0 },
+  filings: [EXAMPLE_MIXED.filings[2]],
+  items: Array.from({ length: 30 }, (_, i) => trade(i + 1, { asset_name: `Example Holding ${i + 1} Inc.` })),
 };

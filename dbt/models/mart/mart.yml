@@ -102,6 +102,60 @@ models:
       - name: source_url
         tests: [not_null]
 
+  - name: stock_trade_filing
+    description: >
+      One House Periodic Transaction Report per row, for tracked House members since the tracked
+      Congress began (ADR 0018): parsed, scanned (paper, no text layer) or failed.
+    columns:
+      - name: doc_id
+        tests: [unique, not_null]
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: status
+        tests:
+          - accepted_values: { arguments: { values: ["parsed", "scanned", "failed"] } }
+      - name: source_url
+        tests: [not_null]
+
+  - name: stock_trade
+    description: >
+      One transaction of a tracked House member's Periodic Transaction Report (ADR 0018). The
+      amount is the disclosed band, not a figure.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: direction
+        tests:
+          - accepted_values: { arguments: { values: ["purchase", "sale", "exchange", "other"] } }
+      - name: trade_date
+        tests: [not_null]
+      - name: amount_low
+        tests: [not_null]
+      - name: source_url
+        tests: [not_null]
+
+  - name: member_stock_trades
+    description: >
+      One row per tracked member: senate_unavailable, no_filings or filed (ADR 0018), with the
+      counts and value-band totals the Stock trades tab shows.
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: { values: ["senate_unavailable", "no_filings", "filed"] }
+      - name: lookup_url
+        tests: [not_null]
+
   - name: term_history
     description: Every term a tracked member has served, in source order.
     columns:

@@ -41,3 +41,14 @@ sources:
         description: ACS 5-year estimates and margins of error for one state or House district per release, verbatim from the Census Data API.
       - name: statement
         description: One press-release feed item of a tracked member (seed.statement_sources, ADR 0015); payload is the parsed item.
+      - name: house_ptr_filing
+        description: One House Periodic Transaction Report of a tracked member (Clerk filing index, ADR 0018); status parsed, scanned or failed.
+      - name: house_ptr_transaction
+        description: One transaction row of a parsed House PTR, every cell as the PDF prints it (ADR 0018).
+
+  - name: meta
+    description: Operational metadata about the pipeline itself (Alembic and ingest/).
+    schema: meta
+    tables:
+      - name: ingest_run
+        description: One row per ingestion run of one source; the mart reads it only for the day a source was last checked.

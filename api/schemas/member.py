@@ -269,6 +269,95 @@ class StatementsResponse(BaseModel):
     sources: list[SourceRef]
 
 
+StockTradesStatus = Literal["filed", "no_filings", "senate_unavailable"]
+PtrFilingStatus = Literal["parsed", "scanned", "failed"]
+
+
+class StockTradeItem(BaseModel):
+    doc_id: str = Field(description="The Clerk's DocID of the report the trade is printed on")
+    row_number: int = Field(description="Position in that report's transaction table, from 1")
+    trade_date: dt.date
+    notification_date: dt.date
+    filing_date: dt.date
+    days_to_file: int = Field(description="Filing date minus trade date")
+    owner_code: str = Field(description="SELF, SP (spouse), DC (dependent child) or JT (joint)")
+    owner_label: str
+    asset_name: str
+    ticker: str | None = Field(description="Read from the asset name when it holds one")
+    asset_type_code: str
+    asset_type_label: str
+    transaction_type_code: str = Field(description="P, S, S (partial) or E as printed")
+    transaction_type_label: str
+    direction: str = Field(description="purchase, sale, exchange or other")
+    amount_raw: str = Field(description="The disclosed band as printed, e.g. $1,001 - $15,000")
+    amount_kind: Literal["band", "top_band", "exact"] = Field(
+        description="band: a disclosed range; top_band: Over $50,000,000, no high end; "
+        "exact: the filer entered one figure, so low equals high"
+    )
+    amount_low: float
+    amount_high: float | None = Field(description="Null for the top band (Over $50,000,000)")
+    filing_status: str | None
+    subholding_of: str | None
+    description: str | None
+    location: str | None
+    comments: str | None
+    has_unmapped_code: bool = Field(description="A code no seed maps; shown by its raw code")
+    source_url: str = Field(description="The PDF, with #page=N")
+
+
+class StockTradeFiling(BaseModel):
+    doc_id: str
+    year: int
+    filing_date: dt.date
+    status: PtrFilingStatus = Field(
+        description="parsed: trades read; scanned: a paper form with no text layer, so no "
+        "trades can be read; failed: text present but the table did not parse"
+    )
+    error: str | None
+    pages: int | None
+    trades: int
+    source_url: str = Field(description="The report PDF on the Clerk's site")
+
+
+class StockTradesSummary(BaseModel):
+    filings: int
+    filings_parsed: int
+    filings_scanned: int
+    filings_failed: int
+    latest_filing_date: dt.date | None
+    trades: int
+    purchases: int
+    sales: int
+    exchanges: int
+    purchases_low: float = Field(description="Sum of the low ends of the purchase bands")
+    purchases_high: float = Field(description="Sum of the high ends of the purchase bands")
+    purchases_high_is_open: bool = Field(
+        description="A purchase is in the top band, which has no high end: the high sum is a floor"
+    )
+    sales_low: float
+    sales_high: float
+    sales_high_is_open: bool
+    first_trade_date: dt.date | None
+    last_trade_date: dt.date | None
+
+
+class StockTradesResponse(BaseModel):
+    bioguide_id: str
+    chamber: Literal["house", "senate"]
+    status: StockTradesStatus = Field(
+        description="filed: the member has Periodic Transaction Reports; no_filings: a House "
+        "member the Clerk lists none for; senate_unavailable: the Senate eFD system blocks "
+        "automated access, so no Senate trades are ingested (ADR 0018)"
+    )
+    covers_from: dt.date = Field(description="First day of the tracked Congress")
+    lookup_url: str = Field(description="The official search, for checking against the source")
+    checked_at: dt.datetime | None = Field(description="Last successful ingest of the source")
+    summary: StockTradesSummary
+    filings: list[StockTradeFiling] = Field(description="Newest first")
+    items: list[StockTradeItem] = Field(description="Newest trade first")
+    sources: list[SourceRef]
+
+
 class KeyDate(BaseModel):
     date: dt.date
     label: str
