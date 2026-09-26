@@ -114,12 +114,27 @@ def test_ingest_workflow_shape() -> None:
     assert deploy["secrets"] == "inherit"
     assert "github.event_name == 'schedule'" in deploy["if"]
 
+    # A branch run must not leave the database at a revision main lacks: the nightlies of
+    # 2026-09-21 and 09-22 failed on house-ptr-trades' 0009 (ADR 0019). The restore runs after
+    # the deploy (which migrates too), and also when the run failed or was cancelled.
+    assert inputs["restore_schema_from"]["default"] == ""
+    assert "!inputs.restore_schema_from" in ingest["if"]  # restore-only dispatches skip ingest
+    restore = workflow["jobs"]["restore-schema"]
+    assert restore["needs"] == ["ingest", "deploy"]
+    assert restore["if"].startswith("always() &&") and "github.ref_name != 'main'" in restore["if"]
+    assert "python -m ingest.schema restore --main-ref FETCH_HEAD" in restore["steps"][-1]["run"]
+    migrate = next(s for s in ingest["steps"] if s.get("name") == "Migrate")
+    assert "restore_schema_from" in migrate["run"]  # the failure says how to recover
+
     alert = workflow["jobs"]["alert"]
-    assert alert["needs"] == ["ingest", "deploy"] and alert["if"] == "always()"
+    assert alert["needs"] == ["ingest", "deploy", "restore-schema"] and alert["if"] == "always()"
     open_step, close_step = alert["steps"]
-    assert "needs.deploy.result == 'failure'" in open_step["if"]  # a deploy failure alerts too
+    # any failed job alerts: a deploy or schema restore failure as much as an ingest failure
+    assert open_step["if"] == "contains(needs.*.result, 'failure')"
     assert "gh issue" in open_step["run"] and "nightly-failure" in open_step["run"]
-    assert "needs.deploy.result == 'skipped'" in close_step["if"]  # deploy opted out is still ok
+    # a skipped deploy (opted out) or restore (main) still closes the issue
+    assert "needs.ingest.result == 'success'" in close_step["if"]
+    assert "!contains(needs.*.result, 'failure')" in close_step["if"]
     assert "gh issue close" in close_step["run"]
     assert workflow["permissions"]["issues"] == "write"
     # the empty-string branch of `cond && '' || x` is falsy and always yields x; never use it
@@ -193,6 +208,11 @@ def test_deploy_workflow_shape() -> None:
     assert "vercel build" in build["run"] and "--archive" not in build["run"]
     assert deploy["env"]["PROD_FLAG"] == "${{ steps.target.outputs.prod_flag }}"
     assert "&& '' ||" not in raw
+    # Dispatched on its own from a branch, the deploy restores main's schema itself (ADR 0019).
+    restore = steps[-1]
+    assert "github.workflow == 'Deploy site'" in restore["if"] and "always()" in restore["if"]
+    assert "ingest.schema restore" in restore["run"]
+    assert workflow["name"] == "Deploy site"
     # This job re-derives the mart but never fetches: no source is ingested here.
     assert "ingest.run" not in raw and "CONGRESS_GOV_API_KEY" not in raw
     assert workflow["permissions"] == {"contents": "read"}

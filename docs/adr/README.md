@@ -22,6 +22,7 @@ also recorded here once made.
 - [0015. Public statements: official press feeds from a hand-verified seed, link-out for everyone else](0015-public-statements-feeds.md)
 - [0016. Constituency tab: Census boundary maps and ACS estimates, keyed by the Congress they describe](0016-constituency-tab-census-sources.md)
 - [0017. The deployment ships pages, not prefetch payloads](0017-strip-prefetch-payloads.md)
+- [0019. Branch runs put the managed database back at main's schema](0019-branch-runs-restore-main-schema.md)
 
 ## Format
 
