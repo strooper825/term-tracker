@@ -180,7 +180,12 @@ secret (never in `.env`; local development keeps its own URL):
   `deploy.yml` in the same run. A failure in either job opens an issue labelled
   `nightly-failure` (or comments on the open one); the next fully successful run closes it.
   Run it by hand from the Actions tab (`workflow_dispatch`), optionally with `full_refresh`,
-  `max_age_hours`, or `deploy: false`.
+  `max_age_hours`, or `deploy: false`. A source that fails no longer stops the sources after
+  it; the step still fails and names every source that failed.
+- A run of any branch other than `main` (of either workflow) ends by downgrading the database
+  to main's Alembic head with `python -m ingest.schema restore`, so a branch migration cannot
+  break the nightly (ADR 0019). If a database has already been left ahead, dispatch `ingest.yml`
+  on `main` with `restore_schema_from` set to the branch that added the revision.
 - `.github/workflows/deploy.yml` migrates and runs `dbt build` to re-derive the mart from
   this commit's models, starts the API in the runner against the managed database, builds the
   static site, checks that the output makes no API calls, and deploys the prebuilt output with

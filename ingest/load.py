@@ -7,12 +7,17 @@ Every load is an ``INSERT ... ON CONFLICT (natural key) DO UPDATE`` so re-runnin
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
 from psycopg import Connection, sql
+
+log = logging.getLogger("ingest.load")
+
+ABANDONED = "abandoned: the process ended before the run finished (cancelled, timed out or killed)"
 
 
 def upsert(
@@ -67,8 +72,20 @@ def record_run(conn: Connection, source: str, source_url: str) -> Iterator[Inges
     (no partial data) and the row marked ``failed`` with the error, then the exception is
     re-raised. ``finished_at`` uses ``clock_timestamp()`` because ``now()`` is pinned to the
     start of the (possibly long) load transaction.
+
+    A ``running`` row this source left behind is closed as ``failed`` first. Only a process
+    that never reached the ``except`` below leaves one (a cancelled or timed-out workflow run,
+    a killed process), and the nightly's concurrency group means no other run of the source is
+    live, so the row would otherwise read as running forever.
     """
     with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE meta.ingest_run SET status = 'failed', finished_at = clock_timestamp(), "
+            "error = %s WHERE source = %s AND status = 'running'",
+            (ABANDONED, source),
+        )
+        if cur.rowcount:
+            log.warning("%s: closed %d abandoned running row(s) as failed", source, cur.rowcount)
         cur.execute(
             "INSERT INTO meta.ingest_run (source, source_url, status) "
             "VALUES (%s, %s, 'running') RETURNING id",

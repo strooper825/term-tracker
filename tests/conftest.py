@@ -26,12 +26,12 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
-from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError
 
 from api.db import get_engine
 from api.main import app
 from ingest.db import connect
+from ingest.dbt_env import dbt_env
 from ingest.sources import (
     census_acs,
     census_geography,
@@ -141,18 +141,6 @@ def _refuse_live_database(engine: Engine) -> None:
         )
 
 
-def _dbt_env(database_url: str) -> dict[str, str]:
-    url = make_url(database_url)
-    return {
-        **os.environ,
-        "PGHOST": url.host or "localhost",
-        "PGPORT": str(url.port or 5432),
-        "PGUSER": url.username or "",
-        "PGPASSWORD": url.password or "",
-        "PGDATABASE": url.database or "",
-    }
-
-
 @pytest.fixture(scope="session")
 def built_mart(migrated_engine: Engine) -> None:
     """Load every fixture source into raw, then ``dbt build`` (seeds, models, tests)."""
@@ -194,7 +182,7 @@ def built_mart(migrated_engine: Engine) -> None:
 
     result = subprocess.run(
         [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],
-        env=_dbt_env(migrated_engine.url.render_as_string(hide_password=False)),
+        env={**os.environ, **dbt_env(migrated_engine.url.render_as_string(hide_password=False))},
         capture_output=True,
         text=True,
     )

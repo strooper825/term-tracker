@@ -5,8 +5,10 @@ Usage::
     python -m ingest.run --source all
     python -m ingest.run --source congress_gov
 
-Sources register in ``SOURCES`` as they are implemented (Phase 1). With no sources
-registered the command logs a warning and exits 0.
+Every selected source runs even when an earlier one fails. A failure inside a load is recorded
+in ``meta.ingest_run`` by :func:`ingest.load.record_run` (the load rolled back); every failure
+is logged with its traceback here, and the command exits 1 after the last source, naming the
+sources that failed.
 """
 
 from __future__ import annotations
@@ -33,8 +35,8 @@ log = logging.getLogger("ingest")
 # Order matters for --source all: legislators first (the FEC source reads its candidate ids),
 # votes before bills, so bills referenced by new roll calls are fetched the same night. The two
 # Census sources read nothing from the others and change once a year, so they go near the end.
-# Statements read third-party office sites, so they run last: a failure there cannot hold up
-# the vote, bill, FEC or Census loads (ADR 0015).
+# Statements read third-party office sites, so they run last (ADR 0015). A failing source no
+# longer stops the ones after it, but the order still decides what a later source can read.
 SOURCES: dict[str, Callable[..., int]] = {
     legislators.SOURCE: legislators.run,
     house_votes.SOURCE: house_votes.run,
@@ -48,7 +50,7 @@ SOURCES: dict[str, Callable[..., int]] = {
 
 
 def build_parser() -> argparse.ArgumentParser:
-    known = ", ".join(sorted(SOURCES)) or "none registered yet"
+    known = ", ".join(sorted(SOURCES))
     parser = argparse.ArgumentParser(
         prog="python -m ingest.run",
         description="Run one ingestion source, or all of them.",
@@ -76,18 +78,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif args.source in SOURCES:
         selected = [args.source]
     else:
-        parser.error(
-            f"unknown source {args.source!r}; known: {', '.join(sorted(SOURCES)) or 'none'}"
-        )
+        parser.error(f"unknown source {args.source!r}; known: {', '.join(sorted(SOURCES))}")
 
-    if not selected:
-        log.warning("No ingestion sources are registered yet; nothing to do.")
-        return 0
-
+    failed: list[str] = []
     for name in selected:
         log.info("Running source %s", name)
-        rows = SOURCES[name](full_refresh=args.full_refresh)
+        try:
+            rows = SOURCES[name](full_refresh=args.full_refresh)
+        except Exception:
+            log.exception("Source %s failed; continuing with the remaining sources", name)
+            failed.append(name)
+            continue
         log.info("Source %s loaded %d rows", name, rows)
+
+    if failed:
+        log.error("%d of %d sources failed: %s", len(failed), len(selected), ", ".join(failed))
+        return 1
     return 0
 
 
