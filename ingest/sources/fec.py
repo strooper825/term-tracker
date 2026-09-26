@@ -30,7 +30,6 @@ from typing import Any, NamedTuple
 
 from psycopg import Connection
 from psycopg.types.json import Jsonb
-from pydantic import ValidationError
 
 from api.config import get_settings
 from ingest.congress_gov import RateLimiter
@@ -38,6 +37,7 @@ from ingest.db import connect
 from ingest.fec import BASE_URL, FecClient
 from ingest.load import record_run, upsert
 from ingest.models.fec import Candidate, CandidateCommittee, CommitteeTotals
+from ingest.shape import SourceShapeError, validate
 from ingest.sources.congress_gov import tracked_member_ids
 
 log = logging.getLogger("ingest.fec")
@@ -47,23 +47,10 @@ OFFICE_FOR_CHAMBER = {"house": "H", "senate": "S"}
 PRINCIPAL = "P"
 
 
-class SourceShapeError(RuntimeError):
-    """The API response does not have the shape docs/PLAN.md expects. Stop and report."""
-
-
 class TrackedCandidate(NamedTuple):
     bioguide_id: str
     chamber: str  # house / senate
     fec_ids: list[str]
-
-
-def _validate(model: type, item: Any, where: str) -> None:
-    try:
-        model.model_validate(item)
-    except ValidationError as exc:
-        raise SourceShapeError(
-            f"{where}: shape differs from what docs/PLAN.md expects; not adapting in place. {exc}"
-        ) from exc
 
 
 def fetch_candidate(client: FecClient, candidate_id: str) -> dict[str, Any] | None:
@@ -74,7 +61,7 @@ def fetch_candidate(client: FecClient, candidate_id: str) -> dict[str, Any] | No
         return None
     if len(results) != 1:
         raise SourceShapeError(f"{path}: expected one result, got {len(results)}")
-    _validate(Candidate, results[0], path)
+    validate(Candidate, results[0], path)
     if results[0]["candidate_id"] != candidate_id:
         raise SourceShapeError(f"{path}: result is for {results[0]['candidate_id']}")
     return results[0]
@@ -86,7 +73,7 @@ def fetch_candidate_committees(
     path = f"candidate/{candidate_id}/committees"
     items = client.results(path, cycle=cycle)
     for index, item in enumerate(items):
-        _validate(CandidateCommittee, item, f"{path}[{index}]")
+        validate(CandidateCommittee, item, f"{path}[{index}]")
     return items
 
 
@@ -100,7 +87,7 @@ def fetch_committee_totals(
         return None
     if len(items) != 1:
         raise SourceShapeError(f"{path}?cycle={cycle}: expected one result, got {len(items)}")
-    _validate(CommitteeTotals, items[0], path)
+    validate(CommitteeTotals, items[0], path)
     if items[0]["cycle"] != cycle or items[0]["committee_id"] != committee_id:
         raise SourceShapeError(f"{path}: result is for another committee or cycle")
     return items[0]

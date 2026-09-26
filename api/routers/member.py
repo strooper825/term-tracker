@@ -12,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_session
+from api.provenance import distinct_sources
 from api.routers.members import COMMITTEES_SQL, member_ids, seat_label
 from api.schemas.member import (
     ActivityCounts,
@@ -51,7 +52,7 @@ from api.schemas.member import (
     VoteStats,
     WeekBucket,
 )
-from api.schemas.members import CommitteeAssignment, MemberName, Seat, SourceRef
+from api.schemas.members import CommitteeAssignment, MemberName, Seat
 
 router = APIRouter(prefix="/members/{bioguide}", tags=["member"])
 
@@ -205,18 +206,6 @@ KEY_DATES_SQL = text(
 )
 
 
-def _sources(rows: list[Any]) -> list[SourceRef]:
-    seen: dict[tuple[str, str], SourceRef] = {}
-    for row in rows:
-        seen.setdefault(
-            (row["source"], row["source_url"]),
-            SourceRef(
-                source=row["source"], source_url=row["source_url"], fetched_at=row["fetched_at"]
-            ),
-        )
-    return sorted(seen.values(), key=lambda s: s.source_url)
-
-
 def _summary(session: Session, bioguide: str) -> Any:
     row = session.execute(SUMMARY_SQL, {"bioguide": bioguide}).mappings().first()
     if row is None:
@@ -322,7 +311,7 @@ def member_detail(bioguide: str, session: Annotated[Session, Depends(get_session
             committees=row["committees"],
             chairmanships=row["chairmanships"],
         ),
-        sources=_sources([row, *terms, *roles]),
+        sources=distinct_sources([row, *terms, *roles]),
     )
 
 
@@ -359,7 +348,7 @@ def member_timeline(
         bioguide_id=bioguide,
         **{"from": start, "to": end},
         weeks=[buckets[k] for k in sorted(buckets)],
-        sources=_sources(rows),
+        sources=distinct_sources(rows),
     )
 
 
@@ -393,7 +382,7 @@ def member_feed(
         bioguide_id=bioguide,
         items=[FeedItem(**{k: row[k] for k in FeedItem.model_fields}) for row in page],
         next_cursor=next_cursor,
-        sources=_sources(page),
+        sources=distinct_sources(page),
     )
 
 
@@ -408,7 +397,7 @@ def member_votes(
     return VotesResponse(
         bioguide_id=bioguide,
         items=[VoteItem(**{k: row[k] for k in VoteItem.model_fields}) for row in rows],
-        sources=_sources(rows),
+        sources=distinct_sources(rows),
     )
 
 
@@ -424,7 +413,7 @@ def member_bills(
         bioguide_id=bioguide,
         role=role,
         items=[BillItem(**{k: row[k] for k in BillItem.model_fields}) for row in rows],
-        sources=_sources(rows),
+        sources=distinct_sources(rows),
     )
 
 
@@ -448,7 +437,7 @@ def member_committees(
         )
         for row in rows
     ]
-    return CommitteesResponse(bioguide_id=bioguide, items=items, sources=_sources(rows))
+    return CommitteesResponse(bioguide_id=bioguide, items=items, sources=distinct_sources(rows))
 
 
 @router.get("/contact", response_model=ContactResponse, summary="How to reach the member")
@@ -461,7 +450,7 @@ def member_contact(
     return ContactResponse(
         bioguide_id=bioguide,
         **{f: row[f] if row else None for f in fields},
-        sources=_sources([row]) if row else [],
+        sources=distinct_sources([row]) if row else [],
     )
 
 
@@ -558,7 +547,7 @@ def member_constituency(
         district=row["district"] if row else None,
         map=_map(row),
         demographics=demographics,
-        sources=_sources(sources),
+        sources=distinct_sources(sources),
     )
 
 
@@ -600,7 +589,7 @@ def member_statements(
         total=source["statements"],
         newest_published_at=source["newest_published_at"],
         items=[StatementItem(**{k: row[k] for k in StatementItem.model_fields}) for row in rows],
-        sources=_sources([source]),
+        sources=distinct_sources([source]),
     )
 
 
@@ -620,7 +609,7 @@ def member_key_dates(
     return KeyDatesResponse(
         bioguide_id=bioguide,
         items=[KeyDate(**{k: row[k] for k in KeyDate.model_fields}) for row in rows],
-        sources=_sources(rows),
+        sources=distinct_sources(rows),
     )
 
 
@@ -708,5 +697,5 @@ def member_fundraising(
         ),
         small_donor_pct=row["small_donor_pct"],
         small_donor_of_individual_pct=row["small_donor_of_individual_pct"],
-        sources=_sources([row]),
+        sources=distinct_sources([row]),
     )

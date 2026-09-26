@@ -43,11 +43,12 @@ from shapely.geometry import shape
 from shapely.geometry.base import BaseGeometry
 
 from api.config import get_settings
-from ingest.census import GEOGRAPHY_CONGRESS, SourceShapeError, congress_for
+from ingest.census import GEOGRAPHY_CONGRESS, congress_for
 from ingest.db import connect
 from ingest.geometry import Frame, albers_for, clip, path_d, project, simplify
 from ingest.http import USER_AGENT, fetch_response
 from ingest.load import record_run, upsert
+from ingest.shape import SourceShapeError
 
 log = logging.getLogger("ingest.census_geography")
 

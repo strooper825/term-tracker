@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
+from ingest.shape import SourceShapeError
 from ingest.sources import legislators as src
 from tests.fixtures.legislators import fixture_fetch
 
@@ -117,7 +118,7 @@ def _legislator(**overrides: object) -> dict:
     ],
 )
 def test_shape_changes_stop_the_run(parser, bad_text: str) -> None:
-    with pytest.raises(src.SourceShapeError, match="shape differs"):
+    with pytest.raises(SourceShapeError, match="shape differs"):
         parser(bad_text)
 
 

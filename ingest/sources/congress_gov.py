@@ -31,7 +31,6 @@ from typing import Any
 
 from psycopg import Connection
 from psycopg.types.json import Jsonb
-from pydantic import ValidationError
 
 from api.config import get_settings
 from ingest.congress_gov import (
@@ -51,6 +50,7 @@ from ingest.models.congress_gov import (
     MemberLegislationItem,
     Summary,
 )
+from ingest.shape import SourceShapeError, validate
 
 log = logging.getLogger("ingest.congress_gov")
 
@@ -71,19 +71,6 @@ SENATE_DOCUMENT_TYPES = {
 }
 
 
-class SourceShapeError(RuntimeError):
-    """The API response does not have the shape docs/PLAN.md expects. Stop and report."""
-
-
-def _validate(model: type, item: Any, where: str) -> None:
-    try:
-        model.model_validate(item)
-    except ValidationError as exc:
-        raise SourceShapeError(
-            f"{where}: shape differs from what docs/PLAN.md expects; not adapting in place. {exc}"
-        ) from exc
-
-
 def _key_row(key: LegislationKey) -> dict[str, Any]:
     return {"congress": key.congress, "bill_type": key.bill_type, "bill_number": key.bill_number}
 
@@ -95,7 +82,7 @@ def fetch_member_legislation(
     path = f"member/{bioguide_id}/{ROLE_PATHS[role]}"
     kept: list[tuple[LegislationKey, dict[str, Any]]] = []
     for index, item in enumerate(client.paginate(path, ROLE_ITEMS_KEY[role])):
-        _validate(MemberLegislationItem, item, f"{path}[{index}]")
+        validate(MemberLegislationItem, item, f"{path}[{index}]")
         if item["congress"] != congress:
             continue
         kept.append((parse_legislation_url(item["url"]), item))
@@ -107,21 +94,21 @@ def fetch_detail(client: CongressGovClient, key: LegislationKey) -> dict[str, An
     payload = data.get(key.kind)
     if not isinstance(payload, dict):
         raise SourceShapeError(f"{key.path}: expected object under {key.kind!r}")
-    _validate(BillDetail if key.kind == "bill" else AmendmentDetail, payload, key.path)
+    validate(BillDetail if key.kind == "bill" else AmendmentDetail, payload, key.path)
     return payload
 
 
 def fetch_actions(client: CongressGovClient, key: LegislationKey) -> list[dict[str, Any]]:
     items = list(client.paginate(f"{key.path}/actions", "actions"))
     for index, item in enumerate(items):
-        _validate(Action, item, f"{key.path}/actions[{index}]")
+        validate(Action, item, f"{key.path}/actions[{index}]")
     return items
 
 
 def fetch_cosponsors(client: CongressGovClient, key: LegislationKey) -> list[dict[str, Any]]:
     items = list(client.paginate(f"{key.path}/cosponsors", "cosponsors"))
     for index, item in enumerate(items):
-        _validate(Cosponsor, item, f"{key.path}/cosponsors[{index}]")
+        validate(Cosponsor, item, f"{key.path}/cosponsors[{index}]")
     return items
 
 
@@ -135,7 +122,7 @@ def fetch_summaries(client: CongressGovClient, key: LegislationKey) -> list[dict
         raise ValueError(f"{key.path}: summaries exist for bills only, not {key.kind}s")
     items = list(client.paginate(f"{key.path}/summaries", "summaries"))
     for index, item in enumerate(items):
-        _validate(Summary, item, f"{key.path}/summaries[{index}]")
+        validate(Summary, item, f"{key.path}/summaries[{index}]")
     codes = [item["versionCode"] for item in items]
     if len(set(codes)) != len(codes):
         raise SourceShapeError(

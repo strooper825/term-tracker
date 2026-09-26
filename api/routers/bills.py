@@ -15,6 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_session
+from api.provenance import distinct_sources
 from api.schemas.bill import (
     BillAction,
     BillCosponsor,
@@ -30,7 +31,6 @@ from api.schemas.bill import (
     PassageVote,
     TrackedPosition,
 )
-from api.schemas.members import SourceRef
 
 router = APIRouter(prefix="/bills", tags=["bills"])
 
@@ -146,18 +146,6 @@ POSITIONS_SQL = text(
 )
 
 
-def _sources(rows: list[Any]) -> list[SourceRef]:
-    seen: dict[tuple[str, str], SourceRef] = {}
-    for row in rows:
-        seen.setdefault(
-            (row["source"], row["source_url"]),
-            SourceRef(
-                source=row["source"], source_url=row["source_url"], fetched_at=row["fetched_at"]
-            ),
-        )
-    return sorted(seen.values(), key=lambda s: s.source_url)
-
-
 def _sponsor(row: Any) -> BillSponsor:
     return BillSponsor(
         bioguide_id=row["sponsor_bioguide_id"],
@@ -259,7 +247,7 @@ def list_bills(
         total=total,
         limit=limit,
         offset=offset,
-        sources=_sources(rows),
+        sources=distinct_sources(rows),
     )
 
 
@@ -343,5 +331,5 @@ def bill_detail(
             for r in calls
         ],
         journey=[_journey_stage(j) for j in journey],
-        sources=_sources([row, *summaries, *cosponsors, *actions, *calls]),
+        sources=distinct_sources([row, *summaries, *cosponsors, *actions, *calls]),
     )

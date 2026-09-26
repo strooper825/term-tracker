@@ -20,6 +20,7 @@ from urllib.parse import quote, urlencode
 import httpx
 
 from ingest.http import USER_AGENT, fetch_text
+from ingest.shape import SourceShapeError
 
 BASE_URL = "https://api.census.gov/data"
 # The API accepts 50 variables per request, and NAME counts as one.
@@ -58,10 +59,6 @@ def _install_redaction() -> None:
 
 
 _install_redaction()
-
-
-class SourceShapeError(RuntimeError):
-    """A Census response does not have the shape the pipeline expects. Stop and report."""
 
 
 def congress_for(table: dict[int, int], year: int, what: str) -> int:
