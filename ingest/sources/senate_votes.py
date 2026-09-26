@@ -21,13 +21,13 @@ import httpx
 import xmltodict
 from psycopg import Connection
 from psycopg.types.json import Jsonb
-from pydantic import ValidationError
 
 from api.config import get_settings
 from ingest.congress_gov import RateLimiter
 from ingest.db import connect
 from ingest.http import USER_AGENT, fetch_text
 from ingest.load import record_run, upsert
+from ingest.shape import SourceShapeError, validate
 
 log = logging.getLogger("ingest.senate_votes")
 
@@ -36,10 +36,6 @@ BASE_URL = "https://www.senate.gov/legislative/LIS/"
 KEY_COLUMNS = ["congress", "session", "vote_number"]
 
 Fetch = Callable[[str], str]
-
-
-class SourceShapeError(RuntimeError):
-    """The XML does not have the shape docs/PLAN.md expects. Stop and report."""
 
 
 class SenateGovClient:
@@ -79,15 +75,6 @@ def parse_xml(text: str, root: str, where: str) -> dict[str, Any]:
     return payload
 
 
-def _validate(model: type, item: Any, where: str) -> None:
-    try:
-        model.model_validate(item)
-    except ValidationError as exc:
-        raise SourceShapeError(
-            f"{where}: shape differs from what docs/PLAN.md expects; not adapting in place. {exc}"
-        ) from exc
-
-
 def fetch_menu(client: SenateGovClient, congress: int, session: int) -> dict[str, Any] | None:
     """The session menu as a dict, or None when senate.gov has no such session.
 
@@ -104,7 +91,7 @@ def fetch_menu(client: SenateGovClient, congress: int, session: int) -> dict[str
             return None
         raise
     menu = parse_xml(text, "vote_summary", path)
-    _validate(SenateMenu, menu, path)
+    validate(SenateMenu, menu, path)
     if int(menu["congress"]) != congress or int(menu["session"]) != session:
         raise SourceShapeError(f"{path}: menu is for another congress/session")
     return menu
@@ -117,7 +104,7 @@ def fetch_vote(
 
     path = vote_path(congress, session, vote_number)
     vote = parse_xml(client.get_text(path), "roll_call_vote", path)
-    _validate(SenateVote, vote, path)
+    validate(SenateVote, vote, path)
     if int(vote["vote_number"]) != vote_number:
         raise SourceShapeError(f"{path}: vote_number {vote['vote_number']} != {vote_number}")
     return vote

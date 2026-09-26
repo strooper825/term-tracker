@@ -26,12 +26,12 @@ from ingest.census import (
     ACS_CONGRESS,
     BASE_URL,
     CensusClient,
-    SourceShapeError,
     congress_for,
     geoid,
 )
 from ingest.db import connect
 from ingest.load import record_run, upsert
+from ingest.shape import SourceShapeError
 
 log = logging.getLogger("ingest.census_acs")
 

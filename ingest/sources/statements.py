@@ -36,6 +36,7 @@ from ingest.congress_gov import RateLimiter
 from ingest.db import connect
 from ingest.http import USER_AGENT, fetch_text
 from ingest.load import record_run, upsert
+from ingest.shape import SourceShapeError
 
 log = logging.getLogger("ingest.statements")
 
@@ -49,10 +50,6 @@ NAMESPACES = {
 }
 
 Fetch = Callable[[str], str]
-
-
-class SourceShapeError(RuntimeError):
-    """The feed does not have the shape ADR 0015 expects. Stop and report."""
 
 
 class FeedUnavailable(RuntimeError):

@@ -18,31 +18,18 @@ from typing import Any
 
 from psycopg import Connection
 from psycopg.types.json import Jsonb
-from pydantic import ValidationError
 
 from api.config import get_settings
 from ingest.congress_gov import BASE_URL, CongressGovClient, RateLimiter
 from ingest.db import connect
 from ingest.load import record_run, upsert
 from ingest.models.votes import HouseVoteListItem, HouseVoteMembers
+from ingest.shape import SourceShapeError, validate
 
 log = logging.getLogger("ingest.house_votes")
 
 SOURCE = "congress_gov_house_votes"
 KEY_COLUMNS = ["congress", "session", "roll_number"]
-
-
-class SourceShapeError(RuntimeError):
-    """The API response does not have the shape docs/PLAN.md expects. Stop and report."""
-
-
-def _validate(model: type, item: Any, where: str) -> None:
-    try:
-        model.model_validate(item)
-    except ValidationError as exc:
-        raise SourceShapeError(
-            f"{where}: shape differs from what docs/PLAN.md expects; not adapting in place. {exc}"
-        ) from exc
 
 
 def fetch_session_votes(
@@ -51,7 +38,7 @@ def fetch_session_votes(
     path = f"house-vote/{congress}/{session}"
     items = list(client.paginate(path, "houseRollCallVotes"))
     for index, item in enumerate(items):
-        _validate(HouseVoteListItem, item, f"{path}[{index}]")
+        validate(HouseVoteListItem, item, f"{path}[{index}]")
         if item["congress"] != congress or item["sessionNumber"] != session:
             raise SourceShapeError(f"{path}[{index}]: item belongs to another congress/session")
     return items
@@ -64,7 +51,7 @@ def fetch_members(
     payload = client.get(path).get("houseRollCallVoteMemberVotes")
     if not isinstance(payload, dict):
         raise SourceShapeError(f"{path}: expected object under houseRollCallVoteMemberVotes")
-    _validate(HouseVoteMembers, payload, path)
+    validate(HouseVoteMembers, payload, path)
     return payload
 
 

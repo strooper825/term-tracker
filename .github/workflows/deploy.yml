@@ -58,7 +58,7 @@ jobs:
           echo "Deploying to $target (requested: '${REQUESTED:-auto}', branch: $REF_NAME)"
 
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -96,7 +96,7 @@ jobs:
           done
           echo "::error::API did not start"; cat api.log; exit 1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -176,3 +176,13 @@ jobs:
       - name: Stop the API
         if: always()
         run: pkill -f "uvicorn api.main:app" || true
+
+      # The Migrate step above moved the managed database to this branch's head. Called from
+      # ingest.yml (whose workflow name the github context then carries), the caller restores
+      # main's schema after the whole run; dispatched on its own from a branch, this does it
+      # (ADR 0019).
+      - name: Put the database back at main's schema
+        if: always() && github.ref_name != 'main' && github.workflow == 'Deploy site'
+        run: |
+          git fetch --depth=1 origin main
+          python -m ingest.schema restore --main-ref FETCH_HEAD

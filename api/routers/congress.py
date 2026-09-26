@@ -9,13 +9,14 @@ the passed-both table cover every bill in the database, whoever sponsored it.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_session
+from api.provenance import source_ref
 from api.schemas.congress import (
     Activity,
     ChamberComposition,
@@ -25,7 +26,6 @@ from api.schemas.congress import (
     PassedBoth,
     PassedBothItem,
 )
-from api.schemas.members import SourceRef
 
 router = APIRouter(prefix="/congress", tags=["congress"])
 
@@ -61,12 +61,6 @@ PASSED_BOTH_SQL = text(
 )
 
 ACTIVITY_FIELDS = tuple(Activity.model_fields)
-
-
-def _source(row: Any) -> SourceRef:
-    return SourceRef(
-        source=row["source"], source_url=row["source_url"], fetched_at=row["fetched_at"]
-    )
 
 
 @router.get(
@@ -134,5 +128,5 @@ def overview(session: Annotated[Session, Depends(get_session)]) -> OverviewRespo
             ],
         ),
         generated_at=datetime.now(UTC),
-        sources=[_source(first), _source(stats)],
+        sources=[source_ref(first), source_ref(stats)],
     )

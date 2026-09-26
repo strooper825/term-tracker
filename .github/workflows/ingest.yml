@@ -6,6 +6,11 @@ name: Nightly ingest
 # in either job opens an issue labelled nightly-failure (or comments on the open one); a fully
 # successful run closes it. deploy.yml is also dispatchable on its own, so a frontend change
 # can be published without an ingest cycle.
+#
+# A run of any branch other than main ends by putting the database back at main's Alembic head
+# (ingest/schema.py, ADR 0019): a branch migration left behind makes every nightly on main fail
+# with "Can't locate revision". Dispatching on main with restore_schema_from=<branch> does only
+# that restore, for a database a branch run has already left ahead.
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC nightly (plan section 3)
@@ -23,6 +28,10 @@ on:
         description: Rebuild and deploy the site after a successful ingest (production from main, preview from any other branch)
         type: boolean
         default: true
+      restore_schema_from:
+        description: "Skip the ingest; only downgrade the database to main's head using this branch's migrations"
+        type: string
+        default: ""
 
 concurrency:
   group: nightly-ingest
@@ -35,6 +44,7 @@ permissions:
 jobs:
   ingest:
     name: migrate -> seed -> ingest -> dbt build -> freshness check
+    if: ${{ !inputs.restore_schema_from }}
     runs-on: ubuntu-latest
     # Raised from 90 after the twenty-member expansion: a local first-load run for all twenty
     # tracked members took 2h02m (122 minutes), up from 89 minutes at twelve members; the plan's
@@ -47,7 +57,7 @@ jobs:
       CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -63,7 +73,11 @@ jobs:
         run: python -m ingest.dbt_env >> "$GITHUB_ENV"
 
       - name: Migrate
-        run: alembic upgrade head
+        run: |
+          alembic upgrade head || {
+            echo "::error::alembic upgrade failed. If it cannot locate a revision, a run of another branch left the database ahead of this one: dispatch ingest.yml on main with restore_schema_from set to that branch (ADR 0019)."
+            exit 1
+          }
 
       # Seeds first: the bills source reads seed.tracked_members, which does not exist on a fresh
       # database until dbt has created it. dbt seed is idempotent (truncate and reload).
@@ -91,9 +105,38 @@ jobs:
       deploy_target: auto
     secrets: inherit
 
+  # Runs after the deploy (which migrates too) and even when the run failed or was cancelled:
+  # the house-ptr-trades run of 2026-09-21 was cancelled after migrating, and the next two
+  # nightlies failed on its revision.
+  restore-schema:
+    name: restore main's schema
+    needs: [ingest, deploy]
+    if: always() && (inputs.restore_schema_from || github.ref_name != 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      MIGRATIONS_FROM: ${{ inputs.restore_schema_from }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install .
+      - name: Take the migrations of the named branch
+        if: inputs.restore_schema_from
+        run: |
+          git fetch --depth=1 origin "$MIGRATIONS_FROM"
+          git checkout FETCH_HEAD -- migrations/versions
+      - name: Downgrade to main's head if the database is ahead of it
+        run: |
+          git fetch --depth=1 origin main
+          python -m ingest.schema restore --main-ref FETCH_HEAD
+
   alert:
     name: nightly-failure issue
-    needs: [ingest, deploy]
+    needs: [ingest, deploy, restore-schema]
     if: always()
     runs-on: ubuntu-latest
     env:
@@ -102,13 +145,14 @@ jobs:
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       INGEST_RESULT: ${{ needs.ingest.result }}
       DEPLOY_RESULT: ${{ needs.deploy.result }}
+      RESTORE_RESULT: ${{ needs.restore-schema.result }}
     steps:
       - name: Open or update the failure issue
-        if: needs.ingest.result == 'failure' || needs.deploy.result == 'failure'
+        if: contains(needs.*.result, 'failure')
         run: |
           gh label create nightly-failure --color B60205 --description "Nightly ingest failed" --force
           existing=$(gh issue list --label nightly-failure --state open --json number --jq '.[0].number')
-          body="The nightly run failed on $(date -u +%Y-%m-%d) (event: ${{ github.event_name }}; ingest: $INGEST_RESULT, deploy: $DEPLOY_RESULT). Run: $RUN_URL"
+          body="The nightly run failed on $(date -u +%Y-%m-%d) (event: ${{ github.event_name }}; ingest: $INGEST_RESULT, deploy: $DEPLOY_RESULT, schema restore: $RESTORE_RESULT). Run: $RUN_URL"
           if [ -z "$existing" ]; then
             gh issue create --title "Nightly ingest failed $(date -u +%Y-%m-%d)" --label nightly-failure --body "$body"
           else
@@ -116,7 +160,7 @@ jobs:
           fi
 
       - name: Close the failure issue after a successful run
-        if: needs.ingest.result == 'success' && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
+        if: needs.ingest.result == 'success' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
         run: |
           for n in $(gh issue list --label nightly-failure --state open --json number --jq '.[].number'); do
             gh issue close "$n" --comment "Recovered: the nightly run succeeded on $(date -u +%Y-%m-%d) (deploy: $DEPLOY_RESULT). Run: $RUN_URL"
