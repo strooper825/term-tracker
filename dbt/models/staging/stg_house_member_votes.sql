@@ -14,3 +14,6 @@ select
     m.fetched_at
 from {{ source('raw', 'house_vote_members') }} as m
 cross join lateral jsonb_array_elements(m.payload -> 'results') as x (value)
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where m.congress = {{ var('current_congress') }}

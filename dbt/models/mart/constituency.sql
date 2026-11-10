@@ -34,7 +34,7 @@ districts as (
     inner join fips as f on f.state_abbr = t.state_abbr
     where t.chamber = 'house'
         and t.district is not null
-        and t.end_date > '{{ var("current_congress_start") }}'::date
+        and t.end_date > {{ congress_start_date() }}
     group by 1, 2, 3, 4, 5, 6
 )
 

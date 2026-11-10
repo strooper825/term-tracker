@@ -1,5 +1,6 @@
 // SiteHeader, SiteFooter, Breadcrumb, PartyBadge, SourceLink: ported from design/src/components.
 import { PARTY_COLOR, type PartyName } from '@/data/eventTypes';
+import { ARCHIVE_BANNER, ARCHIVE_LINKS, type ArchiveBanner } from '@/lib/archive';
 
 export const REPO_URL = 'https://github.com/strooper825/term-tracker';
 
@@ -7,6 +8,25 @@ export const REPO_URL = 'https://github.com/strooper825/term-tracker';
 const isExternal = (href: string) => /^https?:\/\//.test(href);
 const newTab = (href: string) =>
   isExternal(href) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
+
+/* Shown on every page of an archive build (ADR 0021): a reader who lands here from a search
+   must not take a finished Congress for the current one. */
+export function ArchiveNotice({ banner }: { banner: ArchiveBanner }) {
+  return (
+    <p role="note" className="m-0 px-7 py-2.5 border-b border-rule bg-canvas text-meta text-ink2">
+      <strong className="text-ink">Archive.</strong> This is the {banner.congressLabel}
+      {banner.asOf ? ` as it stood on ${banner.asOf}` : ''}. It is no longer updated.
+      {banner.liveUrl ? (
+        <>
+          {' '}
+          <a href={banner.liveUrl} className="underline">
+            Go to the current Congress
+          </a>
+        </>
+      ) : null}
+    </p>
+  );
+}
 
 export function SiteHeader({ active }: { active: string }) {
   const link = (href: string, label: string) => (
@@ -21,17 +41,20 @@ export function SiteHeader({ active }: { active: string }) {
     </a>
   );
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-7 py-3.5 border-b border-rule">
-      <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
-        Term Tracker
-      </span>
-      <nav className="flex gap-[22px] text-body">
-        {link('/congress', 'Congress')}
-        {link('/members', 'Members')}
-        {link(`${REPO_URL}/blob/main/docs/PLAN.md`, 'About')}
-        {link(`${REPO_URL}/blob/main/docs/data-dictionary.md`, 'Data')}
-      </nav>
-    </header>
+    <>
+      {ARCHIVE_BANNER ? <ArchiveNotice banner={ARCHIVE_BANNER} /> : null}
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-7 py-3.5 border-b border-rule">
+        <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
+          Term Tracker
+        </span>
+        <nav className="flex gap-[22px] text-body">
+          {link('/congress', 'Congress')}
+          {link('/members', 'Members')}
+          {link(`${REPO_URL}/blob/main/docs/PLAN.md`, 'About')}
+          {link(`${REPO_URL}/blob/main/docs/data-dictionary.md`, 'Data')}
+        </nav>
+      </header>
+    </>
   );
 }
 
@@ -50,6 +73,11 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
       >
         Data dictionary ↗<span className="sr-only"> (opens in a new tab)</span>
       </a>
+      {ARCHIVE_LINKS.map((archive) => (
+        <a key={archive.href} href={archive.href} className="text-label uppercase text-ink3">
+          {archive.label}
+        </a>
+      ))}
     </footer>
   );
 }

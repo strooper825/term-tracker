@@ -12,3 +12,6 @@ select
     source_url,
     fetched_at
 from {{ source('raw', 'member_legislation') }}
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where congress = {{ var('current_congress') }}

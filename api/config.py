@@ -29,7 +29,9 @@ class Settings(BaseSettings):
     # Ingestion (Congress.gov). The key is issued via api.data.gov; see .env.example.
     congress_gov_api_key: str | None = None
     congress_gov_requests_per_hour: int = 5000  # documented per-key limit
-    current_congress: int = 119  # keep in step with the dbt var of the same name
+    # The one Congress the ingest fetches. dbt/dbt_project.yml carries the same number for the
+    # mart and tests/test_rollover.py fails if they differ; changing it is docs/rollover-runbook.md.
+    current_congress: int = 119
 
     # Ingestion (OpenFEC, Phase 2). Same api.data.gov key scheme; see .env.example.
     fec_api_key: str | None = None

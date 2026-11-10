@@ -24,6 +24,7 @@ also recorded here once made.
 - [0017. The deployment ships pages, not prefetch payloads](0017-strip-prefetch-payloads.md)
 - [0019. Branch runs put the managed database back at main's schema](0019-branch-runs-restore-main-schema.md)
 - [0020. A source that refuses the nightly reader does not stop the nightly](0020-refused-source-does-not-stop-the-nightly.md)
+- [0021. The site describes one Congress; a finished Congress becomes a frozen archive](0021-one-congress-at-a-time-and-a-frozen-archive.md)
 
 ## Format
 

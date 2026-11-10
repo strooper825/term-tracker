@@ -28,7 +28,7 @@ select
     coalesce(
         lead(make_date(s.session_year, 1, 3)) over (partition by s.congress order by s.session)
             - 1,
-        '{{ var("current_congress_end") }}'::date
+        {{ congress_end_date() }}
     ) as end_date,
     s.first_roll_call_date,
     s.last_roll_call_date,

@@ -180,8 +180,19 @@ def built_mart(migrated_engine: Engine) -> None:
             )
         conn.commit()
 
+    # The fixtures are of one Congress and the mart keeps only the tracked one, so the build is
+    # told which: the suite must not empty out when dbt_project.yml moves to the next Congress.
     result = subprocess.run(
-        [dbt, "build", "--project-dir", str(ROOT / "dbt"), "--profiles-dir", str(ROOT / "dbt")],
+        [
+            dbt,
+            "build",
+            "--project-dir",
+            str(ROOT / "dbt"),
+            "--profiles-dir",
+            str(ROOT / "dbt"),
+            "--vars",
+            f"{{current_congress: {CONGRESS}}}",
+        ],
         env={**os.environ, **dbt_env(migrated_engine.url.render_as_string(hide_password=False))},
         capture_output=True,
         text=True,

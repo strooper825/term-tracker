@@ -29,14 +29,14 @@ with bills as (
 ),
 
 members as (
-    select count(*) as tracked_members
+    select count(*) as tracked_members, max(fetched_at) as fetched_at
     from {{ ref('member_summary') }}
 )
 
 select
     {{ var('current_congress') }}::int as congress,
-    '{{ var("current_congress_start") }}'::date as congress_start,
-    '{{ var("current_congress_end") }}'::date as congress_end,
+    {{ congress_start_date() }} as congress_start,
+    {{ congress_end_date() }} as congress_end,
     m.tracked_members,
     b.bills_in_dataset,
     b.bills_house,
@@ -55,6 +55,8 @@ select
     b.passed_both_vetoed,
     'congress_gov' as source,
     'https://www.congress.gov/' as source_url,
-    b.fetched_at
+    -- A Congress that has just convened has no bill yet, and the row still needs a fetch time:
+    -- the endpoint answered 500 on the null in the rehearsal of the 120th (ADR 0021).
+    coalesce(b.fetched_at, m.fetched_at) as fetched_at
 from bills as b
 cross join members as m
