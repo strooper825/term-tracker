@@ -30,7 +30,7 @@ freshness check (`python -m ingest.freshness`), both of which read the latest
 | `started_at` | timestamptz | no | Defaults to `now()` |
 | `finished_at` | timestamptz | yes | Set when the run ends, whatever the outcome |
 | `rows_loaded` | integer | yes | Rows upserted by the run |
-| `error` | text | yes | Error message for failed runs |
+| `error` | text | yes | Error message for failed runs, as `ExceptionName: message`. A message beginning `SourceUnavailable:` means the upstream refused the reader; when that is the newest finished run of a source, the freshness check and the API report the source as unavailable rather than stale (ADR 0020) |
 
 Index: `ix_ingest_run_source_finished_at (source, finished_at)`.
 

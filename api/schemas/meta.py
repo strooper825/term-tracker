@@ -15,6 +15,13 @@ class SourceFreshness(BaseModel):
     source_url: str | None = Field(description="Base URL the run fetched from")
     fetched_at: datetime = Field(description="When the last successful run finished (UTC)")
     rows_loaded: int | None = Field(description="Rows upserted by that run, if recorded")
+    unavailable: bool = Field(
+        default=False,
+        description=(
+            "True when the source refused the newest run, so fetched_at is the last time it "
+            "could be read at all"
+        ),
+    )
 
 
 class FreshnessResponse(BaseModel):

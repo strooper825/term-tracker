@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from ingest.congress_gov import CongressGovClient, RateLimiter
+from ingest.http import SourceUnavailable
 from ingest.sources import house_votes, senate_votes
 from tests.fixtures.votes import (
     CONGRESS,
@@ -77,6 +78,25 @@ def test_senate_non_404_errors_propagate() -> None:
     client = senate_votes.SenateGovClient(fetch=fetch, limiter=RateLimiter(10))
     with pytest.raises(httpx.HTTPStatusError):
         senate_votes.fetch_menu(client, CONGRESS, 1)
+
+
+def test_senate_403_is_the_source_refusing_us_not_a_missing_session() -> None:
+    """Every request from GitHub's runners has been answered 403 since 2026-10-23 (ADR 0020).
+
+    It must not read as "no such session" (which would end the walk and record a successful,
+    empty run) and must not read as a pipeline failure either."""
+
+    def fetch(url: str) -> str:
+        request = httpx.Request("GET", url)
+        raise httpx.HTTPStatusError(
+            "403", request=request, response=httpx.Response(403, request=request)
+        )
+
+    client = senate_votes.SenateGovClient(fetch=fetch, limiter=RateLimiter(10))
+    with pytest.raises(SourceUnavailable, match="vote_menu_119_1.xml answered HTTP 403"):
+        senate_votes.fetch_menu(client, CONGRESS, 1)
+    with pytest.raises(SourceUnavailable):
+        senate_votes.fetch_vote(client, CONGRESS, 1, 1)
 
 
 @pytest.mark.parametrize(

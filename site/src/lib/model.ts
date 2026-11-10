@@ -694,9 +694,34 @@ export function buildElection(dates: KeyDate[], detail: MemberDetail, today: Dat
   };
 }
 
+/** What a reader calls the rows of a source that can go unavailable (ADR 0020). */
+const SOURCE_LABELS: Record<string, string> = {
+  senate_votes: 'Senate roll call votes',
+};
+
+/** The footer's "Last updated" stamp: the newest successful read of any source. A source that
+ *  is refusing the nightly reader is named with its own, older date, so the stamp never claims
+ *  those rows are as fresh as the rest: "Nov 10, 2026 07:12 UTC (Senate roll call votes: Oct
+ *  22, 2026)". */
 export function lastUpdated(freshness: FreshnessResponse): string | null {
   const latest = freshness.sources.map((s) => s.fetched_at).sort().at(-1);
-  return latest ? formatTimestampUtc(latest) : null;
+  if (!latest) return null;
+  const behind = freshness.sources
+    .filter((s) => s.unavailable)
+    .map((s) => `${SOURCE_LABELS[s.source] ?? s.source}: ${formatDate(s.fetched_at.slice(0, 10))}`);
+  return formatTimestampUtc(latest) + (behind.length ? ` (${behind.join('; ')})` : '');
+}
+
+/** The sentence shown above a senator's vote list while senate.gov refuses the nightly reader,
+ *  or null when Senate votes are current. */
+export function senateVotesNotice(freshness: FreshnessResponse): string | null {
+  const senate = freshness.sources.find((s) => s.source === 'senate_votes' && s.unavailable);
+  if (!senate) return null;
+  return (
+    `Senate.gov has not answered this site's nightly reader since ` +
+    `${formatDate(senate.fetched_at.slice(0, 10))}, so roll call votes held after that date are ` +
+    `missing here. They are on Senate.gov.`
+  );
 }
 
 export function buildIndexRow(item: MemberListItem, detail: MemberDetail): IndexRow {

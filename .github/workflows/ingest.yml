@@ -11,6 +11,11 @@ name: Nightly ingest
 # (ingest/schema.py, ADR 0019): a branch migration left behind makes every nightly on main fail
 # with "Can't locate revision". Dispatching on main with restore_schema_from=<branch> does only
 # that restore, for a database a branch run has already left ahead.
+#
+# A source its upstream refuses outright (senate.gov has answered GitHub's runners with 403
+# since 2026-10-23) does not fail the run: the ingest keeps the rows it holds, the build and the
+# deploy go ahead, and the alert job keeps one issue labelled source-unavailable open until the
+# source answers again (ADR 0020).
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC nightly (plan section 3)
@@ -50,6 +55,8 @@ jobs:
     # tracked members took 2h02m (122 minutes), up from 89 minutes at twelve members; the plan's
     # open item on a batching plan for further growth (docs/PLAN.md section 12) still applies.
     timeout-minutes: 180
+    outputs:
+      unavailable: ${{ steps.freshness.outputs.unavailable }}
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
@@ -91,6 +98,7 @@ jobs:
         run: dbt build --project-dir dbt --profiles-dir dbt --no-use-colors
 
       - name: Freshness check and size report
+        id: freshness
         run: python -m ingest.freshness --max-age-hours ${{ inputs.max_age_hours || 26 }}
 
   # Same run, so a deploy failure fails this run and the alert job below sees it. The schedule
@@ -146,6 +154,7 @@ jobs:
       INGEST_RESULT: ${{ needs.ingest.result }}
       DEPLOY_RESULT: ${{ needs.deploy.result }}
       RESTORE_RESULT: ${{ needs.restore-schema.result }}
+      UNAVAILABLE: ${{ needs.ingest.outputs.unavailable }}
     steps:
       - name: Open or update the failure issue
         if: contains(needs.*.result, 'failure')
@@ -164,4 +173,23 @@ jobs:
         run: |
           for n in $(gh issue list --label nightly-failure --state open --json number --jq '.[].number'); do
             gh issue close "$n" --comment "Recovered: the nightly run succeeded on $(date -u +%Y-%m-%d) (deploy: $DEPLOY_RESULT). Run: $RUN_URL"
+          done
+
+      # One issue for as long as any source is refused, opened once and not commented on nightly:
+      # the run itself is green, so without this nothing would say the Senate data has stopped.
+      - name: Open the source-unavailable issue
+        if: needs.ingest.outputs.unavailable != ''
+        run: |
+          gh label create source-unavailable --color D93F0B --description "A source is refusing the nightly reader" --force
+          existing=$(gh issue list --label source-unavailable --state open --json number --jq '.[0].number')
+          if [ -z "$existing" ]; then
+            gh issue create --title "Source unavailable: $UNAVAILABLE" --label source-unavailable \
+              --body "The upstream of \`$UNAVAILABLE\` refused the nightly reader, so the site is serving the rows from its last successful read (see the freshness table in the run summary). The rest of the run went ahead. This issue closes itself on the first run in which every source answers (ADR 0020). Run: $RUN_URL"
+          fi
+
+      - name: Close the source-unavailable issue once every source answers
+        if: needs.ingest.result == 'success' && needs.ingest.outputs.unavailable == ''
+        run: |
+          for n in $(gh issue list --label source-unavailable --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Recovered: every source answered on $(date -u +%Y-%m-%d). Run: $RUN_URL"
           done

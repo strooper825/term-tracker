@@ -18,6 +18,8 @@ import {
   caucusParty,
   feedRow,
   seatLong,
+  lastUpdated,
+  senateVotesNotice,
 } from '@/lib/model';
 import {
   cycleLabel,
@@ -374,5 +376,33 @@ describe('feed rows and the vote list', () => {
     expect(rows[0].subject).toBe('on H.R. 4795: Protect Economic and Academic Freedom Act of 2026');
     expect(rows[1].detailsHref).toBeUndefined(); // a nomination has no bill page
     expect(rows[1].source).toMatch(/senate\.gov|clerk\.house\.gov/);
+  });
+});
+
+describe('a source that is refusing the nightly reader (ADR 0020)', () => {
+  const current = { source: 'legislators', source_url: null, fetched_at: '2026-11-10T07:12:00Z' };
+  const senate = {
+    source: 'senate_votes',
+    source_url: 'https://www.senate.gov/legislative/LIS/',
+    fetched_at: '2026-10-22T11:27:45Z',
+  };
+  const generated_at = '2026-11-10T07:30:00Z';
+
+  it('says nothing while every source answers', () => {
+    const freshness = { generated_at, sources: [current, { ...senate, unavailable: false }] };
+    expect(lastUpdated(freshness)).toBe('Nov 10, 2026 07:12 UTC');
+    expect(senateVotesNotice(freshness)).toBeNull();
+  });
+
+  it('dates the refused source separately instead of calling it current', () => {
+    const freshness = { generated_at, sources: [current, { ...senate, unavailable: true }] };
+    expect(lastUpdated(freshness)).toBe(
+      'Nov 10, 2026 07:12 UTC (Senate roll call votes: Oct 22, 2026)',
+    );
+    expect(senateVotesNotice(freshness)).toContain('since Oct 22, 2026');
+  });
+
+  it('has no stamp at all on a database with no recorded run', () => {
+    expect(lastUpdated({ generated_at, sources: [] })).toBeNull();
   });
 });

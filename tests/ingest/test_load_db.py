@@ -6,6 +6,8 @@ import pytest
 from sqlalchemy import Engine, text
 
 from ingest.db import connect
+from ingest.freshness import read_statuses
+from ingest.http import SourceUnavailable
 from ingest.load import ABANDONED, record_run
 
 pytestmark = pytest.mark.integration
@@ -57,3 +59,32 @@ def test_a_running_row_left_behind_is_closed_as_failed(migrated_engine: Engine) 
                 text("DELETE FROM meta.ingest_run WHERE source IN (:s, 'another_source')"),
                 {"s": SOURCE},
             )
+
+
+def test_a_refused_run_is_recorded_so_the_freshness_check_recognises_it(
+    migrated_engine: Engine,
+) -> None:
+    """The stored error text is the only link between the raise and the report (ADR 0020)."""
+    try:
+        with connect() as conn, record_run(conn, SOURCE, "https://example.test") as run:
+            run.rows_loaded = 4
+        with pytest.raises(SourceUnavailable), connect() as conn:
+            with record_run(conn, SOURCE, "https://example.test"):
+                raise SourceUnavailable("https://example.test/menu.xml answered HTTP 403")
+
+        succeeded, refused = _runs(migrated_engine)
+        assert succeeded["status"] == "success" and refused["status"] == "failed"
+        assert refused["error"].startswith("SourceUnavailable: https://example.test/menu.xml")
+        with connect() as conn:
+            (status,) = read_statuses(conn, [SOURCE])
+        assert status.unavailable and status.rows_loaded == 4
+
+        # The first run that gets through clears it.
+        with connect() as conn, record_run(conn, SOURCE, "https://example.test") as run:
+            run.rows_loaded = 9
+        with connect() as conn:
+            (status,) = read_statuses(conn, [SOURCE])
+        assert not status.unavailable and status.rows_loaded == 9
+    finally:
+        with migrated_engine.begin() as conn:
+            conn.execute(text("DELETE FROM meta.ingest_run WHERE source = :s"), {"s": SOURCE})

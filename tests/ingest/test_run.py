@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ingest import run
+from ingest.http import SourceUnavailable
 
 
 def test_all_with_no_sources_exits_zero(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -51,3 +52,40 @@ def test_a_failing_source_does_not_stop_the_rest(
     assert calls == ["votes", "bills"]
     assert "1 of 2 sources failed: votes" in caplog.text
     assert "upstream exploded" in caplog.text  # the traceback reaches the run log
+
+
+def test_a_refused_source_is_not_a_failed_run(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """senate.gov refusing the runner stopped the build and the deploy for 17 nights (ADR 0020)."""
+    calls: list[str] = []
+
+    def refused(*, full_refresh: bool = False) -> int:
+        calls.append("senate_votes")
+        raise SourceUnavailable("https://www.senate.gov/x answered HTTP 403")
+
+    def working(*, full_refresh: bool = False) -> int:
+        calls.append("bills")
+        return 1
+
+    monkeypatch.setattr(run, "SOURCES", {"senate_votes": refused, "bills": working})
+    monkeypatch.setattr(run.log, "disabled", False)
+    assert run.main(["--source", "all"]) == 0
+    assert calls == ["senate_votes", "bills"]
+    assert "Source senate_votes is unavailable" in caplog.text
+    assert "answered HTTP 403" in caplog.text
+    assert "sources failed" not in caplog.text
+    assert "::warning::sources refused by their upstream: senate_votes" in capsys.readouterr().out
+
+
+def test_a_refused_source_does_not_hide_a_failed_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refused(*, full_refresh: bool = False) -> int:
+        raise SourceUnavailable("refused")
+
+    def failing(*, full_refresh: bool = False) -> int:
+        raise RuntimeError("upstream exploded")
+
+    monkeypatch.setattr(run, "SOURCES", {"senate_votes": refused, "bills": failing})
+    assert run.main(["--source", "all"]) == 1

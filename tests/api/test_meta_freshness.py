@@ -55,7 +55,15 @@ def test_freshness_maps_rows(client: TestClient) -> None:
                 "source_url": "https://api.congress.gov/v3",
                 "finished_at": finished,
                 "rows_loaded": 42,
-            }
+                "unavailable": False,
+            },
+            {
+                "source": "senate_votes",
+                "source_url": "https://www.senate.gov/legislative/LIS/",
+                "finished_at": finished,
+                "rows_loaded": 2,
+                "unavailable": True,
+            },
         ]
     )
     response = client.get("/api/v1/meta/freshness")
@@ -66,7 +74,15 @@ def test_freshness_maps_rows(client: TestClient) -> None:
             "source_url": "https://api.congress.gov/v3",
             "fetched_at": "2026-09-12T06:15:00Z",
             "rows_loaded": 42,
-        }
+            "unavailable": False,
+        },
+        {
+            "source": "senate_votes",
+            "source_url": "https://www.senate.gov/legislative/LIS/",
+            "fetched_at": "2026-09-12T06:15:00Z",
+            "rows_loaded": 2,
+            "unavailable": True,
+        },
     ]
 
 

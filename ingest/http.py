@@ -14,6 +14,23 @@ USER_AGENT = "term-tracker/0.1 (+https://github.com/strooper825/term-tracker)"
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 
 
+class SourceUnavailable(RuntimeError):
+    """The source refused this client outright, so there is nothing to read tonight.
+
+    Not a fault in the pipeline and not a change of shape: senate.gov has answered every request
+    from GitHub's hosted runners with 403 since 2026-10-23 while serving the same client from
+    other networks (ADR 0020). A source raises this instead of the status error so that
+    :mod:`ingest.run` can carry on to the build and the deploy with the rows already held, and
+    :mod:`ingest.freshness` can report the source as unavailable rather than broken. The message
+    is stored in ``meta.ingest_run.error`` behind this class's name, which is how the freshness
+    check and the API recognise such a run.
+    """
+
+
+# How record_run stores the exception: f"{type(exc).__name__}: {exc}".
+UNAVAILABLE_ERROR_PREFIX = f"{SourceUnavailable.__name__}:"
+
+
 def fetch_response(
     url: str,
     *,

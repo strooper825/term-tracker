@@ -19,6 +19,7 @@ import {
   buildTerm,
   buildVoteRows,
   lastUpdated,
+  senateVotesNotice,
   policyAreaTotals,
   type IndexRow,
 } from './model';
@@ -92,6 +93,7 @@ export async function dashboardProps(bioguide: string, today = new Date()): Prom
     stats: buildStats(detail),
     term: buildTerm(detail),
     votes: buildVoteRows(feed),
+    votesNotice: detail.seat.chamber === 'senate' ? senateVotesNotice(freshness) : null,
     congressLabel: congressLabel(detail.term.tracked_congress),
     policyAreas: policyAreaTotals(feed),
     // The rolling windows count back from the latest ingest rather than the build clock, so

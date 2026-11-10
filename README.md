@@ -179,6 +179,9 @@ secret (never in `.env`; local development keeps its own URL):
   database size against the 0.5 GB free tier to the step summary. On success it calls
   `deploy.yml` in the same run. A failure in either job opens an issue labelled
   `nightly-failure` (or comments on the open one); the next fully successful run closes it.
+  A source whose upstream refuses the runner outright (senate.gov since 2026-10-23) does not
+  fail the run: the rows held are kept and labelled with their date on the site, and one issue
+  labelled `source-unavailable` stays open until every source answers again (ADR 0020).
   Run it by hand from the Actions tab (`workflow_dispatch`), optionally with `full_refresh`,
   `max_age_hours`, or `deploy: false`. A source that fails no longer stops the sources after
   it; the step still fails and names every source that failed.

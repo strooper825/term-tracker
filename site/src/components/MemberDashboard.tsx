@@ -34,6 +34,8 @@ export interface DashboardProps {
   stats: Stat[];
   term: TermModel;
   votes: VoteRow[];
+  /** Set while the source of this member's roll calls is refusing the nightly reader. */
+  votesNotice?: string | null;
   /** "119th Congress": the Congress the vote list covers. */
   congressLabel: string;
   policyAreas: PolicyAreaCount[];
@@ -58,6 +60,19 @@ function CongressActivityTab(props: DashboardProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-main gap-7 items-start">
       <div className="min-w-0">
+        {props.votesNotice ? (
+          <p role="note" className="text-meta text-ink2 border border-rule px-4 py-3 mt-0 mb-4">
+            {props.votesNotice}{' '}
+            <a
+              href="https://www.senate.gov/legislative/votes_new.htm"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Senate.gov roll call votes
+            </a>
+          </p>
+        ) : null}
         <RollCallVotes
           votes={props.votes}
           congressLabel={props.congressLabel}
