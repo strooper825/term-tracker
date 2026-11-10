@@ -22,3 +22,6 @@ select
     s.fetched_at
 from {{ source('raw', 'bill_summaries') }} as s
 cross join lateral jsonb_array_elements(s.payload) with ordinality as x (value, ordinality)
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where s.congress = {{ var('current_congress') }}

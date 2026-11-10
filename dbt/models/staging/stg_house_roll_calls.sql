@@ -24,3 +24,6 @@ select
 from {{ source('raw', 'house_vote') }} as v
 left join {{ source('raw', 'house_vote_members') }} as m
     on m.congress = v.congress and m.session = v.session and m.roll_number = v.roll_number
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where v.congress = {{ var('current_congress') }}

@@ -18,3 +18,6 @@ select
 from {{ source('raw', 'senate_vote') }} as v
 cross join lateral jsonb_array_elements(v.payload -> 'members' -> 'member') as x (value)
 left join {{ ref('stg_legislators') }} as l on l.lis_id = x.value ->> 'lis_member_id'
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where v.congress = {{ var('current_congress') }}

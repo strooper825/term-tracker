@@ -17,8 +17,8 @@ with caucus_party as (
         case t.caucus when 'Democrat' then 'D' when 'Republican' then 'R' end as caucus_letter
     from {{ ref('stg_legislator_terms') }} as t
     where t.caucus is not null
-        and t.end_date > '{{ var("current_congress_start") }}'::date
-        and t.start_date < '{{ var("current_congress_end") }}'::date
+        and t.end_date > {{ congress_start_date() }}
+        and t.start_date < {{ congress_end_date() }}
     order by t.bioguide_id, t.start_date desc
 ),
 

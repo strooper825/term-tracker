@@ -20,3 +20,6 @@ select
     c.fetched_at
 from {{ source('raw', 'bill_cosponsors') }} as c
 cross join lateral jsonb_array_elements(c.payload) as x (value)
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where c.congress = {{ var('current_congress') }}

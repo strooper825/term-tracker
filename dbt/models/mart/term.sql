@@ -24,5 +24,5 @@ select
 from {{ ref('stg_legislator_terms') }} as t
 inner join {{ ref('tracked_members') }} as tm on tm.bioguide_id = t.bioguide_id
 left join {{ ref('fips') }} as f on f.state_abbr = t.state_abbr
-where t.end_date > '{{ var("current_congress_start") }}'::date
-    and t.start_date < '{{ var("current_congress_end") }}'::date
+where t.end_date > {{ congress_start_date() }}
+    and t.start_date < {{ congress_end_date() }}

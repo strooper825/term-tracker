@@ -82,3 +82,6 @@ inner join grouped as g
     and g.bill_number = f.bill_number
     and g.action_date = f.action_date
     and g.collapse_text = f.collapse_text
+-- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
+-- the site describe one (ADR 0021).
+where f.congress = {{ var('current_congress') }}

@@ -116,11 +116,23 @@ export async function billRouteParams(): Promise<
   { congress: string; type: string; number: string }[]
 > {
   const bills = await api.billsAll();
+  // A static export refuses a dynamic route with no page at all ("returned an empty array from
+  // generateStaticParams"), and a Congress that has just convened has no bill yet: the
+  // rehearsal of the 120th failed the whole site build on this. One placeholder route keeps the
+  // build going; the page behind it says there is nothing yet (ADR 0021).
+  if (bills.length === 0) return [NO_BILLS_ROUTE];
   return bills.map((b) => ({
     congress: String(b.congress),
     type: b.bill_type,
     number: b.bill_number,
   }));
+}
+
+/** The one bill route generated while the dataset holds no bill. No real bill has type "none". */
+export const NO_BILLS_ROUTE = { congress: '0', type: 'none', number: '0' };
+
+export function isNoBillsRoute(type: string): boolean {
+  return type === NO_BILLS_ROUTE.type;
 }
 
 export async function billPageProps(

@@ -26,10 +26,11 @@ seeds:
     +schema: seed
 
 vars:
-  # The Congress the dashboards cover in v1 (plan section 1).
+  # The one Congress the mart, the API and the site describe. Its start and end dates are
+  # derived from this number (macros/congress_dates.sql), and api/config.py carries the same
+  # number for the ingest; tests/test_rollover.py fails if the two differ. Moving to the next
+  # Congress is docs/rollover-runbook.md, not an edit to this line alone.
   current_congress: 119
-  current_congress_start: "2025-01-03"
-  current_congress_end: "2027-01-03"
   # Provenance for seeds/fips.csv (Census state FIPS reference file).
   fips_source_url: "https://www2.census.gov/geo/docs/reference/state.txt"
   fips_fetched_at: "2026-09-12"
