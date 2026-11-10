@@ -1,0 +1,76 @@
+name: Archive a Congress
+
+# Freezes the Congress that is ending (ADR 0021, docs/rollover-runbook.md). Run by hand, once,
+# from main, before vars.current_congress moves on:
+#
+#   site  calls deploy.yml, which builds the site with the archive banner and deploys it to the
+#         separate Vercel project named by the VERCEL_ARCHIVE_PROJECT_ID secret. It stops without
+#         deploying if the mart no longer describes that Congress. The live site is not touched.
+#   dump  attaches a dump of the database to the release archive-<congress>.
+#
+# The dump job is here and not in deploy.yml because it needs `contents: write`, and a called
+# workflow may not ask for more than its caller grants: inside deploy.yml it made every run of
+# ingest.yml fail at startup (2026-11-10).
+on:
+  workflow_dispatch:
+    inputs:
+      archive_congress:
+        description: The Congress being frozen, e.g. 119
+        type: string
+        required: true
+      archive_live_url:
+        description: Address of the live site, for the banner's link back
+        type: string
+        default: ""
+
+concurrency:
+  group: archive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    name: archive site
+    uses: ./.github/workflows/deploy.yml
+    with:
+      deploy_target: production
+      archive_congress: ${{ inputs.archive_congress }}
+      archive_live_url: ${{ inputs.archive_live_url }}
+    secrets: inherit
+
+  # The data behind the archive, kept where it does not expire: a custom-format dump of the four
+  # schemas, attached to a release. Everything in it is public record. Restore with
+  # `pg_restore --no-owner -d <database> term-tracker-<congress>.dump`.
+  dump:
+    name: dump the database to a release
+    needs: site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ARCHIVE_CONGRESS: ${{ inputs.archive_congress }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Dump raw, seed, meta and mart
+        run: |
+          # pg_dump must be at least the server's major version; the runner's default may be older.
+          sudo apt-get install -y -qq postgresql-common > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -qq postgresql-client-17 > /dev/null
+          url=$(printf '%s' "$DATABASE_URL" | sed -E 's#^postgres(ql)?(\+psycopg)?://#postgresql://#')
+          /usr/lib/postgresql/17/bin/pg_dump "$url" --format=custom --no-owner \
+            --schema=raw --schema=seed --schema=meta --schema=mart \
+            --file="term-tracker-${ARCHIVE_CONGRESS}.dump"
+          ls -l "term-tracker-${ARCHIVE_CONGRESS}.dump"
+      - name: Attach it to the archive release
+        run: |
+          tag="archive-${ARCHIVE_CONGRESS}"
+          gh release view "$tag" > /dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" \
+            --title "Archive of the ${ARCHIVE_CONGRESS}th Congress" \
+            --notes "Database dump taken $(date -u +%Y-%m-%d) when the ${ARCHIVE_CONGRESS}th Congress was archived (ADR 0021), and the commit that built the archive site."
+          gh release upload "$tag" "term-tracker-${ARCHIVE_CONGRESS}.dump" --clobber

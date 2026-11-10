@@ -5,10 +5,16 @@ name: Deploy site
 # Called by ingest.yml after a successful ingest, and dispatchable on its own so a frontend
 # change can be published in minutes without an ingest cycle.
 #
-# Dispatched with archive_congress set, it instead freezes a Congress (ADR 0021,
+# Called by archive.yml with archive_congress set, it instead freezes a Congress (ADR 0021,
 # docs/rollover-runbook.md): the same build, labelled as an archive, deployed once to the
-# separate Vercel project named by the VERCEL_ARCHIVE_PROJECT_ID secret, plus a dump of the
-# database attached to a release. It refuses to run unless the mart still describes that Congress.
+# separate Vercel project named by the VERCEL_ARCHIVE_PROJECT_ID secret. It refuses to run
+# unless the mart still describes that Congress.
+#
+# Every job here must stay within `contents: read`. A called workflow may not ask for more than
+# its caller grants, and GitHub rejects the whole calling run at startup if any job does, whether
+# or not that job would have run: a `contents: write` job added here stopped every run of
+# ingest.yml on 2026-11-10 before a single step. Anything that needs to write belongs in the
+# caller (archive.yml), and tests/test_rollover.py checks it.
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +23,13 @@ on:
         type: choice
         options: [auto, preview, production]
         default: auto
+  workflow_call:
+    inputs:
+      deploy_target:
+        description: auto, preview, or production (auto = production from main, preview elsewhere)
+        type: string
+        default: auto
+      # Set only by archive.yml. ingest.yml passes neither, so the nightly is never an archive.
       archive_congress:
         description: "Archive build: the Congress being frozen, e.g. 119 (deploys to the archive project, not the live site)"
         type: string
@@ -25,12 +38,6 @@ on:
         description: "Archive build: address of the live site, for the banner's link back"
         type: string
         default: ""
-  workflow_call:
-    inputs:
-      deploy_target:
-        description: auto, preview, or production (auto = production from main, preview elsewhere)
-        type: string
-        default: auto
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -233,39 +240,3 @@ jobs:
         run: |
           git fetch --depth=1 origin main
           python -m ingest.schema restore --main-ref FETCH_HEAD
-
-  # The data behind the archive, kept where it does not expire: a custom-format dump of the four
-  # schemas, attached to a release. Everything in it is public record. Restore with
-  # `pg_restore --no-owner -d <database> term-tracker-<congress>.dump`.
-  archive-dump:
-    name: dump the database to a release
-    needs: deploy
-    if: inputs.archive_congress
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      ARCHIVE_CONGRESS: ${{ inputs.archive_congress }}
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - name: Dump raw, seed, meta and mart
-        run: |
-          # pg_dump must be at least the server's major version; the runner's default may be older.
-          sudo apt-get install -y -qq postgresql-common > /dev/null
-          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
-          sudo apt-get install -y -qq postgresql-client-17 > /dev/null
-          url=$(printf '%s' "$DATABASE_URL" | sed -E 's#^postgres(ql)?(\+psycopg)?://#postgresql://#')
-          /usr/lib/postgresql/17/bin/pg_dump "$url" --format=custom --no-owner \
-            --schema=raw --schema=seed --schema=meta --schema=mart \
-            --file="term-tracker-${ARCHIVE_CONGRESS}.dump"
-          ls -l "term-tracker-${ARCHIVE_CONGRESS}.dump"
-      - name: Attach it to the archive release
-        run: |
-          tag="archive-${ARCHIVE_CONGRESS}"
-          gh release view "$tag" > /dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" \
-            --title "Archive of the ${ARCHIVE_CONGRESS}th Congress" \
-            --notes "Database dump taken $(date -u +%Y-%m-%d) when the ${ARCHIVE_CONGRESS}th Congress was archived (ADR 0021), and the commit that built the archive site."
-          gh release upload "$tag" "term-tracker-${ARCHIVE_CONGRESS}.dump" --clobber

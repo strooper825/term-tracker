@@ -29,7 +29,7 @@ so the archive should be built from the last nightly that ran before that happen
 
 4. **Disable the schedule** of `ingest.yml` once that nightly has finished, so nothing changes
    under the archive.
-5. **Dispatch `deploy.yml` on `main`** with `archive_congress` = `119` and `archive_live_url` =
+5. **Dispatch `archive.yml` on `main`** with `archive_congress` = `119` and `archive_live_url` =
    the live site's address. It builds the site with the archive banner, deploys it to the
    archive project, and attaches `term-tracker-119.dump` to the release `archive-119`. It stops
    without deploying if the mart is not the 119th. Open the archive and check a senator, a

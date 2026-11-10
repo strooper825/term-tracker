@@ -50,18 +50,22 @@ def test_bill_and_vote_staging_is_scoped_to_the_tracked_congress() -> None:
         assert "congress = {{ var('current_congress') }}" in sql, name
 
 
-def _deploy_workflow() -> tuple[dict, dict, str]:
-    raw = (ROOT / ".github/workflows/deploy.yml").read_text(encoding="utf-8")
-    workflow = yaml.safe_load(raw)
-    return workflow, workflow[True], raw  # YAML parses `on` as True
+WORKFLOWS = ROOT / ".github/workflows"
+
+
+def _workflow(name: str) -> tuple[dict, dict]:
+    workflow = yaml.safe_load((WORKFLOWS / name).read_text(encoding="utf-8"))
+    return workflow, workflow[True]  # YAML parses `on` as True
 
 
 def test_an_archive_build_cannot_land_on_the_live_site() -> None:
-    workflow, triggers, raw = _deploy_workflow()
-    inputs = triggers["workflow_dispatch"]["inputs"]
-    assert inputs["archive_congress"]["default"] == ""
-    # only a manual dispatch can archive: the nightly's call has no such input
-    assert "archive_congress" not in triggers["workflow_call"]["inputs"]
+    workflow, triggers = _workflow("deploy.yml")
+    # only archive.yml can ask for an archive: a plain dispatch of deploy.yml has no such input,
+    # and the nightly's call passes none
+    assert "archive_congress" not in triggers["workflow_dispatch"]["inputs"]
+    assert triggers["workflow_call"]["inputs"]["archive_congress"]["default"] == ""
+    ingest, _ = _workflow("ingest.yml")
+    assert ingest["jobs"]["deploy"]["with"] == {"deploy_target": "auto"}
 
     job = workflow["jobs"]["deploy"]
     # its own Vercel project, and no fallback to the live one when that secret is missing
@@ -87,13 +91,48 @@ def test_an_archive_build_cannot_land_on_the_live_site() -> None:
     assert "unavailable" in step["run"]  # a refused source frozen into the archive is announced
 
 
-def test_the_archive_keeps_a_database_dump_on_a_release() -> None:
-    workflow, _, _ = _deploy_workflow()
-    dump = workflow["jobs"]["archive-dump"]
-    assert dump["needs"] == "deploy" and dump["if"] == "inputs.archive_congress"
+def test_the_archive_workflow_builds_the_site_and_keeps_a_dump() -> None:
+    workflow, triggers = _workflow("archive.yml")
+    assert set(triggers) == {"workflow_dispatch"}  # by hand only, never on a schedule
+    assert triggers["workflow_dispatch"]["inputs"]["archive_congress"]["required"] is True
+    site = workflow["jobs"]["site"]
+    assert site["uses"] == "./.github/workflows/deploy.yml" and site["secrets"] == "inherit"
+    assert site["with"]["archive_congress"] == "${{ inputs.archive_congress }}"
+
+    dump = workflow["jobs"]["dump"]
+    assert dump["needs"] == "site"  # no dump of a Congress whose archive did not deploy
     assert dump["permissions"] == {"contents": "write"}
-    assert workflow["permissions"] == {"contents": "read"}  # every other job stays read-only
     script = " ".join(step["run"] for step in dump["steps"])
     for schema in ("raw", "seed", "meta", "mart"):
         assert f"--schema={schema}" in script
     assert "gh release upload" in script
+
+
+def _permissions(block: dict) -> dict:
+    return block.get("permissions") or {}
+
+
+def test_no_called_workflow_asks_for_more_than_its_caller_grants() -> None:
+    """A called workflow's job may not exceed the calling job's permissions, and GitHub rejects
+    the whole calling run at startup when one does, even a job that would have been skipped.
+    A `contents: write` job in deploy.yml did that to every ingest.yml run on 2026-11-10."""
+    rank = {"none": 0, "read": 1, "write": 2}
+    checked = 0
+    for path in WORKFLOWS.glob("*.yml"):
+        caller = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for job_name, job in caller["jobs"].items():
+            uses = job.get("uses", "")
+            if not uses.startswith("./.github/workflows/"):
+                continue
+            granted = _permissions(job) or _permissions(caller)
+            assert granted, f"{path.name}:{job_name} must state its permissions"
+            called = yaml.safe_load((ROOT / uses[2:]).read_text(encoding="utf-8"))
+            for inner_name, inner in called["jobs"].items():
+                wanted = _permissions(inner) or _permissions(called)
+                for scope, level in wanted.items():
+                    assert rank[level] <= rank[granted.get(scope, "none")], (
+                        f"{uses} job {inner_name} asks for {scope}: {level}, "
+                        f"but {path.name}:{job_name} grants {granted.get(scope, 'none')}"
+                    )
+                checked += 1
+    assert checked >= 2  # ingest.yml -> deploy.yml and archive.yml -> deploy.yml

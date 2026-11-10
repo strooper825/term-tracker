@@ -38,7 +38,7 @@ The mart, the API and the site describe exactly one Congress, `vars.current_cong
 - An empty Congress builds and renders: the overview falls back to the members' fetch time, and
   the bill route generates one placeholder page while there are no bills.
 
-A finished Congress is archived, not served live: `deploy.yml` dispatched with
+A finished Congress is archived, not served live: `archive.yml`, which calls `deploy.yml` with
 `archive_congress` builds the site once more with a banner on every page, deploys it to a
 separate Vercel project, and attaches a dump of the database to a release. It stops unless the
 mart still describes that Congress. The live site links to archives through the `ARCHIVES`
