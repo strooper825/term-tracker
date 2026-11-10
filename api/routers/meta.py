@@ -17,18 +17,31 @@ from api.schemas.meta import (
     SessionsResponse,
     SourceFreshness,
 )
+from ingest.http import UNAVAILABLE_ERROR_PREFIX
 
 router = APIRouter(prefix="/meta", tags=["meta"])
 
-# Latest successful run per source. Only successes count as "fresh".
+# Latest successful run per source. Only successes count as "fresh". `unavailable` is true
+# when the newest finished run of the source was refused by its upstream (ADR 0020): the rows
+# are then older than the other sources' through no fault of the pipeline, and the site says so.
 FRESHNESS_SQL = text(
     """
-    SELECT DISTINCT ON (source) source, source_url, finished_at, rows_loaded
-    FROM meta.ingest_run
-    WHERE status = 'success' AND finished_at IS NOT NULL
-    ORDER BY source, finished_at DESC
+    SELECT DISTINCT ON (s.source) s.source, s.source_url, s.finished_at, s.rows_loaded,
+           coalesce(
+               (
+                   SELECT l.status = 'failed' AND l.error LIKE :unavailable_prefix
+                   FROM meta.ingest_run AS l
+                   WHERE l.source = s.source AND l.finished_at IS NOT NULL
+                   ORDER BY l.finished_at DESC
+                   LIMIT 1
+               ),
+               false
+           ) AS unavailable
+    FROM meta.ingest_run AS s
+    WHERE s.status = 'success' AND s.finished_at IS NOT NULL
+    ORDER BY s.source, s.finished_at DESC
     """
-)
+).bindparams(unavailable_prefix=UNAVAILABLE_ERROR_PREFIX + "%")
 
 
 @router.get(
@@ -46,6 +59,7 @@ def freshness(session: Annotated[Session, Depends(get_session)]) -> FreshnessRes
                 source_url=row["source_url"],
                 fetched_at=row["finished_at"],
                 rows_loaded=row["rows_loaded"],
+                unavailable=row["unavailable"],
             )
             for row in rows
         ],

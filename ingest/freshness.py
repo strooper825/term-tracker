@@ -5,6 +5,13 @@ success is older than ``--max-age-hours``. Prints a Markdown report, also append
 GitHub step summary when ``GITHUB_STEP_SUMMARY`` is set, with the database size against the
 Neon free-tier allowance so growth is visible every night.
 
+A source whose newest finished run was refused by its upstream
+(:class:`ingest.http.SourceUnavailable`) is reported as ``unavailable`` and does not fail the
+check, however old its last success: the pipeline is working and the rows it holds are still
+the newest it could read (ADR 0020). The names go to the ``unavailable`` step output, which the
+workflow turns into an open issue for as long as the list is not empty. A source that has never
+succeeded still fails.
+
 Usage::
 
     python -m ingest.freshness --max-age-hours 26
@@ -22,6 +29,7 @@ from pathlib import Path
 from psycopg import Connection
 
 from ingest.db import connect
+from ingest.http import UNAVAILABLE_ERROR_PREFIX
 from ingest.run import SOURCES
 
 FREE_TIER_BYTES = 512 * 1024 * 1024  # Neon free tier: 0.5 GB of storage
@@ -33,6 +41,8 @@ class SourceStatus:
     source: str
     last_success_at: datetime | None
     rows_loaded: int | None
+    # The newest finished run was refused by the upstream; last_success_at is the last read.
+    unavailable: bool = False
 
     def age(self, now: datetime) -> timedelta | None:
         return None if self.last_success_at is None else now - self.last_success_at
@@ -47,6 +57,8 @@ def evaluate(
         age = status.age(now)
         if age is None:
             problems.append(f"{status.source}: no successful run recorded")
+        elif status.unavailable:
+            continue
         elif age > max_age:
             hours = age.total_seconds() / 3600
             problems.append(f"{status.source}: last success {hours:.1f} h ago (limit {max_age})")
@@ -65,7 +77,24 @@ def read_statuses(conn: Connection, sources: list[str]) -> list[SourceStatus]:
             (sources,),
         )
         found = {row[0]: SourceStatus(row[0], row[1], row[2]) for row in cur.fetchall()}
-    return [found.get(s, SourceStatus(s, None, None)) for s in sources]
+        cur.execute(
+            """
+            SELECT DISTINCT ON (source) source, status, error
+            FROM meta.ingest_run
+            WHERE finished_at IS NOT NULL AND source = ANY(%s)
+            ORDER BY source, finished_at DESC
+            """,
+            (sources,),
+        )
+        refused = {
+            row[0]
+            for row in cur.fetchall()
+            if row[1] == "failed" and (row[2] or "").startswith(UNAVAILABLE_ERROR_PREFIX)
+        }
+    statuses = [found.get(s, SourceStatus(s, None, None)) for s in sources]
+    for status in statuses:
+        status.unavailable = status.source in refused
+    return statuses
 
 
 def read_sizes(conn: Connection) -> tuple[int, list[tuple[str, int]]]:
@@ -111,7 +140,10 @@ def report(
             status.last_success_at.strftime("%Y-%m-%d %H:%M") if status.last_success_at else "never"
         )
         age_text = f"{age.total_seconds() / 3600:.1f} h" if age else "n/a"
-        flag = "stale" if any(p.startswith(status.source + ":") for p in problems) else "ok"
+        if any(p.startswith(status.source + ":") for p in problems):
+            flag = "stale"
+        else:
+            flag = "unavailable" if status.unavailable else "ok"
         lines.append(
             f"| {status.source} | {stamp} | {age_text} | {status.rows_loaded or 0} | {flag} |"
         )
@@ -126,6 +158,14 @@ def report(
     lines += [f"| {name} | {_mb(size)} |" for name, size in schema_bytes]
     if problems:
         lines += ["", "## Problems", ""] + [f"- {p}" for p in problems]
+    refused = [s for s in statuses if s.unavailable]
+    if refused:
+        lines += ["", "## Unavailable", ""]
+        lines += [
+            f"- {s.source}: refused by its upstream on the newest run; the rows held are from "
+            + (s.last_success_at.strftime("%Y-%m-%d %H:%M UTC") if s.last_success_at else "never")
+            for s in refused
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -147,6 +187,13 @@ def main(argv: list[str] | None = None) -> int:
             fh.write(text)
     if total >= WARN_FRACTION * FREE_TIER_BYTES:
         print(f"::warning::database is at {total / FREE_TIER_BYTES:.0%} of the free tier")
+    refused = [s.source for s in statuses if s.unavailable]
+    for source in refused:
+        print(f"::warning::{source} is unavailable: its upstream refused the newest run")
+    output = os.environ.get("GITHUB_OUTPUT")
+    if output:
+        with Path(output).open("a", encoding="utf-8") as fh:
+            fh.write(f"unavailable={','.join(refused)}\n")
     if not ok:
         for problem in problems:
             print(f"::error::{problem}")

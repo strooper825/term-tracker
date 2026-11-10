@@ -9,6 +9,11 @@ Every selected source runs even when an earlier one fails. A failure inside a lo
 in ``meta.ingest_run`` by :func:`ingest.load.record_run` (the load rolled back); every failure
 is logged with its traceback here, and the command exits 1 after the last source, naming the
 sources that failed.
+
+A source that the upstream refused outright (:class:`ingest.http.SourceUnavailable`) is not a
+failure of the run: it is logged as a warning, the rows already held stay as they are, and the
+command still exits 0 so the build and the deploy go ahead (ADR 0020). The freshness check
+reports such a source as unavailable and the workflow keeps an issue open while it lasts.
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ import logging
 import sys
 from collections.abc import Callable, Sequence
 
+from ingest.http import SourceUnavailable
 from ingest.sources import (
     census_acs,
     census_geography,
@@ -81,16 +87,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(f"unknown source {args.source!r}; known: {', '.join(sorted(SOURCES))}")
 
     failed: list[str] = []
+    unavailable: list[str] = []
     for name in selected:
         log.info("Running source %s", name)
         try:
             rows = SOURCES[name](full_refresh=args.full_refresh)
+        except SourceUnavailable as exc:
+            log.warning("Source %s is unavailable; keeping the rows already held: %s", name, exc)
+            unavailable.append(name)
+            continue
         except Exception:
             log.exception("Source %s failed; continuing with the remaining sources", name)
             failed.append(name)
             continue
         log.info("Source %s loaded %d rows", name, rows)
 
+    if unavailable:
+        # An annotation on the workflow run; harmless noise in a local terminal.
+        print(f"::warning::sources refused by their upstream: {', '.join(unavailable)}")
     if failed:
         log.error("%d of %d sources failed: %s", len(failed), len(selected), ", ".join(failed))
         return 1

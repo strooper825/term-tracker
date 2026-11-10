@@ -25,7 +25,7 @@ from psycopg.types.json import Jsonb
 from api.config import get_settings
 from ingest.congress_gov import RateLimiter
 from ingest.db import connect
-from ingest.http import USER_AGENT, fetch_text
+from ingest.http import USER_AGENT, SourceUnavailable, fetch_text
 from ingest.load import record_run, upsert
 from ingest.shape import SourceShapeError, validate
 
@@ -46,9 +46,18 @@ class SenateGovClient:
         self.requests_made = 0
 
     def get_text(self, path: str) -> str:
+        """The body at ``path``. A 403 is senate.gov refusing this client, not a missing file
+        (those are a 302 or a 404, see :func:`fetch_menu`), so it raises SourceUnavailable."""
         self.limiter.acquire()
         self.requests_made += 1
-        return self._fetch(BASE_URL + path)
+        try:
+            return self._fetch(BASE_URL + path)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 403:
+                raise SourceUnavailable(
+                    f"{BASE_URL}{path} answered HTTP 403: senate.gov is refusing this client"
+                ) from exc
+            raise
 
     def close(self) -> None:
         self._http.close()

@@ -314,7 +314,14 @@ export interface KeyDatesResponse {
 
 export interface FreshnessResponse {
   generated_at: string;
-  sources: { source: string; source_url: string | null; fetched_at: string }[];
+  sources: {
+    source: string;
+    source_url: string | null;
+    fetched_at: string;
+    /** The source refused the newest nightly read, so fetched_at is the last time it could be
+     *  read at all (ADR 0020). */
+    unavailable?: boolean;
+  }[];
 }
 
 export type FundraisingStatus = 'filed' | 'no_filings' | 'no_committee' | 'no_candidate';

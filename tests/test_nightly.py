@@ -36,6 +36,26 @@ def test_evaluate_flags_missing_and_stale_sources() -> None:
     assert ok and problems == []
 
 
+def test_a_refused_source_is_reported_but_does_not_fail_the_check() -> None:
+    # senate.gov refused GitHub's runners from 2026-10-23: 17 nightlies failed on a source the
+    # pipeline could do nothing about, and nothing else was built or deployed (ADR 0020).
+    statuses = [
+        SourceStatus("legislators", NOW - timedelta(hours=1), 818),
+        SourceStatus("senate_votes", NOW - timedelta(days=17), 2, unavailable=True),
+    ]
+    ok, problems = evaluate(statuses, NOW, timedelta(hours=26))
+    assert ok and problems == []
+    text = report(statuses, problems, NOW, 100 * 1024 * 1024, [])
+    assert "| senate_votes | 2026-08-27 06:30 | 408.0 h | 2 | unavailable |" in text
+    assert "## Unavailable" in text and "## Problems" not in text
+    assert "the rows held are from 2026-08-27 06:30 UTC" in text
+
+    # Never having been read at all is still a failure: there are no rows to fall back on.
+    never = [SourceStatus("senate_votes", None, None, unavailable=True)]
+    ok, problems = evaluate(never, NOW, timedelta(hours=26))
+    assert not ok and problems == ["senate_votes: no successful run recorded"]
+
+
 def test_report_mentions_free_tier_and_warns_near_it() -> None:
     statuses = [SourceStatus("legislators", NOW - timedelta(hours=1), 818)]
     text = report(statuses, [], NOW, 100 * 1024 * 1024, [("raw", 90 * 1024 * 1024)])
@@ -128,7 +148,7 @@ def test_ingest_workflow_shape() -> None:
 
     alert = workflow["jobs"]["alert"]
     assert alert["needs"] == ["ingest", "deploy", "restore-schema"] and alert["if"] == "always()"
-    open_step, close_step = alert["steps"]
+    open_step, close_step, unavailable_step, available_step = alert["steps"]
     # any failed job alerts: a deploy or schema restore failure as much as an ingest failure
     assert open_step["if"] == "contains(needs.*.result, 'failure')"
     assert "gh issue" in open_step["run"] and "nightly-failure" in open_step["run"]
@@ -136,6 +156,16 @@ def test_ingest_workflow_shape() -> None:
     assert "needs.ingest.result == 'success'" in close_step["if"]
     assert "!contains(needs.*.result, 'failure')" in close_step["if"]
     assert "gh issue close" in close_step["run"]
+    # A refused source leaves the run green (ADR 0020), so its own issue is the only signal:
+    # opened from the freshness step's output, closed when that output is empty again.
+    assert ingest["outputs"] == {"unavailable": "${{ steps.freshness.outputs.unavailable }}"}
+    freshness = next(s for s in ingest["steps"] if s.get("id") == "freshness")
+    assert "ingest.freshness" in freshness["run"]
+    assert unavailable_step["if"] == "needs.ingest.outputs.unavailable != ''"
+    assert "source-unavailable" in unavailable_step["run"]
+    assert "gh issue comment" not in unavailable_step["run"]  # opened once, not nightly noise
+    assert "needs.ingest.outputs.unavailable == ''" in available_step["if"]
+    assert "needs.ingest.result == 'success'" in available_step["if"]
     assert workflow["permissions"]["issues"] == "write"
     # the empty-string branch of `cond && '' || x` is falsy and always yields x; never use it
     assert "&& '' ||" not in raw
