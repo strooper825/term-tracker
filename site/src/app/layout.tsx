@@ -1,11 +1,18 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
-// Self-hosted at build time by next/font: the built site loads no third-party fonts.
-const plex = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+// IBM Plex Sans, latin subset, from the files in src/fonts (OFL 1.1, licence beside them; taken
+// from @fontsource/ibm-plex-sans 5.3.0). Not next/font/google: that downloads the font from
+// Google on every build, and when the download failed the build failed and the nightly's deploy
+// with it (2026-10-01, 2026-11-10). The built site loads no third-party fonts either way.
+const plex = localFont({
+  src: [
+    { path: '../fonts/ibm-plex-sans-latin-400-normal.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/ibm-plex-sans-latin-500-normal.woff2', weight: '500', style: 'normal' },
+    { path: '../fonts/ibm-plex-sans-latin-600-normal.woff2', weight: '600', style: 'normal' },
+    { path: '../fonts/ibm-plex-sans-latin-700-normal.woff2', weight: '700', style: 'normal' },
+  ],
   variable: '--font-plex',
   display: 'swap',
 });
