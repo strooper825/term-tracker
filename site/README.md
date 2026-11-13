@@ -23,7 +23,8 @@ Routes (ADR 0022 for the homepage and sections):
 - `/search`, plus `/search/members.json` and `/search/bills.json` (static route handlers the
   search box fetches on first use).
 - `/articles`, `/articles/{slug}`, `/about`, `/methodology`, `/privacy`, `/support`, and
-  `/elections` (a placeholder).
+  placeholders for the sections still to come: `/elections`,
+  `/elections/{presidential,senate,house,governor}` and `/states` (listed in `src/lib/sections.ts`).
 
 ## Words the owner edits
 

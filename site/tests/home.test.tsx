@@ -123,6 +123,23 @@ describe('the site header and footer', () => {
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/congress');
   });
 
+  it('Elections opens the four race types, each marked Soon, and States is its own tab', () => {
+    render(<SiteHeader active="States" />);
+    expect(screen.getByRole('link', { name: /^States/ })).toHaveAttribute('href', '/states');
+    expect(screen.getByRole('link', { name: /^States/ })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(screen.getByRole('button', { name: 'Elections' }));
+    for (const [label, slug] of [
+      ['Presidential', 'presidential'],
+      ['Senate', 'senate'],
+      ['House', 'house'],
+      ['Governor', 'governor'],
+    ]) {
+      const link = screen.getByRole('link', { name: new RegExp(`^${label}`) });
+      expect(link).toHaveAttribute('href', `/elections/${slug}`);
+      expect(link).toHaveTextContent('Soon');
+    }
+  });
+
   it('the footer carries the mission and the quick links, and no GitHub link', () => {
     render(
       <PageShell active="Home">
