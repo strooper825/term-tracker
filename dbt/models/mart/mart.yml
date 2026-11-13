@@ -52,6 +52,25 @@ models:
       - name: end_congress
         tests: [not_null]
 
+  - name: seat
+    description: >
+      Every seat someone holds today (House, delegates, Senate), from the latest
+      congress-legislators snapshot, whether or not the member is tracked. A vacant seat has no
+      row. Feeds the homepage map and member search (ADR 0022).
+    columns:
+      - name: seat_key
+        tests: [unique, not_null]
+      - name: bioguide_id
+        tests: [unique, not_null]
+      - name: chamber
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: state_abbr
+        tests: [not_null]
+      - name: is_tracked
+        tests: [not_null]
+
   - name: member_contact
     description: >
       How to reach a tracked member: official website, contact form, phone, fax, Washington office

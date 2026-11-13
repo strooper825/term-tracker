@@ -25,7 +25,7 @@ import { MemberFacts, MemberHeader, StatStrip, TermProgress } from './MemberHead
 import { MemberTabs, type TabSpec } from './MemberTabs';
 import { RollCallVotes } from './RollCallVotes';
 import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from './SideCards';
-import { Breadcrumb, SiteFooter, SiteHeader } from './SiteChrome';
+import { Breadcrumb, PageShell } from './SiteChrome';
 import { StatementsTab } from './StatementsTab';
 import { RecordCard } from './TermCards';
 
@@ -172,9 +172,7 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
 export function MemberDashboard(props: DashboardProps) {
   const { member } = props;
   return (
-    <div className="min-h-screen bg-canvas flex justify-center">
-      <div className="w-full max-w-[1280px] bg-sheet border-x border-rule">
-        <SiteHeader active="Members" />
+    <PageShell active="Congress" lastUpdated={props.lastUpdated}>
 
         <section className="px-7 pt-5 pb-7 flex flex-col gap-[18px]">
           <Breadcrumb name={member.name} />
@@ -186,8 +184,6 @@ export function MemberDashboard(props: DashboardProps) {
 
         <MemberTabs tabs={memberTabs(props)} />
 
-        <SiteFooter lastUpdated={props.lastUpdated} />
-      </div>
-    </div>
+    </PageShell>
   );
 }

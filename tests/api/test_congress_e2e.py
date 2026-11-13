@@ -78,3 +78,19 @@ def test_passed_both_table_matches_its_header_counts(built_mart: None, client: T
         assert item["congress_gov_url"].startswith("https://www.congress.gov/")
         if item["outcome"] == "law":
             assert item["public_law_number"]
+
+
+def test_seats_lists_who_holds_each_seat_today(built_mart: None, client: TestClient) -> None:
+    response = client.get("/api/v1/congress/seats")
+    assert response.status_code == 200
+    seats = {s["bioguide_id"]: s for s in response.json()["seats"]}
+    # the fixture legislators all hold a seat in the 119th Congress
+    steil = seats["S001213"]
+    assert (steil["seat_key"], steil["chamber"], steil["district"]) == ("house-WI-1", "house", 1)
+    assert steil["is_tracked"] is True
+    baldwin = seats["B001230"]
+    assert (baldwin["seat_key"], baldwin["senate_class"]) == ("senate-WI-1", 1)
+    assert baldwin["party"] == "Democrat"
+    assert seats["C001095"]["seat_key"] == "senate-AR-2"
+    keys = [s["seat_key"] for s in seats.values()]
+    assert len(keys) == len(set(keys))

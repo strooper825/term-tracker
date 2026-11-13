@@ -338,6 +338,26 @@ Tracked member-terms overlapping the current Congress. Natural key
 | `party` | text | Party during the term (the latest one when it changed mid-term) |
 | `caucus` | text | For Independents, the party they caucus with (`Democrat` / `Republican`); null otherwise |
 
+### `mart.seat`
+
+Every seat someone holds today, House (with the six delegates) and Senate, **whether or not the
+member is tracked** (ADR 0022). Built from the newest congress-legislators snapshot only, so a
+member who has left office drops out; a vacant seat has no row. "Today" is clamped into the
+current Congress. Key `seat_key`; one row per `bioguide_id`.
+
+| Column | Type | Description |
+|---|---|---|
+| `seat_key` | text | `house-WI-1`, `house-DC-0`, `senate-AR-2` |
+| `chamber` | text | `house` / `senate` |
+| `state_abbr`, `state_name`, `fips_state` | text | Joined to the FIPS seed |
+| `district` | int | House only; 0 for an at-large seat and for a delegate |
+| `senate_class`, `state_rank` | int, text | Senate only |
+| `bioguide_id`, `official_full_name`, `last_name` | text | The holder |
+| `party`, `caucus` | text | As the source writes them (`Democrat`, `Republican`, `Independent`) |
+| `website_url` | text | Official website from the current term, or null |
+| `is_tracked` | bool | True when the member is in `seed.tracked_members` (has a dashboard) |
+| `photo_url` | text | Congress.gov member image URL |
+
 ### `mart.term_history`
 
 Every term a tracked member has served, in source order. Natural key `(bioguide_id,

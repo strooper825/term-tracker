@@ -108,7 +108,7 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getByText('2 full committee chairs')).toBeInTheDocument(); // member_summary.chairmanships
     expect(screen.getByText(/Term progress · 618 of 730 days elapsed/)).toBeInTheDocument();
     expect(screen.getByText('84.7%')).toBeInTheDocument();
-    expect(screen.getByText(/Last updated Sep 13, 2026 02:09 UTC/)).toBeInTheDocument();
+    expect(screen.getByText(/Data last updated Sep 13, 2026 02:09 UTC/)).toBeInTheDocument();
     expect(screen.getAllByRole('navigation')).toHaveLength(2); // site nav + breadcrumb
     expect(screen.getByText('Members', { selector: 'a.text-ink2' })).toHaveAttribute('href', '/members');
   });

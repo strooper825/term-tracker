@@ -197,7 +197,7 @@ describe('congress overview: given these mart rows, this text renders', () => {
     page();
     const links = screen.getAllByRole('link') as HTMLAnchorElement[];
     const external = links.filter((a) => /^https?:\/\//.test(a.getAttribute('href') ?? ''));
-    expect(external.length).toBeGreaterThan(8); // sources, About, Data, dictionary, Congress.gov rows
+    expect(external.length).toBeGreaterThan(5); // sources and Congress.gov rows
     for (const a of external) {
       expect(a, a.getAttribute('href') ?? '').toHaveAttribute('target', '_blank');
       expect(a.getAttribute('rel')).toContain('noopener');
@@ -248,7 +248,8 @@ describe('congress overview: given these mart rows, this text renders', () => {
         /Composition figures hand-maintained, as of Sep 19, 2026 · bill and vote figures from the Congress\.gov API and Senate\.gov roll calls, refreshed nightly/,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Congress' })).toHaveAttribute('href', '/congress');
-    expect(screen.getByRole('link', { name: 'Congress' })).toHaveClass('font-semibold');
+    // the header's Congress menu is the current section; the footer links the overview
+    expect(screen.getByRole('button', { name: 'Congress' })).toHaveClass('font-semibold');
+    expect(screen.getByRole('link', { name: 'Congress overview' })).toHaveAttribute('href', '/congress');
   });
 });

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { BillPage } from '@/components/BillPage';
-import { SiteFooter, SiteHeader } from '@/components/SiteChrome';
+import { PageShell } from '@/components/SiteChrome';
 import { billPageProps, billRouteParams, isNoBillsRoute } from '@/lib/pages';
 
 export const dynamic = 'force-static';
@@ -26,9 +26,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 function NoBillsYet() {
   return (
-    <div className="min-h-screen bg-canvas flex justify-center">
-      <div className="w-full max-w-[1280px] bg-sheet border-x border-rule">
-        <SiteHeader active="Members" />
+    <PageShell active="Congress">
         <main className="px-7 py-12">
           <h1 className="text-ink m-0 mb-2">No bills yet</h1>
           <p className="text-ink2 m-0">
@@ -36,9 +34,7 @@ function NoBillsYet() {
             pages appear here after the first nightly update that finds one.
           </p>
         </main>
-        <SiteFooter lastUpdated={null} />
-      </div>
-    </div>
+    </PageShell>
   );
 }
 
