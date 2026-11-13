@@ -14,4 +14,4 @@ draft: false              # true keeps it off the site
 ---
 ```
 
-This README is not an article: files named README.md are skipped.
+This file is not an article: only .md files are read.

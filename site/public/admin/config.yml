@@ -8,8 +8,8 @@ backend:
 media_folder: site/public/uploads
 public_folder: /uploads
 
-site_url: /
-display_url: /
+# site_url is left out on purpose: the editor then uses the address it is opened at, which
+# keeps working on a custom domain. Sveltia refuses a relative value here.
 
 collections:
   - name: articles
@@ -20,7 +20,6 @@ collections:
     extension: md
     format: frontmatter
     slug: "{{slug}}"
-    filter: { field: title, pattern: ".+" }
     summary: "{{title}} ({{date}})"
     sortable_fields: [date, title]
     preview_path: "articles/{{slug}}"

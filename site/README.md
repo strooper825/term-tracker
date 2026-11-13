@@ -29,7 +29,7 @@ Routes (ADR 0022 for the homepage and sections):
 
 Everything that is not data lives in `content/`: `site.json` (homepage headline and intro,
 footer mission, Ko-fi address, contact email, social links), `pages/*.md` and `articles/*.md`
-(see `content/articles/README.md`). Edit them in the browser at `/admin` (Sveltia CMS, signed in
+(see `content/articles/HOW-TO-WRITE-ARTICLES.txt`). Edit them in the browser at `/admin` (Sveltia CMS, signed in
 with a GitHub personal access token that can write to this repository) or by hand. A push to
 `main` that only touches `content/` or `public/uploads/` deploys the site on its own.
 
