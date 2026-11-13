@@ -120,6 +120,13 @@ def test_ingest_workflow_shape() -> None:
     assert {"DATABASE_URL", "CONGRESS_GOV_API_KEY", "FEC_API_KEY", "CENSUS_API_KEY"} <= set(
         ingest["env"]
     )
+    # ADR 0023: a repository variable chooses the bills loader, a dispatch can override it
+    # for one run, and with neither set the nightly is the full loader, as before.
+    assert ingest["env"]["BILL_INGEST_MODE"] == (
+        "${{ inputs.bill_ingest_mode || vars.BILL_INGEST_MODE || 'full' }}"
+    )
+    assert ingest["env"]["BILL_REQUEST_BUDGET"].endswith("|| '9000' }}")
+    assert inputs["bill_ingest_mode"]["default"] == ""
     order = _step_order(
         ingest["steps"], ("Migrate", "dbt seed", "Ingest", "dbt build", "Freshness check")
     )

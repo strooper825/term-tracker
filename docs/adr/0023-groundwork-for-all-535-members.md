@@ -58,9 +58,10 @@ roll call names it. `raw.member_legislation` stops being a nightly input.
 
 **State.** Two tables in `meta`:
 
-- `ingest_cursor (source, congress, kind, changed_through)`: the watermark, one row for bills
-  and one for amendments. It lives in the database, next to the rows it describes, so a restore
-  or a branch run cannot leave the two disagreeing.
+- `ingest_cursor (source, congress, kind, changed_through)`: the watermark, in a row of kind
+  `changed` (the two lists are read in one transaction, so they share it), and when the whole
+  list was last compared, in a row of kind `resweep`. It lives in the database, next to the
+  rows it describes, so a restore or a branch run cannot leave the two disagreeing.
 - `bill_refresh_queue (congress, bill_type, bill_number, reason, enqueued_at, attempts)`: bills
   known to need reading. `reason` is `changed`, `new`, `resweep` or `backfill`.
 
@@ -85,11 +86,16 @@ than 72 hours.
 
 **Full re-sweep.** Weekly, page both lists with no filter (about 110 requests, under a minute),
 compare every item's `updateDate` and existence with what `raw` holds, and enqueue each
-mismatch as `resweep`. The count should be zero; it is reported every week, and a non-zero count
-is the evidence that `fromDateTime` missed something. Each night a few members' lists (five,
-rotating) are read and compared with the mart as a warn-only check that discovery through bills
-agrees with Congress.gov's own member view. `--full-refresh` remains for a deliberate re-read,
-and is run once before an archive.
+mismatch as `resweep`. A queued record is a miss only if it has really changed when it is
+read, and that count is what the run reports: it should be zero, and a non-zero count is the
+evidence that `fromDateTime` missed something. Each night a few members' lists (five, rotating)
+are read and compared with the mart as a warn-only check that discovery through bills agrees
+with Congress.gov's own member view; this spot check is not built yet. `--full-refresh` remains
+for a deliberate re-read, and is run once before an archive.
+
+**Switching.** `BILL_INGEST_MODE` (a repository variable; `full` or `incremental`, default
+`full`) chooses the loader, so the move to the incremental ingest, and a move back, is a setting
+and not a commit. The mart's scope rule applies in both modes.
 
 **Backlog for new tracked members.** There is none to fetch: the Congress is already in `raw`,
 so a new seed row changes only the mart, and the member's pages appear on the next build. The

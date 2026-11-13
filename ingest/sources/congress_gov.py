@@ -1,5 +1,10 @@
 """Source: Congress.gov API, bills and amendments sponsored or cosponsored by tracked members.
 
+This module is the ``full`` way to run the source and the default. With
+``BILL_INGEST_MODE=incremental`` :func:`run` hands over to
+:mod:`ingest.sources.congress_gov_queue`, which reads the whole Congress and only what changed
+(ADR 0023); the fetchers and the per-record read below are shared by both.
+
 Per tracked member and role the list endpoint is paged in full and filtered to the current
 Congress (the lists mix every Congress the member served in). Bills referenced by a roll call
 in ``raw.house_vote`` or ``raw.senate_vote`` are in scope too, so vote headlines carry the
@@ -31,11 +36,11 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from psycopg import Connection
 from psycopg.types.json import Jsonb
@@ -171,24 +176,34 @@ def roll_call_legislation_keys(conn: Connection, congress: int) -> set[Legislati
     return keys
 
 
-def fetch_changed_since(
-    client: CongressGovClient, congress: int, since: datetime
-) -> set[LegislationKey]:
-    """Every bill and amendment of ``congress`` the lists report as updated at or after ``since``.
+def list_records(
+    client: CongressGovClient, congress: int, since: datetime | None = None
+) -> Iterator[tuple[LegislationKey, str | None]]:
+    """(key, updateDate) for every bill and amendment of ``congress`` on the two list endpoints.
 
-    ``fromDateTime`` filters on ``updateDate`` to the second and must be written exactly as
-    ``YYYY-MM-DDTHH:MM:SSZ``; anything else answers 400 (verified 2026-11-13).
+    With ``since`` only records updated at or after it: ``fromDateTime`` filters on
+    ``updateDate`` to the second and must be written exactly as ``YYYY-MM-DDTHH:MM:SSZ``;
+    anything else answers 400 (verified 2026-11-13). A bill's ``updateDate`` is a date on the
+    list and a timestamp on its detail record; an amendment's is a timestamp on both.
     """
-    stamp = since.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    keys: set[LegislationKey] = set()
+    params = {}
+    if since is not None:
+        params["fromDateTime"] = since.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     for kind, items_key in CHANGED_LISTS:
         path = f"{kind}/{congress}"
-        for index, item in enumerate(client.paginate(path, items_key, fromDateTime=stamp)):
+        for index, item in enumerate(client.paginate(path, items_key, **params)):
             url = item.get("url") if isinstance(item, dict) else None
             if not isinstance(url, str):
                 raise SourceShapeError(f"{path}[{index}]: list item has no url")
-            keys.add(parse_legislation_url(url))
-    return keys
+            listed = item.get("updateDate")
+            yield parse_legislation_url(url), listed if isinstance(listed, str) else None
+
+
+def fetch_changed_since(
+    client: CongressGovClient, congress: int, since: datetime
+) -> set[LegislationKey]:
+    """Every bill and amendment of ``congress`` the lists report as updated since ``since``."""
+    return {key for key, _ in list_records(client, congress, since)}
 
 
 @dataclass(frozen=True)
@@ -298,6 +313,77 @@ def _existing_state(conn: Connection) -> dict[tuple[int, str, str], StoredBill]:
         return {(r[0], r[1], r[2]): StoredBill(r[3], r[4], r[5], r[6]) for r in cur.fetchall()}
 
 
+class RecordRead(NamedTuple):
+    rows: int  # rows upserted: the detail plus each list read
+    moved: bool  # the detail's updateDate differs from the stored one (or nothing was stored)
+    lists_read: int  # dependent lists fetched: 0 when the record had not changed
+
+
+def read_record(
+    conn: Connection,
+    client: CongressGovClient,
+    key: LegislationKey,
+    stored: StoredBill,
+    fetched_at: datetime,
+    *,
+    full_refresh: bool = False,
+) -> RecordRead:
+    """Fetch one bill or amendment and whatever of its lists is due; upsert, do not commit.
+
+    The detail is always fetched. A changed ``updateDate`` (or ``full_refresh``) re-reads every
+    dependent list; otherwise only the ones raw has never stored are fetched, so adding a list
+    to an existing database costs one request per bill rather than one per bill per list.
+    """
+    detail = fetch_detail(client, key)
+    rows = upsert(
+        conn,
+        "raw",
+        "bill",
+        KEY_COLUMNS,
+        [
+            {
+                **_key_row(key),
+                "kind": key.kind,
+                "payload": Jsonb(detail),
+                "source_url": client.url(key.path),
+                "fetched_at": fetched_at,
+            }
+        ],
+    )
+    moved = stored.update_date != detail.get("updateDate")
+    stale = full_refresh or moved
+    dependents = [
+        (table, fetcher)
+        for table, fetcher, present in (
+            ("bill_actions", fetch_actions, stored.has_actions),
+            ("bill_cosponsors", fetch_cosponsors, stored.has_cosponsors),
+            # amendments have no summaries endpoint
+            *(
+                [("bill_summaries", fetch_summaries, stored.has_summaries)]
+                if key.kind == "bill"
+                else []
+            ),
+        )
+        if stale or not present
+    ]
+    for table, fetcher in dependents:
+        rows += upsert(
+            conn,
+            "raw",
+            table,
+            KEY_COLUMNS,
+            [
+                {
+                    **_key_row(key),
+                    "payload": Jsonb(fetcher(client, key)),
+                    "source_url": client.url(f"{key.path}/{table.split('_')[1]}"),
+                    "fetched_at": fetched_at,
+                }
+            ],
+        )
+    return RecordRead(rows, moved, len(dependents))
+
+
 def load(
     conn: Connection,
     client: CongressGovClient,
@@ -356,62 +442,12 @@ def load(
         # held before this run and read back with a different updateDate
         changed: set[LegislationKey] = set()
         for key in legislation:
-            detail = fetch_detail(client, key)
-            total += upsert(
-                conn,
-                "raw",
-                "bill",
-                KEY_COLUMNS,
-                [
-                    {
-                        **_key_row(key),
-                        "kind": key.kind,
-                        "payload": Jsonb(detail),
-                        "source_url": client.url(key.path),
-                        "fetched_at": fetched_at,
-                    }
-                ],
-            )
-            # A changed updateDate (or --full-refresh) re-reads every dependent list; otherwise
-            # only the ones raw has never stored are fetched, so adding a list to an existing
-            # database costs one request per bill rather than one per bill per list.
             stored = existing.get((key.congress, key.bill_type, key.bill_number), MISSING)
-            moved = stored.update_date != detail.get("updateDate")
-            if moved and stored.update_date is not None:
+            result = read_record(conn, client, key, stored, fetched_at, full_refresh=full_refresh)
+            total += result.rows
+            refreshed += result.lists_read > 0
+            if result.moved and stored.update_date is not None:
                 changed.add(key)
-            stale = full_refresh or moved
-            dependents = [
-                (table, fetcher)
-                for table, fetcher, present in (
-                    ("bill_actions", fetch_actions, stored.has_actions),
-                    ("bill_cosponsors", fetch_cosponsors, stored.has_cosponsors),
-                    # amendments have no summaries endpoint
-                    *(
-                        [("bill_summaries", fetch_summaries, stored.has_summaries)]
-                        if key.kind == "bill"
-                        else []
-                    ),
-                )
-                if stale or not present
-            ]
-            if not dependents:
-                continue
-            refreshed += 1
-            for table, fetcher in dependents:
-                total += upsert(
-                    conn,
-                    "raw",
-                    table,
-                    KEY_COLUMNS,
-                    [
-                        {
-                            **_key_row(key),
-                            "payload": Jsonb(fetcher(client, key)),
-                            "source_url": client.url(f"{key.path}/{table.split('_')[1]}"),
-                            "fetched_at": fetched_at,
-                        }
-                    ],
-                )
 
         log.info(
             "%d distinct bills/amendments (%d from member lists, %d only from roll calls), "
@@ -452,6 +488,17 @@ def run(*, full_refresh: bool = False) -> int:
     )
     try:
         with connect() as conn:
+            if settings.bill_ingest_mode == "incremental":
+                # imported here: that module builds on this one
+                from ingest.sources import congress_gov_queue
+
+                return congress_gov_queue.load(
+                    conn,
+                    client,
+                    settings.current_congress,
+                    request_budget=settings.bill_request_budget,
+                    full_refresh=full_refresh,
+                )
             return load(
                 conn,
                 client,

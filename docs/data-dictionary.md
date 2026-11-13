@@ -36,6 +36,39 @@ Index: `ix_ingest_run_source_finished_at (source, finished_at)`.
 
 Migration: `migrations/versions/20260912_0001_initial_schemas.py`.
 
+## `meta.ingest_cursor` and `meta.bill_refresh_queue`
+
+State of the incremental bills ingest (ADR 0023, `ingest/sources/congress_gov_queue.py`). Both
+are empty while `BILL_INGEST_MODE` is `full`.
+
+`meta.ingest_cursor`: how far a source has asked its upstream what changed. Key `source`,
+`congress`, `kind`.
+
+| Column | Type | Null | Description |
+|---|---|---|---|
+| `source` | text | no | `congress_gov_bills` |
+| `congress` | integer | no | The Congress the row is about; a new Congress starts with no row |
+| `kind` | text | no | `changed`: the watermark the nightly asks `fromDateTime` from (minus six hours). `resweep`: when the whole list was last compared |
+| `changed_through` | timestamptz | no | Start of the run whose listing the row accounts for |
+| `updated_at` | timestamptz | no | When the row was last written |
+
+`meta.bill_refresh_queue`: bills and amendments known to need reading. Key `congress`,
+`bill_type`, `bill_number`. A row is deleted in the transaction that stores the record, so what
+is left after any run, however it ended, is exactly what has not been read.
+
+| Column | Type | Null | Description |
+|---|---|---|---|
+| `kind` | text | no | `bill` or `amendment` |
+| `reason` | text | no | `changed` (listed as updated), `new` (listed, not yet held, or named by a roll call), `resweep` (found by the weekly whole-list comparison), `backfill` (not held on the first incremental run) |
+| `priority` | smallint | no | 0 for `changed` and `new`, 1 `resweep`, 2 `backfill`; lowest is read first |
+| `enqueued_at` | timestamptz | no | When the record was first queued; the freshness check fails when a priority 0 row is older than 72 hours |
+| `attempts` | integer | no | Failed reads; from 3 the record is read last and named in the run summary |
+| `last_error` | text | yes | The last failure |
+
+Index: `ix_bill_refresh_queue_order (congress, priority, enqueued_at)`.
+
+Migration: `migrations/versions/20261113_0009_bill_refresh_queue.py`.
+
 ## Raw tables: congress-legislators (Alembic migration `0002`)
 
 All three share `payload jsonb`, `source_url text`, `fetched_at timestamptz` and are upserted
@@ -207,7 +240,12 @@ entry of `leadership_roles`), `stg_committees` (committees and subcommittees fla
 subcommittee `thomas_id` = parent id + suffix), `stg_committee_memberships` (one row per
 committee member).
 
-Bills: `stg_member_legislation` (list items), `stg_bills` (detail records; amendment titles are
+Bills: `stg_bill_scope` (a table, not a view: the keys of the bills the mart keeps, that is
+those a tracked member sponsored or cosponsored, read from the bill's own sponsor and cosponsors
+list, and those a roll call names; `raw.bill` may hold the whole Congress, and `stg_bills`,
+`stg_bill_actions` and `stg_bill_summaries` join this, ADR 0023), `stg_member_legislation` (the
+members' own list items; nothing in the mart reads it since ADR 0023, and only the `full` ingest
+mode refreshes it), `stg_bills` (detail records; amendment titles are
 composed from description, purpose, or the amended bill), `stg_bill_actions` (one row per
 (bill, date, action text), see below), `stg_bill_cosponsors` (one row per cosponsor).
 
@@ -578,12 +616,13 @@ Natural key `(bioguide_id, congress, bill_type, bill_number, role)`; `role` is `
 cosponsors endpoint) for a cosponsor. `is_original_cosponsor` and `withdrawn_date` apply to
 cosponsors only.
 
-A cosponsor row requires a match in the bill's own cosponsors list, not only the member's
-personal list: the two are separate Congress.gov endpoints on separate refresh schedules, so a
-very recent cosponsorship can show up on the member's list a run or more before the bill's own
-list catches up. Rather than a row with a null `date`, that cosponsorship is simply absent from
-`mart.bill_sponsorship` until the bill's list agrees (ADR 0011); this is the same snapshot lag
-the count-matching tolerance below already tolerates, surfacing one join earlier.
+Both roles are read from the bill's own records (ADR 0023): the sponsor on its detail record,
+the cosponsors from its cosponsors list; `source_url` is that record's URL. Until then the rows
+came from each member's sponsored and cosponsored lists, and a cosponsor row waited for the
+bill's own list to agree (ADR 0011). With one endpoint there is nothing to wait for. On the
+twenty-member database of 2026-11-13 both ways give the same 6,373 rows. A cosponsorship still
+appears a run after Congress.gov records it, because the bill's lists are re-read only once its
+`updateDate` moves.
 
 ### `mart.bill_action`
 

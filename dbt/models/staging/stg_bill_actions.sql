@@ -32,6 +32,12 @@ with unnested as (
         a.source_url,
         a.fetched_at
     from {{ source('raw', 'bill_actions') }} as a
+    -- only bills the mart keeps (ADR 0023): raw may hold the whole Congress, and nothing
+    -- reads the actions of a bill without a page
+    inner join {{ ref('stg_bill_scope') }} as scope
+        on scope.congress = a.congress
+        and scope.bill_type = a.bill_type
+        and scope.bill_number = a.bill_number
     cross join lateral jsonb_array_elements(a.payload) with ordinality as x (value, ordinality)
 ),
 

@@ -1,6 +1,10 @@
 -- One row per cosponsor of a bill or amendment, unnested from raw.bill_cosponsors. Identity
 -- fields come from the cosponsors endpoint itself rather than a join to mart.member, because
 -- the bill pages list every cosponsor and most of them are not tracked members.
+--
+-- Not limited to stg_bill_scope, because the scope is computed from this: a bill is in scope
+-- when a tracked member is among its cosponsors (ADR 0023). mart.bill_cosponsor applies the
+-- scope by joining stg_bills.
 select
     c.congress,
     c.bill_type,

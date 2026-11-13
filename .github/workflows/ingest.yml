@@ -37,6 +37,14 @@ on:
         description: "Skip the ingest; only downgrade the database to main's head using this branch's migrations"
         type: string
         default: ""
+      bill_ingest_mode:
+        description: "Bills source for this run only: full or incremental (empty: the BILL_INGEST_MODE repository variable, else full)"
+        type: string
+        default: ""
+      bill_request_budget:
+        description: "Incremental mode: requests this run may spend reading queued bills (empty: 9000; 15000 is about three hours)"
+        type: string
+        default: ""
 
 concurrency:
   group: nightly-ingest
@@ -62,6 +70,12 @@ jobs:
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
       FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
       CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+      # How the bills source reads Congress.gov (ADR 0023). The repository variable
+      # BILL_INGEST_MODE decides for the schedule, so moving to "incremental" (the whole
+      # Congress, only what changed) and back to "full" is a settings change, not a commit.
+      # A dispatch can override it for one run. Unset everywhere means full, as before.
+      BILL_INGEST_MODE: ${{ inputs.bill_ingest_mode || vars.BILL_INGEST_MODE || 'full' }}
+      BILL_REQUEST_BUDGET: ${{ inputs.bill_request_budget || vars.BILL_REQUEST_BUDGET || '9000' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6

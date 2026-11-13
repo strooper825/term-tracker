@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,14 @@ class Settings(BaseSettings):
     # The one Congress the ingest fetches. dbt/dbt_project.yml carries the same number for the
     # mart and tests/test_rollover.py fails if they differ; changing it is docs/rollover-runbook.md.
     current_congress: int = 119
+    # How the bills source reads Congress.gov (ADR 0023). "full": the tracked members' lists,
+    # then every bill in scope re-read. "incremental": the whole Congress, only what the bill
+    # list says changed, through meta.bill_refresh_queue. The nightly takes it from the
+    # repository variable BILL_INGEST_MODE, so switching (either way) is not a code change.
+    bill_ingest_mode: Literal["full", "incremental"] = "full"
+    # Incremental mode stops reading queued bills after this many requests in one run and
+    # leaves the rest queued: 9,000 is under two hours at 5,000 an hour.
+    bill_request_budget: int = 9000
 
     # Ingestion (OpenFEC, Phase 2). Same api.data.gov key scheme; see .env.example.
     fec_api_key: str | None = None
