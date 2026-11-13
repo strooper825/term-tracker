@@ -1,16 +1,19 @@
--- One row per bill or amendment from the detail endpoints. Amendments have no title or policy
--- area upstream; a title is composed from the description, purpose, or the amended bill.
+-- One row per bill or amendment the mart keeps (stg_bill_scope), from the detail endpoints.
+-- raw.bill may hold the whole Congress (ADR 0023); the scope join is what limits this, and
+-- everything downstream, to the tracked members and the roll calls. Amendments have no title
+-- or policy area upstream; a title is composed from the description, purpose, or the amended
+-- bill.
 select
-    congress,
-    bill_type,
-    bill_number,
-    kind,
+    b.congress,
+    b.bill_type,
+    b.bill_number,
+    b.kind,
     case
         when kind = 'bill' then payload ->> 'title'
         else coalesce(
             payload ->> 'description',
             payload ->> 'purpose',
-            'Amendment ' || bill_number || ' to '
+            'Amendment ' || b.bill_number || ' to '
             || (payload -> 'amendedBill' ->> 'type') || ' ' || (payload -> 'amendedBill' ->> 'number')
         )
     end as title,
@@ -43,9 +46,13 @@ select
     lower(payload -> 'amendedBill' ->> 'type') as amended_bill_type,
     payload -> 'amendedBill' ->> 'number' as amended_bill_number,
     'congress_gov' as source,
-    source_url,
-    fetched_at
-from {{ source('raw', 'bill') }}
+    b.source_url,
+    b.fetched_at
+from {{ source('raw', 'bill') }} as b
+inner join {{ ref('stg_bill_scope') }} as scope
+    on scope.congress = b.congress
+    and scope.bill_type = b.bill_type
+    and scope.bill_number = b.bill_number
 -- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
 -- the site describe one (ADR 0021).
-where congress = {{ var('current_congress') }}
+where b.congress = {{ var('current_congress') }}

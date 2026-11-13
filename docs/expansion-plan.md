@@ -11,7 +11,11 @@ and database sizes at about 100 decide whether lighter pages can carry 535 for f
 **Status:** step 0's Vercel retention was set by the owner on 2026-11-13 (the Neon allowance
 is still to be confirmed). Step 1 is built (the nightly reports what `fromDateTime` says changed beside what
 the full re-read found; each deploy reports its upload size and bytes per part of the site).
-Steps 2 to 7 are not started.
+Step 2 is built and switched off: the incremental loader, its queue and watermark, and the
+mart's explicit scope rule are in, and the nightly keeps using the `full` loader until the
+repository variable `BILL_INGEST_MODE` is set to `incremental`. Set it after five nightlies whose
+"Bill change filter" section reports every changed record. Not built yet: the nightly member-list
+spot check. Steps 3 to 7 are not started.
 
 ## Order of work
 

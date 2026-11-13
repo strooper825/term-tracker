@@ -62,8 +62,10 @@ so the archive should be built from the last nightly that ran before that happen
 
 ## Afterwards
 
-- The first nightly of the new Congress re-reads every tracked member's bill lists, which is
-  the long case for the Congress.gov rate limit; later nights are incremental.
+- In `full` mode the first nightly of the new Congress re-reads every tracked member's bill
+  lists, which is the long case for the Congress.gov rate limit. In `incremental` mode
+  (ADR 0023) the watermark is kept per Congress, so the first night reads the new Congress's
+  whole list, which is short, and there is no backlog.
 - Deployment size starts again near zero and grows with the new Congress's bill pages.
 - The old Congress's rows stay in `raw`. Remove them only after confirming the dump restores.
 - Links from elsewhere to a 119th bill on the live site no longer resolve; the same path exists

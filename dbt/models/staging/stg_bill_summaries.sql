@@ -21,6 +21,11 @@ select
     s.source_url,
     s.fetched_at
 from {{ source('raw', 'bill_summaries') }} as s
+-- only bills the mart keeps (ADR 0023): raw may hold the whole Congress
+inner join {{ ref('stg_bill_scope') }} as scope
+    on scope.congress = s.congress
+    and scope.bill_type = s.bill_type
+    and scope.bill_number = s.bill_number
 cross join lateral jsonb_array_elements(s.payload) with ordinality as x (value, ordinality)
 -- Only the tracked Congress: raw keeps every Congress ever loaded, and the mart, the API and
 -- the site describe one (ADR 0021).

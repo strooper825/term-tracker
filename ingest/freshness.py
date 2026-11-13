@@ -34,6 +34,8 @@ from ingest.run import SOURCES
 
 FREE_TIER_BYTES = 512 * 1024 * 1024  # Neon free tier: 0.5 GB of storage
 WARN_FRACTION = 0.8
+# How long a changed bill may sit in meta.bill_refresh_queue before the check fails (ADR 0023).
+QUEUE_MAX_WAIT = timedelta(hours=72)
 
 
 @dataclass
@@ -117,6 +119,54 @@ def read_sizes(conn: Connection) -> tuple[int, list[tuple[str, int]]]:
     return total, schemas
 
 
+@dataclass
+class QueueStatus:
+    """meta.bill_refresh_queue: bills the incremental ingest still has to read (ADR 0023)."""
+
+    by_reason: dict[str, int]
+    # changed or new records, not yet given up on, that have waited longer than the limit
+    overdue: int
+    oldest_urgent_at: datetime | None
+
+    @property
+    def total(self) -> int:
+        return sum(self.by_reason.values())
+
+
+def read_queue(conn: Connection, now: datetime) -> QueueStatus:
+    with conn.cursor() as cur:
+        cur.execute("SELECT reason, count(*) FROM meta.bill_refresh_queue GROUP BY 1 ORDER BY 1")
+        by_reason = {str(reason): int(count) for reason, count in cur.fetchall()}
+        cur.execute(
+            "SELECT count(*) FILTER (WHERE enqueued_at < %s), min(enqueued_at) "
+            "FROM meta.bill_refresh_queue WHERE priority = 0",
+            (now - QUEUE_MAX_WAIT,),
+        )
+        row = cur.fetchone()
+    return QueueStatus(by_reason, int(row[0]) if row else 0, row[1] if row else None)
+
+
+def queue_problems(queue: QueueStatus) -> list[str]:
+    """A changed bill left unread for days means the site is showing it out of date."""
+    if not queue.overdue:
+        return []
+    hours = int(QUEUE_MAX_WAIT.total_seconds() // 3600)
+    return [
+        f"congress_gov_bills: {queue.overdue} changed bills have waited over {hours} h to be read"
+    ]
+
+
+def queue_report(queue: QueueStatus) -> list[str]:
+    if not queue.total:
+        return []
+    parts = ", ".join(f"{count} {reason}" for reason, count in queue.by_reason.items())
+    lines = ["", "## Bills waiting to be read", "", f"{queue.total} queued: {parts}."]
+    if queue.oldest_urgent_at:
+        stamp = queue.oldest_urgent_at.strftime("%Y-%m-%d %H:%M UTC")
+        lines.append(f"Oldest changed or new record queued {stamp}.")
+    return lines
+
+
 def _mb(size: int) -> str:
     return f"{size / 1048576:.1f} MB"
 
@@ -178,8 +228,12 @@ def main(argv: list[str] | None = None) -> int:
     with connect() as conn:
         statuses = read_statuses(conn, list(SOURCES))
         total, schemas = read_sizes(conn)
+        queue = read_queue(conn, now)
     ok, problems = evaluate(statuses, now, timedelta(hours=args.max_age_hours))
+    problems += queue_problems(queue)
+    ok = ok and not problems
     text = report(statuses, problems, now, total, schemas)
+    text += "\n".join(queue_report(queue)) + ("\n" if queue.total else "")
     print(text)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:

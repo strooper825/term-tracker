@@ -1,0 +1,58 @@
+version: 2
+
+# What the mart keeps once raw holds the whole Congress (ADR 0023). The fixture and the live
+# data only ever held bills that were in scope, so the cases that must stay out are built here.
+unit_tests:
+  - name: stg_bill_scope_keeps_tracked_and_roll_call_bills_only
+    model: stg_bill_scope
+    overrides:
+      vars:
+        current_congress: 119
+    given:
+      - input: ref('tracked_members')
+        rows:
+          - {bioguide_id: S001213}
+      - input: source('raw', 'bill')
+        format: sql
+        rows: |
+          -- sponsored by a tracked member
+          select 119 as congress, 'hr' as bill_type, '1' as bill_number, '{"sponsors": [{"bioguideId": "S001213"}]}'::jsonb as payload
+          union all
+          -- sponsored by someone else, cosponsored by a tracked member (see stg_bill_cosponsors)
+          select 119, 'hr', '2', '{"sponsors": [{"bioguideId": "X000001"}]}'::jsonb
+          union all
+          -- no tracked member anywhere, but a House roll call names it
+          select 119, 'hr', '3', '{"sponsors": [{"bioguideId": "X000001"}]}'::jsonb
+          union all
+          -- the rest of the Congress: held in raw, no page
+          select 119, 'hr', '4', '{"sponsors": [{"bioguideId": "X000001"}]}'::jsonb
+          union all
+          -- an amendment with no sponsor record at all
+          select 119, 'hamdt', '5', '{}'::jsonb
+          union all
+          -- a tracked member's bill from another Congress
+          select 118, 'hr', '6', '{"sponsors": [{"bioguideId": "S001213"}]}'::jsonb
+      - input: ref('stg_bill_cosponsors')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "2", bioguide_id: S001213}
+          - {congress: 119, bill_type: hr, bill_number: "2", bioguide_id: X000002}
+          - {congress: 119, bill_type: hr, bill_number: "4", bioguide_id: X000002}
+          # a tracked member who cosponsored and withdrew still has the bill on their page
+          - {congress: 119, bill_type: s, bill_number: "7", bioguide_id: S001213, withdrawn_date: "2026-02-01"}
+      - input: ref('stg_house_roll_calls')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "3"}
+          # a quorum call names no bill
+          - {congress: 119, bill_type: null, bill_number: null}
+      - input: ref('stg_senate_roll_calls')
+        rows:
+          - {congress: 119, bill_type: sjres, bill_number: "8"}
+          # a nomination has a document but no bill type
+          - {congress: 119, bill_type: null, bill_number: null}
+    expect:
+      rows:
+        - {congress: 119, bill_type: hr, bill_number: "1"}
+        - {congress: 119, bill_type: hr, bill_number: "2"}
+        - {congress: 119, bill_type: hr, bill_number: "3"}
+        - {congress: 119, bill_type: s, bill_number: "7"}
+        - {congress: 119, bill_type: sjres, bill_number: "8"}

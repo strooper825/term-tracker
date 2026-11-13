@@ -38,7 +38,23 @@ models:
         tests: [not_null]
       - name: bioguide_id
         tests: [not_null]
+  - name: stg_bill_scope
+    description: >
+      Keys of the bills and amendments the mart keeps (ADR 0023): sponsored or cosponsored by a
+      tracked member, or named by a loaded roll call. raw.bill may hold the whole Congress;
+      stg_bills, stg_bill_actions and stg_bill_summaries join this.
+    columns:
+      - name: congress
+        tests: [not_null]
+      - name: bill_type
+        tests: [not_null]
+      - name: bill_number
+        tests: [not_null]
   - name: stg_member_legislation
+    description: >
+      The members' own sponsored and cosponsored lists. Nothing in the mart reads this since
+      ADR 0023 (mart.bill_sponsorship is built from the bills' own records); it is kept for
+      checking those against Congress.gov's member view. Only the full ingest mode refreshes it.
     columns:
       - name: role
         tests:
