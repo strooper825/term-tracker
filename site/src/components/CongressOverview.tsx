@@ -5,7 +5,7 @@
 import { PARTY_COLOR } from '@/data/eventTypes';
 import type { ChamberBar, CompositionSegment, CongressModel, StatCell } from '@/lib/congress';
 import { PassedBothTable } from './PassedBothTable';
-import { SiteFooter, SiteHeader } from './SiteChrome';
+import { PageShell } from './SiteFrame';
 
 const PARTY_FILL: Record<string, string> = {
   republican: PARTY_COLOR.Republican,
@@ -203,9 +203,7 @@ export function CongressOverview({
   lastUpdated: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-canvas flex justify-center">
-      <div className="w-full max-w-[1280px] bg-sheet border-x border-rule">
-        <SiteHeader active="Congress" />
+    <PageShell active="Congress" lastUpdated={lastUpdated}>
 
         <section className="px-7 pt-6 pb-6 border-b border-rule flex items-end justify-between gap-x-6 gap-y-2 flex-wrap">
           <div className="flex flex-col gap-1">
@@ -229,8 +227,6 @@ export function CongressOverview({
           </p>
         </main>
 
-        <SiteFooter lastUpdated={lastUpdated} />
-      </div>
-    </div>
+    </PageShell>
   );
 }

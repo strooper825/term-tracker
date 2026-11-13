@@ -621,3 +621,30 @@ export interface CongressOverviewResponse {
   generated_at: string;
   sources: SourceRef[];
 }
+
+/** GET /api/v1/congress/seats (api/schemas/congress.py): every occupied seat, tracked or not. */
+export interface SeatHolder {
+  seat_key: string;
+  chamber: 'house' | 'senate';
+  state: string;
+  state_name: string | null;
+  /** House only: 0 for an at-large seat and for a delegate. */
+  district: number | null;
+  senate_class: number | null;
+  state_rank: string | null;
+  bioguide_id: string;
+  name: string;
+  last_name: string;
+  /** As congress-legislators writes it: Democrat, Republican, Independent. */
+  party: string | null;
+  caucus: string | null;
+  is_tracked: boolean;
+  photo_url: string;
+  website_url: string | null;
+}
+
+export interface SeatsResponse {
+  seats: SeatHolder[];
+  generated_at: string;
+  sources: SourceRef[];
+}

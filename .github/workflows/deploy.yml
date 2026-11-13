@@ -15,7 +15,16 @@ name: Deploy site
 # or not that job would have run: a `contents: write` job added here stopped every run of
 # ingest.yml on 2026-11-10 before a single step. Anything that needs to write belongs in the
 # caller (archive.yml), and tests/test_rollover.py checks it.
+#
+# A push to main that changes only the owner's own words (site/content, edited in the browser
+# editor at /admin, or an uploaded image) also deploys, so an edit is live in minutes rather than
+# after the next nightly (ADR 0022). Code changes on main still wait for the nightly or a dispatch.
 on:
+  push:
+    branches: [main]
+    paths:
+      - "site/content/**"
+      - "site/public/uploads/**"
   workflow_dispatch:
     inputs:
       deploy_target:

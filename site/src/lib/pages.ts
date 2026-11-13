@@ -25,6 +25,7 @@ import {
 } from './model';
 import type { DashboardProps } from '@/components/MemberDashboard';
 import type { BillPageProps } from '@/components/BillPage';
+import { toMapSeat, type MapSeat } from './seats';
 
 export async function trackedBioguides(): Promise<string[]> {
   const { members } = await api.members();
@@ -157,4 +158,10 @@ export async function billPageProps(
 function latestIngest(freshness: { sources: { fetched_at: string }[] }, today: Date): Date {
   const latest = freshness.sources.map((s) => s.fetched_at).sort().at(-1);
   return latest ? new Date(latest) : today;
+}
+
+/** The homepage: who holds each seat (for the map) and the Congress it describes. */
+export async function homePageProps(): Promise<{ seats: MapSeat[]; congress: number }> {
+  const [{ seats }, overview] = await Promise.all([api.seats(), api.congressOverview()]);
+  return { seats: seats.map(toMapSeat), congress: overview.congress };
 }

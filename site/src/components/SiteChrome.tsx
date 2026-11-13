@@ -1,12 +1,14 @@
-// SiteHeader, SiteFooter, Breadcrumb, PartyBadge, SourceLink: ported from design/src/components.
+// Breadcrumb, PartyBadge, SourceLink: ported from design/src/components. Safe to import from a
+// client component: the header, footer and page shell, which read site/content from disk at
+// build time, are in SiteFrame.tsx.
 import { PARTY_COLOR, type PartyName } from '@/data/eventTypes';
-import { ARCHIVE_BANNER, ARCHIVE_LINKS, type ArchiveBanner } from '@/lib/archive';
+import type { ArchiveBanner } from '@/lib/archive';
 
 export const REPO_URL = 'https://github.com/strooper825/term-tracker';
 
 /* Anything off this site opens in a new tab, so a reader never loses their place. */
 const isExternal = (href: string) => /^https?:\/\//.test(href);
-const newTab = (href: string) =>
+export const newTab = (href: string) =>
   isExternal(href) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 
 /* Shown on every page of an archive build (ADR 0021): a reader who lands here from a search
@@ -25,60 +27,6 @@ export function ArchiveNotice({ banner }: { banner: ArchiveBanner }) {
         </>
       ) : null}
     </p>
-  );
-}
-
-export function SiteHeader({ active }: { active: string }) {
-  const link = (href: string, label: string) => (
-    <a
-      key={label}
-      href={href}
-      {...newTab(href)}
-      className={active === label ? 'text-ink font-semibold' : 'text-ink2 hover:text-ink'}
-    >
-      {label}
-      {isExternal(href) && <span className="sr-only"> (opens in a new tab)</span>}
-    </a>
-  );
-  return (
-    <>
-      {ARCHIVE_BANNER ? <ArchiveNotice banner={ARCHIVE_BANNER} /> : null}
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-7 py-3.5 border-b border-rule">
-        <span className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#33477A]">
-          Term Tracker
-        </span>
-        <nav className="flex gap-[22px] text-body">
-          {link('/congress', 'Congress')}
-          {link('/members', 'Members')}
-          {link(`${REPO_URL}/blob/main/docs/PLAN.md`, 'About')}
-          {link(`${REPO_URL}/blob/main/docs/data-dictionary.md`, 'Data')}
-        </nav>
-      </header>
-    </>
-  );
-}
-
-export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
-  return (
-    <footer className="border-t border-rule px-7 pt-5 pb-7 flex flex-col gap-1.5">
-      <p className="text-meta text-ink3 m-0">
-        Data from Congress.gov, Senate.gov, the FEC, and the unitedstates/congress-legislators
-        project.
-        {lastUpdated ? ` Last updated ${lastUpdated}.` : ' Last update time not recorded.'}
-      </p>
-      <a
-        href={`${REPO_URL}/blob/main/docs/data-dictionary.md`}
-        {...newTab(REPO_URL)}
-        className="text-label uppercase text-ink3"
-      >
-        Data dictionary ↗<span className="sr-only"> (opens in a new tab)</span>
-      </a>
-      {ARCHIVE_LINKS.map((archive) => (
-        <a key={archive.href} href={archive.href} className="text-label uppercase text-ink3">
-          {archive.label}
-        </a>
-      ))}
-    </footer>
   );
 }
 

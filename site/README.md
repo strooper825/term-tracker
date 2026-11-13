@@ -13,10 +13,25 @@ API_BASE_URL=http://127.0.0.1:8000 npm run build   # needs the API running again
 node scripts/check-static.mjs out                  # fails if the output could reach the API
 ```
 
-Routes: `/members` (index; `/` redirects to it on Vercel via `vercel.json`), `/members/{bioguide}`
-for every row of `tracked_members`, and `/bills/{congress}/{type}/{number}` for every row of
-`mart.bill` (about 1,900 pages). Bill pages are reached from the bill number in any activity
-feed row; there is no bill index yet, and bill search is an open item in plan section 12.
+Routes (ADR 0022 for the homepage and sections):
+
+- `/`: the homepage. Search, the national map of who holds every seat (`GET /congress/seats`
+  plus the shapes in `public/maps/national.json`, made by `python -m ingest.national_map`), and
+  the latest articles.
+- `/members`, `/members/{bioguide}` for every row of `tracked_members`, `/congress`, and
+  `/bills/{congress}/{type}/{number}` for every row of `mart.bill`.
+- `/search`, plus `/search/members.json` and `/search/bills.json` (static route handlers the
+  search box fetches on first use).
+- `/articles`, `/articles/{slug}`, `/about`, `/methodology`, `/privacy`, `/support`, and
+  `/elections` (a placeholder).
+
+## Words the owner edits
+
+Everything that is not data lives in `content/`: `site.json` (homepage headline and intro,
+footer mission, Ko-fi address, contact email, social links), `pages/*.md` and `articles/*.md`
+(see `content/articles/README.md`). Edit them in the browser at `/admin` (Sveltia CMS, signed in
+with a GitHub personal access token that can write to this repository) or by hand. A push to
+`main` that only touches `content/` or `public/uploads/` deploys the site on its own.
 
 ## Tests
 

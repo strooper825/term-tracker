@@ -16,7 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_session
-from api.provenance import source_ref
+from api.provenance import distinct_sources, source_ref
 from api.schemas.congress import (
     Activity,
     ChamberComposition,
@@ -25,6 +25,8 @@ from api.schemas.congress import (
     PartyGroup,
     PassedBoth,
     PassedBothItem,
+    SeatHolder,
+    SeatsResponse,
 )
 
 router = APIRouter(prefix="/congress", tags=["congress"])
@@ -61,6 +63,16 @@ PASSED_BOTH_SQL = text(
 )
 
 ACTIVITY_FIELDS = tuple(Activity.model_fields)
+
+SEATS_SQL = text(
+    """
+    SELECT seat_key, chamber, state_abbr, state_name, district, senate_class, state_rank,
+           bioguide_id, official_full_name, last_name, party, caucus, is_tracked, photo_url,
+           website_url, source, source_url, fetched_at
+    FROM mart.seat
+    ORDER BY chamber, state_abbr, district NULLS LAST, senate_class
+    """
+)
 
 
 @router.get(
@@ -129,4 +141,39 @@ def overview(session: Annotated[Session, Depends(get_session)]) -> OverviewRespo
         ),
         generated_at=datetime.now(UTC),
         sources=[source_ref(first), source_ref(stats)],
+    )
+
+
+@router.get(
+    "/seats",
+    response_model=SeatsResponse,
+    summary="Every occupied seat and its holder, tracked or not",
+)
+def seats(session: Annotated[Session, Depends(get_session)]) -> SeatsResponse:
+    """All 535 seats plus the delegates, for the homepage map and member search (ADR 0022). A
+    vacant seat is simply absent."""
+    rows = session.execute(SEATS_SQL).mappings().all()
+    return SeatsResponse(
+        seats=[
+            SeatHolder(
+                seat_key=row["seat_key"],
+                chamber=row["chamber"],
+                state=row["state_abbr"],
+                state_name=row["state_name"],
+                district=row["district"],
+                senate_class=row["senate_class"],
+                state_rank=row["state_rank"],
+                bioguide_id=row["bioguide_id"],
+                name=row["official_full_name"],
+                last_name=row["last_name"],
+                party=row["party"],
+                caucus=row["caucus"],
+                is_tracked=row["is_tracked"],
+                photo_url=row["photo_url"],
+                website_url=row["website_url"],
+            )
+            for row in rows
+        ],
+        generated_at=datetime.now(UTC),
+        sources=distinct_sources(rows),
     )

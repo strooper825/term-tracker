@@ -1,7 +1,8 @@
 /** Design tokens for Term Tracker, copied from design/tailwind.config.js (Claude Design export).
  *  Only the content globs differ. Light theme only. Party colors are reserved for party badges
- *  and the member's own vote positions, never page chrome or a UI accent: red and blue mean
- *  Republican and Democratic on a badge, Yea (blue) and Nay (red) on a vote and nothing else. `navy` is the site's own accent (wordmark,
+ *  and the member's own vote positions, never page chrome or a UI accent: red, blue and purple mean
+ *  Republican, Democratic and Independent on a badge or on the homepage map (ADR 0022), Yea (blue)
+ *  and Nay (red) on a vote, and nothing else. `navy` is the site's own accent (wordmark,
  *  term-progress and fundraising bars, "Chair"/"On the ballot" emphasis); event-type colors are
  *  a ramp on that one hue, not a separate hue per type -- see src/data/eventTypes.ts.
  *
@@ -36,7 +37,7 @@ module.exports = {
         lockRule: '#CCD1D5',
         lockInk: '#676E75',
         navy: '#33477A',
-        party: { r: '#B9302F', d: '#1F4E9C', i: '#57564F' },
+        party: { r: '#B9302F', d: '#1F4E9C', i: '#6B3FA0' },
         partyTint: { r: '#FBF0EF', d: '#EEF3FB' },
         event: {
           vote: '#33477A',
@@ -57,6 +58,8 @@ module.exports = {
         stat: ['21px', { lineHeight: '1.1', letterSpacing: '-0.01em' }],
         title: ['27px', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
         display: ['28px', { lineHeight: '1', letterSpacing: '-0.015em' }],
+        // the homepage headline only
+        hero: ['40px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
       },
       spacing: { section: '28px', card: '18px', row: '11px', gutter: '28px' },
       borderRadius: { card: '6px', chip: '3px', ctl: '4px' },

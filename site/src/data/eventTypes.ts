@@ -26,10 +26,10 @@ export const EVENT_TYPE_FROM_MART: Record<string, EventKey> = {
 
 export type PartyName = 'Republican' | 'Democratic' | 'Independent';
 
-// Red and blue carry party meaning; a member outside the two-party system reads in the same
-// dark neutral as page text, not a third hue.
+// Red, blue and purple carry party meaning and nothing else: on a badge, a filter chip, the
+// composition bar and the homepage map (ADR 0022). Vote bars keep their own Yea/Nay scheme.
 export const PARTY_COLOR: Record<PartyName, string> = {
   Republican: '#B9302F',
   Democratic: '#1F4E9C',
-  Independent: '#57564F',
+  Independent: '#6B3FA0',
 };

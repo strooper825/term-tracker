@@ -6,7 +6,8 @@ import type { BillPageModel } from '@/lib/model';
 import { BillJourney } from './BillJourney';
 import { BillActions, BillCosponsors } from './BillLists';
 import { RollCallCard } from './RollCallCard';
-import { Breadcrumb, SiteFooter, SiteHeader, SourceLink } from './SiteChrome';
+import { Breadcrumb, SourceLink } from './SiteChrome';
+import { PageShell } from './SiteFrame';
 
 export interface BillPageProps {
   bill: BillPageModel;
@@ -120,9 +121,7 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
 
 export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
   return (
-    <div className="min-h-screen bg-canvas flex justify-center">
-      <div className="w-full max-w-[1280px] bg-sheet border-x border-rule">
-        <SiteHeader active="Members" />
+    <PageShell active="Congress" lastUpdated={lastUpdated}>
 
         <section className="px-7 pt-5 pb-6 border-b border-rule flex flex-col gap-[18px]">
           <div className="flex items-start justify-between gap-4">
@@ -150,8 +149,6 @@ export function BillPage({ bill, trail, lastUpdated }: BillPageProps) {
           </div>
         </main>
 
-        <SiteFooter lastUpdated={lastUpdated} />
-      </div>
-    </div>
+    </PageShell>
   );
 }

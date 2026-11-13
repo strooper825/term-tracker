@@ -106,3 +106,31 @@ class OverviewResponse(BaseModel):
     passed_both: PassedBoth
     generated_at: datetime
     sources: list[SourceRef]
+
+
+class SeatHolder(BaseModel):
+    """One seat and whoever holds it today (mart.seat)."""
+
+    seat_key: str = Field(description="house-WI-1, house-DC-0, senate-AR-2")
+    chamber: str = Field(description="house or senate")
+    state: str = Field(description="Two-letter postal code, territories included")
+    state_name: str | None
+    district: int | None = Field(
+        description="House only: 0 for an at-large seat and for a delegate"
+    )
+    senate_class: int | None
+    state_rank: str | None = Field(description="Senate only: senior or junior")
+    bioguide_id: str
+    name: str = Field(description="official_full_name as congress-legislators writes it")
+    last_name: str
+    party: str | None = Field(description="As congress-legislators writes it: Democrat, ...")
+    caucus: str | None = Field(description="For independents, the party they caucus with")
+    is_tracked: bool = Field(description="True when the member has a dashboard on the site")
+    photo_url: str
+    website_url: str | None
+
+
+class SeatsResponse(BaseModel):
+    seats: list[SeatHolder]
+    generated_at: datetime
+    sources: list[SourceRef]

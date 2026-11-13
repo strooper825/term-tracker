@@ -1,0 +1,85 @@
+# The site editor's configuration (Sveltia CMS, ADR 0022). Every save is a commit to main under
+# site/content (or an image under site/public/uploads), and a commit there deploys the site.
+backend:
+  name: github
+  repo: strooper825/term-tracker
+  branch: main
+
+media_folder: site/public/uploads
+public_folder: /uploads
+
+site_url: /
+display_url: /
+
+collections:
+  - name: articles
+    label: Articles
+    label_singular: Article
+    folder: site/content/articles
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    filter: { field: title, pattern: ".+" }
+    summary: "{{title}} ({{date}})"
+    sortable_fields: [date, title]
+    preview_path: "articles/{{slug}}"
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: date, label: Publication date, widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD }
+      - { name: author, label: Author, widget: string, required: false }
+      - name: category
+        label: Category
+        widget: select
+        options: [Congress, Elections, Analysis]
+        default: Congress
+      - { name: summary, label: Summary (shown on cards), widget: text, required: false }
+      - { name: image, label: Image, widget: image, required: false }
+      - { name: draft, label: Draft (keeps it off the site), widget: boolean, default: false, required: false }
+      - { name: body, label: Article, widget: markdown }
+
+  - name: pages
+    label: Pages
+    files:
+      - name: about
+        label: About
+        file: site/content/pages/about.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: description, label: Description (for search engines), widget: string, required: false }
+          - { name: body, label: Page, widget: markdown }
+      - name: methodology
+        label: Methodology & sources
+        file: site/content/pages/methodology.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: description, label: Description (for search engines), widget: string, required: false }
+          - { name: body, label: Page, widget: markdown }
+      - name: privacy
+        label: Privacy policy
+        file: site/content/pages/privacy.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: description, label: Description (for search engines), widget: string, required: false }
+          - { name: body, label: Page, widget: markdown }
+
+  - name: settings
+    label: Site settings
+    files:
+      - name: site
+        label: Homepage, footer & links
+        file: site/content/site.json
+        format: json
+        fields:
+          - { name: headline, label: Homepage headline, widget: string }
+          - { name: intro, label: Homepage introduction, widget: text }
+          - { name: mission, label: Footer description, widget: text }
+          - { name: kofiUrl, label: Ko-fi page address (https://ko-fi.com/...), widget: string, required: false }
+          - { name: contactEmail, label: Contact email (shown in the footer when set), widget: string, required: false }
+          - name: socials
+            label: Social accounts (shown in the footer when added)
+            widget: list
+            required: false
+            fields:
+              - { name: label, label: Name (e.g. Bluesky), widget: string }
+              - { name: url, label: Address, widget: string }

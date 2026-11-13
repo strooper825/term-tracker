@@ -62,12 +62,12 @@ Record = dict[str, Any]
 Shapes = list[tuple[Record, BaseGeometry]]
 
 
-def file_urls(year: int, congress: int) -> dict[str, str]:
+def file_urls(year: int, congress: int, scale: str = SCALE) -> dict[str, str]:
     base = f"{BASE_URL}/GENZ{year}/shp"
     return {
-        "state": f"{base}/cb_{year}_us_state_{SCALE}.zip",
-        "district": f"{base}/cb_{year}_us_cd{congress}_{SCALE}.zip",
-        "county": f"{base}/cb_{year}_us_county_{SCALE}.zip",
+        "state": f"{base}/cb_{year}_us_state_{scale}.zip",
+        "district": f"{base}/cb_{year}_us_cd{congress}_{scale}.zip",
+        "county": f"{base}/cb_{year}_us_county_{scale}.zip",
     }
 
 

@@ -25,6 +25,7 @@ also recorded here once made.
 - [0019. Branch runs put the managed database back at main's schema](0019-branch-runs-restore-main-schema.md)
 - [0020. A source that refuses the nightly reader does not stop the nightly](0020-refused-source-does-not-stop-the-nightly.md)
 - [0021. The site describes one Congress; a finished Congress becomes a frozen archive](0021-one-congress-at-a-time-and-a-frozen-archive.md)
+- [0022. A homepage for several sections, a map of every seat, and words the owner edits](0022-homepage-sections-and-owner-content.md)
 
 ## Format
 

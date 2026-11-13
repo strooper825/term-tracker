@@ -12,3 +12,59 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Markdown from site/content (About, Methodology, articles): the site's own type, no plugin. */
+.prose-tt > * + * {
+  margin-top: 1em;
+}
+.prose-tt > :first-child {
+  margin-top: 0;
+}
+.prose-tt h2 {
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 700;
+  margin-top: 1.6em;
+}
+.prose-tt h3 {
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+  margin-top: 1.4em;
+}
+.prose-tt p,
+.prose-tt ul,
+.prose-tt ol {
+  margin-bottom: 0;
+}
+.prose-tt ul,
+.prose-tt ol {
+  padding-left: 1.4em;
+}
+.prose-tt li + li {
+  margin-top: 0.4em;
+}
+.prose-tt a {
+  color: #33477a;
+  text-decoration: underline;
+  text-decoration-color: #cbd1e0;
+  text-underline-offset: 2px;
+}
+.prose-tt a:hover {
+  text-decoration-color: #33477a;
+}
+.prose-tt blockquote {
+  margin-left: 0;
+  padding-left: 1em;
+  border-left: 3px solid #e6e4df;
+  color: #57564f;
+}
+.prose-tt img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.prose-tt hr {
+  border: 0;
+  border-top: 1px solid #e6e4df;
+}
