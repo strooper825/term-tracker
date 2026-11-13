@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from sqlalchemy import Engine, text
 
+from ingest.congress_gov import BASE_URL, CongressGovClient, RateLimiter
 from ingest.db import connect
 from ingest.sources import congress_gov as src
 from ingest.sources import house_votes, senate_votes
@@ -15,6 +18,7 @@ from tests.fixtures.congress_gov import (
     ROLL_CALL_FIXTURE_BILLS,
     TRACKED,
     fixture_client,
+    fixture_fetch,
     roll_call_fixtures_cover,
 )
 from tests.fixtures.votes import house_client, senate_client
@@ -190,3 +194,66 @@ def test_roll_call_bills_get_a_full_page_of_their_own(
                     {"t": bill_type, "n": number},
                 ).scalar_one()
                 assert stored == 1, (table, bill_type, number)
+
+
+def test_compare_filter_reports_after_the_load_and_cannot_fail_it(
+    migrated_engine: Engine,
+    clean_runs: None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ADR 0023: the nightly reports what fromDateTime says changed beside what it re-read."""
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    with connect() as conn:
+        src.load(conn, fixture_client(), TRACKED, CONGRESS, roll_call_bills=False)
+
+    # One bill is held with an older updateDate, so the next run reads it back changed.
+    with migrated_engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE raw.bill SET payload = payload || :patch "
+                "WHERE congress = 119 AND bill_type = 'hr' AND bill_number = '5269'"
+            ),
+            {"patch": '{"updateDate": "2000-01-01T00:00:00Z"}'},
+        )
+
+    asked: list[str] = []
+
+    def fetch(url: str) -> str:
+        if "fromDateTime=" not in url:
+            return fixture_fetch(url)
+        asked.append(url)
+        # the lists report the changed bill and one this run does not track
+        paths = ["bill/119/hr/5269", "bill/119/hr/9999"] if "/v3/bill/119?" in url else []
+        key = "bills" if "/v3/bill/119?" in url else "amendments"
+        items = [{"url": f"{BASE_URL}/{path}?format=json"} for path in paths]
+        return json.dumps({key: items, "pagination": {"count": len(items)}})
+
+    client = CongressGovClient("test-key-not-real", fetch=fetch, limiter=RateLimiter(10**6))
+    with connect() as conn:
+        src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False, compare_filter=True)
+    assert len(asked) == 2  # one page of bills, one of amendments
+    text_ = summary.read_text(encoding="utf-8")
+    assert "report 2 bills and amendments changed" in text_
+    assert "1 are in scope" in text_
+    assert "found 1 in-scope records with a new updateDate" in text_
+    assert "Every changed record was reported by the filter." in text_
+
+    # A filter that cannot be read is a warning; the load it follows has already succeeded.
+    def broken(url: str) -> str:
+        if "fromDateTime=" in url:
+            raise RuntimeError("list endpoint down")
+        return fixture_fetch(url)
+
+    client = CongressGovClient("test-key-not-real", fetch=broken, limiter=RateLimiter(10**6))
+    with connect() as conn:
+        src.load(conn, client, TRACKED, CONGRESS, roll_call_bills=False, compare_filter=True)
+    # nothing was added to the summary for the run whose comparison failed
+    assert summary.read_text(encoding="utf-8").count("## Bill change filter") == 1
+    with migrated_engine.connect() as conn:
+        status = conn.execute(
+            text("SELECT status FROM meta.ingest_run WHERE source = :s ORDER BY id DESC LIMIT 1"),
+            {"s": src.SOURCE},
+        ).scalar_one()
+    assert status == "success"

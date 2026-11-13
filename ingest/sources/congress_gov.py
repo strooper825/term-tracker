@@ -19,14 +19,22 @@ Request budget for six members in the 119th Congress: about 40 list pages, ~1,90
 requests, and on a first load ~1,900 actions + ~1,900 cosponsors + ~1,750 summaries requests.
 In the steady state only bills whose ``updateDate`` moved are re-read. All of it is throttled
 to the 5,000 per hour limit by :class:`ingest.congress_gov.RateLimiter`.
+
+Measurement for ADR 0023 (no effect on what is loaded): after the load, the nightly asks the
+bill and amendment lists which records changed since the last successful run
+(``fromDateTime``) and reports that beside the records whose ``updateDate`` the full re-read
+found changed. A record the re-read found changed and the lists did not report is the case the
+incremental ingest could not afford, so it is named. A failure of this check is a warning.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from psycopg import Connection
@@ -58,6 +66,10 @@ SOURCE = "congress_gov_bills"
 ROLE_PATHS = {"sponsor": "sponsored-legislation", "cosponsor": "cosponsored-legislation"}
 ROLE_ITEMS_KEY = {"sponsor": "sponsoredLegislation", "cosponsor": "cosponsoredLegislation"}
 KEY_COLUMNS = ["congress", "bill_type", "bill_number"]
+# The lists are asked from this long before the last successful run began, so a record updated
+# while that run was reading is not lost between the two windows (ADR 0023).
+FILTER_OVERLAP = timedelta(hours=6)
+CHANGED_LISTS = (("bill", "bills"), ("amendment", "amendments"))
 # senate.gov document types -> Congress.gov bill types (nominations and treaties have none)
 SENATE_DOCUMENT_TYPES = {
     "S.": "s",
@@ -159,6 +171,99 @@ def roll_call_legislation_keys(conn: Connection, congress: int) -> set[Legislati
     return keys
 
 
+def fetch_changed_since(
+    client: CongressGovClient, congress: int, since: datetime
+) -> set[LegislationKey]:
+    """Every bill and amendment of ``congress`` the lists report as updated at or after ``since``.
+
+    ``fromDateTime`` filters on ``updateDate`` to the second and must be written exactly as
+    ``YYYY-MM-DDTHH:MM:SSZ``; anything else answers 400 (verified 2026-11-13).
+    """
+    stamp = since.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    keys: set[LegislationKey] = set()
+    for kind, items_key in CHANGED_LISTS:
+        path = f"{kind}/{congress}"
+        for index, item in enumerate(client.paginate(path, items_key, fromDateTime=stamp)):
+            url = item.get("url") if isinstance(item, dict) else None
+            if not isinstance(url, str):
+                raise SourceShapeError(f"{path}[{index}]: list item has no url")
+            keys.add(parse_legislation_url(url))
+    return keys
+
+
+@dataclass(frozen=True)
+class FilterComparison:
+    """What ``fromDateTime`` reported beside what the full re-read found (ADR 0023)."""
+
+    since: datetime
+    reported: int  # records the lists report for the whole Congress
+    reported_in_scope: int  # of those, records this run read
+    changed: int  # records whose stored updateDate differed from the one just read
+    missed: list[LegislationKey]  # changed, yet not reported: must be empty
+    requests: int
+
+    def lines(self) -> list[str]:
+        since = self.since.strftime("%Y-%m-%d %H:%M UTC")
+        lines = [
+            f"Since {since} the lists report {self.reported} bills and amendments changed in "
+            f"the Congress ({self.requests} requests); {self.reported_in_scope} are in scope.",
+            f"The full re-read found {self.changed} in-scope records with a new updateDate.",
+        ]
+        if self.missed:
+            names = ", ".join(key.path for key in self.missed[:20])
+            lines.append(
+                f"NOT REPORTED BY THE FILTER: {len(self.missed)} changed records ({names})."
+            )
+        else:
+            lines.append("Every changed record was reported by the filter.")
+        return lines
+
+
+def last_success_started_at(conn: Connection) -> datetime | None:
+    """When the newest successful run of this source began, or None before the first one."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT max(started_at) FROM meta.ingest_run WHERE source = %s AND status = 'success'",
+            (SOURCE,),
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def compare_with_filter(
+    client: CongressGovClient,
+    congress: int,
+    last_run_started_at: datetime,
+    in_scope: set[LegislationKey],
+    changed: set[LegislationKey],
+) -> FilterComparison:
+    since = last_run_started_at - FILTER_OVERLAP
+    before = client.requests_made
+    reported = fetch_changed_since(client, congress, since)
+    return FilterComparison(
+        since=since,
+        reported=len(reported),
+        reported_in_scope=len(reported & in_scope),
+        changed=len(changed),
+        missed=sorted(changed - reported),
+        requests=client.requests_made - before,
+    )
+
+
+def report_filter_comparison(comparison: FilterComparison) -> None:
+    """Log the comparison and add it to the workflow run summary when there is one."""
+    for line in comparison.lines():
+        (log.warning if comparison.missed else log.info)("fromDateTime: %s", line)
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with Path(summary).open("a", encoding="utf-8") as fh:
+            fh.write("## Bill change filter (ADR 0023)\n\n")
+            fh.writelines(f"- {line}\n" for line in comparison.lines())
+            fh.write("\n")
+    if comparison.missed:
+        print(f"::warning::fromDateTime did not report {len(comparison.missed)} changed records")
+
+
 @dataclass(frozen=True)
 class StoredBill:
     """What raw already holds for one bill: the stored updateDate and which lists are present.
@@ -201,13 +306,18 @@ def load(
     *,
     full_refresh: bool = False,
     roll_call_bills: bool = True,
+    compare_filter: bool = False,
 ) -> int:
     """Load lists, details, actions, cosponsors, and summaries. Returns rows loaded.
 
     Every bill and amendment in scope gets its actions and cosponsors, and every bill its CRS
     summaries, because each one has a detail page. With ``roll_call_bills`` the bills a loaded
-    roll call references are in scope too.
+    roll call references are in scope too. With ``compare_filter`` the run ends by reporting
+    what ``fromDateTime`` says changed since the last successful run beside what this run
+    found (ADR 0023); that check only reads, and its failure is logged, not raised.
     """
+    last_run_started_at = last_success_started_at(conn) if compare_filter else None
+    conn.commit()
     with record_run(conn, SOURCE, BASE_URL) as run:
         fetched_at = datetime.now(UTC)
         total = 0
@@ -243,6 +353,8 @@ def load(
 
         existing = _existing_state(conn)
         refreshed = 0
+        # held before this run and read back with a different updateDate
+        changed: set[LegislationKey] = set()
         for key in legislation:
             detail = fetch_detail(client, key)
             total += upsert(
@@ -264,7 +376,10 @@ def load(
             # only the ones raw has never stored are fetched, so adding a list to an existing
             # database costs one request per bill rather than one per bill per list.
             stored = existing.get((key.congress, key.bill_type, key.bill_number), MISSING)
-            stale = full_refresh or stored.update_date != detail.get("updateDate")
+            moved = stored.update_date != detail.get("updateDate")
+            if moved and stored.update_date is not None:
+                changed.add(key)
+            stale = full_refresh or moved
             dependents = [
                 (table, fetcher)
                 for table, fetcher, present in (
@@ -308,6 +423,16 @@ def load(
             client.requests_made,
         )
         run.rows_loaded = total
+
+    if last_run_started_at is not None:
+        try:
+            report_filter_comparison(
+                compare_with_filter(
+                    client, congress, last_run_started_at, set(legislation), changed
+                )
+            )
+        except Exception:
+            log.warning("fromDateTime: the comparison could not be made tonight", exc_info=True)
     return run.rows_loaded
 
 
@@ -333,6 +458,7 @@ def run(*, full_refresh: bool = False) -> int:
                 tracked_member_ids(conn),
                 settings.current_congress,
                 full_refresh=full_refresh,
+                compare_filter=True,
             )
     finally:
         client.close()
