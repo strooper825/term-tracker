@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { MembersIndex } from '@/components/MembersIndex';
-import { PageShell } from '@/components/SiteChrome';
+import { PageShell } from '@/components/SiteFrame';
 import { indexPageProps } from '@/lib/pages';
 
 export const dynamic = 'force-static';

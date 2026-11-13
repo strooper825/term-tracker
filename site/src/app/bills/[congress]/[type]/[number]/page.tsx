@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { BillPage } from '@/components/BillPage';
-import { PageShell } from '@/components/SiteChrome';
+import { PageShell } from '@/components/SiteFrame';
 import { billPageProps, billRouteParams, isNoBillsRoute } from '@/lib/pages';
 
 export const dynamic = 'force-static';

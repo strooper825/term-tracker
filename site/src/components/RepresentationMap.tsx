@@ -21,6 +21,7 @@ import {
   type PartyLetter,
 } from '@/lib/seats';
 import { ordinal } from '@/lib/format';
+import { MemberPhoto } from './MemberPhoto';
 
 interface StateShape {
   fips: string;
@@ -106,17 +107,19 @@ function Badge({ party }: { party: PartyLetter }) {
 }
 
 function SeatRow({ seat, link }: { seat: MapSeat; link: boolean }) {
+  // a House card's title already names the district; a Senate card needs senior/junior
+  const detail = [seat.chamber === 'senate' ? seat.seatLabel : null, seat.partyNote].filter(Boolean).join(' · ');
   const body = (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={seat.photoUrl} alt="" width={36} height={36} loading="lazy" className="flex-none w-9 h-9 rounded-full object-cover bg-lockBg" />
+      <MemberPhoto photoUrl={seat.photoUrl} bioguideId={seat.bioguideId} className="w-9 h-9 rounded-full" />
       <span className="flex-1 min-w-0 flex flex-col">
         <span className="text-[14px] font-semibold leading-snug">{seat.name}</span>
-        <span className="text-meta text-ink2">
-          {seat.seatLabel}
-          {seat.partyNote ? ` · ${seat.partyNote}` : ''}
-          {link && (seat.external ? ' · Official website ↗' : ' · View profile →')}
-        </span>
+        {(detail || link) && (
+          <span className="text-meta text-ink2">
+            {detail}
+            {link && `${detail ? ' · ' : ''}${seat.external ? 'Official website ↗' : 'View profile →'}`}
+          </span>
+        )}
       </span>
       <Badge party={seat.party} />
     </>
@@ -355,7 +358,7 @@ export function RepresentationMap({ seats, congress }: { seats: MapSeat[]; congr
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className="w-10 h-10 inline-flex items-center justify-center border border-rule rounded-ctl bg-card text-ink text-[20px] shadow-[0_2px_6px_rgba(26,26,25,0.08)] cursor-pointer disabled:opacity-40 disabled:cursor-default"
+      className="w-9 h-9 md:w-10 md:h-10 inline-flex items-center justify-center border border-rule rounded-ctl bg-card text-ink text-[20px] shadow-[0_2px_6px_rgba(26,26,25,0.08)] cursor-pointer disabled:opacity-40 disabled:cursor-default"
     >
       {children}
     </button>
@@ -369,9 +372,16 @@ export function RepresentationMap({ seats, congress }: { seats: MapSeat[]; congr
             Who represents you
           </h2>
           <p className="m-0 text-[14px] text-ink2">
-            {view === 'senate'
-              ? 'Hover over a state to see its senators, then click it to choose a profile.'
-              : 'Hover over a district to see its representative, then click to open their profile.'}
+            <span className="hidden md:inline">
+              {view === 'senate'
+                ? 'Hover over a state to see its senators, then click it to choose a profile.'
+                : 'Hover over a district to see its representative, then click to open their profile.'}
+            </span>
+            <span className="md:hidden">
+              {view === 'senate'
+                ? 'Tap a state to see its senators. Zoom in with + or a pinch.'
+                : 'Tap a district to see its representative. Zoom in with + or a pinch.'}
+            </span>
           </p>
         </div>
         <div role="group" aria-label="Chamber" className="inline-flex border-[1.5px] border-navy rounded-card overflow-hidden">
@@ -420,7 +430,7 @@ export function RepresentationMap({ seats, congress }: { seats: MapSeat[]; congr
           </p>
         )}
 
-        <div data-overlay className="absolute top-3 right-3 flex flex-col gap-1.5">
+        <div data-overlay className="absolute bottom-2 right-2 md:bottom-3 md:right-3 flex flex-row md:flex-col gap-1.5">
           {zoomButton('Zoom in', () => zoomTo(zoom * 1.5), '+', zoom >= MAX_ZOOM)}
           {zoomButton('Zoom out', () => zoomTo(zoom / 1.5), '−', zoom <= 1)}
           {zoomButton(

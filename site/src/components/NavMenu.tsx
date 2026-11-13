@@ -48,7 +48,7 @@ export function NavMenu({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={`inline-flex items-center gap-1 px-3 py-2.5 bg-transparent border-0 border-b-2 cursor-pointer text-[15px] ${
+        className={`inline-flex items-center gap-1 px-2 md:px-3 py-2.5 bg-transparent border-0 border-b-2 cursor-pointer text-[14px] md:text-[15px] ${
           active ? 'font-semibold text-ink border-navy' : 'text-ink2 border-transparent hover:text-ink'
         }`}
       >

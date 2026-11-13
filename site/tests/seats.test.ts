@@ -202,3 +202,16 @@ describe('search', () => {
     expect(search(bills, 'farm').map((b) => b.label)).toEqual(['S. 12']);
   });
 });
+
+describe('search ignores one-letter words', () => {
+  it('"H.R. 1" finds bills numbered H.R. 1..., not every title with an h and an r', () => {
+    const hits = billHits(
+      billEntries([
+        { congress: 119, bill_type: 'hamdt', bill_number: '2', label: 'H.Amdt. 2', title: 'An amendment numbered 1 here' },
+        { congress: 119, bill_type: 'hr', bill_number: '1', label: 'H.R. 1', title: 'One act' },
+        { congress: 119, bill_type: 'hr', bill_number: '12', label: 'H.R. 12', title: 'Another' },
+      ] as BillListItem[]),
+    );
+    expect(search(hits, 'H.R. 1').map((h) => h.label)).toEqual(['H.R. 1', 'H.R. 12']);
+  });
+});

@@ -40,6 +40,7 @@ export interface MapSeat {
   /** "WI-1", "AK at-large", "DC delegate", "WI senator" */
   shortLabel: string;
   name: string;
+  bioguideId: string;
   party: PartyLetter;
   /** "Independent, caucuses with the Democrats" style note, or null. */
   partyNote: string | null;
@@ -84,6 +85,7 @@ export function toMapSeat(seat: SeatHolder): MapSeat {
     district: seat.chamber === 'house' ? (seat.district ?? 0) : null,
     ...seatLabels(seat),
     name: seat.name,
+    bioguideId: seat.bioguide_id,
     party,
     partyNote:
       party === 'I' && (caucus === 'D' || caucus === 'R') ? `Caucuses with the ${caucus === 'D' ? 'Democrats' : 'Republicans'}` : null,
@@ -207,10 +209,13 @@ export function search<T extends { key: string; haystack: string }>(
   const words = query.toLowerCase().replace(/[.,]/g, ' ').split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const compact = compactLabel(query);
+  const long = words.filter((w) => w.length > 1);
   const scored: { hit: T; score: number }[] = [];
   for (const hit of hits) {
     const prefix = compact.length > 1 && hit.key.startsWith(compact);
-    if (!prefix && !words.every((w) => hit.haystack.includes(w))) continue;
+    // one-letter words (the H and R of "H.R. 1") match almost anything, so only longer words
+    // are matched against the text; a query made only of them relies on the prefix
+    if (!prefix && (long.length === 0 || !long.every((w) => hit.haystack.includes(w)))) continue;
     const score = hit.key === compact ? 0 : prefix || hit.haystack.startsWith(words[0]) ? 1 : 2;
     scored.push({ hit, score });
   }

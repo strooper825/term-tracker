@@ -5,7 +5,7 @@
 import { PARTY_COLOR } from '@/data/eventTypes';
 import type { ChamberBar, CompositionSegment, CongressModel, StatCell } from '@/lib/congress';
 import { PassedBothTable } from './PassedBothTable';
-import { PageShell } from './SiteChrome';
+import { PageShell } from './SiteFrame';
 
 const PARTY_FILL: Record<string, string> = {
   republican: PARTY_COLOR.Republican,

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ReadingPage } from '@/components/ContentBlocks';
-import { PageShell } from '@/components/SiteChrome';
+import { PageShell } from '@/components/SiteFrame';
 import { SiteSearch } from '@/components/SiteSearch';
 
 export const dynamic = 'force-static';

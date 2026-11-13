@@ -25,7 +25,8 @@ import { MemberFacts, MemberHeader, StatStrip, TermProgress } from './MemberHead
 import { MemberTabs, type TabSpec } from './MemberTabs';
 import { RollCallVotes } from './RollCallVotes';
 import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from './SideCards';
-import { Breadcrumb, PageShell } from './SiteChrome';
+import { Breadcrumb } from './SiteChrome';
+import { PageShell } from './SiteFrame';
 import { StatementsTab } from './StatementsTab';
 import { RecordCard } from './TermCards';
 

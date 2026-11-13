@@ -1,6 +1,6 @@
 import { ArticleGrid } from '@/components/ContentBlocks';
 import { RepresentationMap } from '@/components/RepresentationMap';
-import { PageShell } from '@/components/SiteChrome';
+import { PageShell } from '@/components/SiteFrame';
 import { SiteSearch } from '@/components/SiteSearch';
 import { loadArticles, loadSite } from '@/lib/content';
 import { homePageProps } from '@/lib/pages';

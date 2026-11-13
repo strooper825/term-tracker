@@ -6,7 +6,8 @@ import type { BillPageModel } from '@/lib/model';
 import { BillJourney } from './BillJourney';
 import { BillActions, BillCosponsors } from './BillLists';
 import { RollCallCard } from './RollCallCard';
-import { Breadcrumb, PageShell, SourceLink } from './SiteChrome';
+import { Breadcrumb, SourceLink } from './SiteChrome';
+import { PageShell } from './SiteFrame';
 
 export interface BillPageProps {
   bill: BillPageModel;

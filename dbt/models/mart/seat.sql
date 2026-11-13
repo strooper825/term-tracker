@@ -5,8 +5,11 @@
 --
 -- Who holds a seat comes from the latest congress-legislators snapshot. raw.legislator keeps
 -- a row for every legislator it has ever seen, so a member who left office is still there with
--- an older fetched_at; only rows from the newest load count. A seat no row holds (a vacancy)
--- has no row here, and the site draws it as vacant.
+-- an older fetched_at; only rows from the newest load count. legislators-current.yaml lists
+-- only people serving now, so each one's latest term that has begun is their seat. The term's
+-- end date is not used: an appointed senator's term "ends" on the special election date and
+-- they serve on until the winner is sworn in (Florida and Ohio after 2026-11-03). A seat no row
+-- holds (a vacancy) has no row here, and the site draws it as vacant.
 --
 -- "Today" is clamped into the current Congress so an archive build, or a test run on fixtures
 -- after the Congress has ended, still describes the Congress the mart is about.
@@ -23,12 +26,12 @@ as_of as (
 ),
 
 current_terms as (
-    select t.*
+    select distinct on (t.bioguide_id) t.*
     from {{ ref('stg_legislator_terms') }} as t
     inner join latest on t.fetched_at = latest.fetched_at
     cross join as_of
     where t.start_date <= as_of.day
-        and t.end_date > as_of.day
+    order by t.bioguide_id, t.start_date desc
 )
 
 select

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RepresentationMap, type NationalMap } from '@/components/RepresentationMap';
-import { PageShell, SiteHeader } from '@/components/SiteChrome';
+import { PageShell, SiteHeader } from '@/components/SiteFrame';
 import { SiteSearch } from '@/components/SiteSearch';
 import { toMapSeat } from '@/lib/seats';
 import type { SeatHolder } from '@/lib/types';

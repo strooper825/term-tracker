@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Prose, ReadingPage, formatArticleDate } from '@/components/ContentBlocks';
-import { PageShell } from '@/components/SiteChrome';
+import { PageShell } from '@/components/SiteFrame';
 import { loadArticles } from '@/lib/content';
 
 export const dynamic = 'force-static';
