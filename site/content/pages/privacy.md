@@ -3,8 +3,6 @@ title: Privacy policy
 description: What Term Tracker collects about visitors (very little) and why.
 ---
 
-**Draft: review before relying on it.**
-
 Term Tracker has no accounts, no sign-up, and no advertising, and it sets no cookies of its own.
 
 ## What is collected
