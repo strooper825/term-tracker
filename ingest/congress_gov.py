@@ -113,11 +113,14 @@ class CongressGovClient:
             raise ValueError(f"{path}: expected a JSON object")
         return data
 
-    def paginate(self, path: str, items_key: str) -> Iterator[dict[str, Any]]:
-        """Yield every item of a list endpoint, following ``pagination.next``."""
+    def paginate(self, path: str, items_key: str, **params: Any) -> Iterator[dict[str, Any]]:
+        """Yield every item of a list endpoint, following ``pagination.next``.
+
+        ``params`` are extra query parameters sent with every page (``fromDateTime``).
+        """
         offset = 0
         while True:
-            page = self.get(path, limit=PAGE_SIZE, offset=offset or None)
+            page = self.get(path, limit=PAGE_SIZE, offset=offset or None, **params)
             items = page.get(items_key)
             if not isinstance(items, list):
                 raise ValueError(f"{path}: expected list under {items_key!r}, keys={list(page)}")

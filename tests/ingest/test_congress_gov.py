@@ -211,3 +211,79 @@ def test_a_summary_missing_a_declared_field_stops_the_run() -> None:
     client = CongressGovClient("k", fetch=lambda url: json.dumps(body), limiter=RateLimiter(10**6))
     with pytest.raises(src.SourceShapeError, match="shape differs"):
         src.fetch_summaries(client, LegislationKey("bill", 119, "s", "5"))
+
+
+def changed_list_fetch(bills: list[str], amendments: list[str], seen: list[str]):
+    """A fetch that answers the two changed-record lists and nothing else."""
+
+    def fetch(url: str) -> str:
+        seen.append(url)
+        if "/v3/bill/119?" in url:
+            key, paths = "bills", bills
+        elif "/v3/amendment/119?" in url:
+            key, paths = "amendments", amendments
+        else:
+            raise AssertionError(f"unexpected request {url}")
+        items = [{"url": f"{BASE_URL}/{path}?format=json"} for path in paths]
+        return json.dumps({key: items, "pagination": {"count": len(items)}})
+
+    return fetch
+
+
+def test_changed_since_asks_both_lists_with_the_exact_timestamp_format() -> None:
+    from datetime import UTC, datetime, timedelta, timezone
+
+    seen: list[str] = []
+    client = CongressGovClient(
+        "k",
+        fetch=changed_list_fetch(["bill/119/hr/5269"], ["amendment/119/hamdt/9"], seen),
+        limiter=RateLimiter(10**6),
+    )
+    # 03:30 at UTC-5 is 08:30Z: the API takes UTC only, written to the second with a Z
+    since = datetime(2026, 11, 12, 3, 30, 0, tzinfo=timezone(timedelta(hours=-5)))
+    keys = src.fetch_changed_since(client, 119, since)
+    assert keys == {
+        LegislationKey("bill", 119, "hr", "5269"),
+        LegislationKey("amendment", 119, "hamdt", "9"),
+    }
+    assert len(seen) == 2
+    assert all("fromDateTime=2026-11-12T08%3A30%3A00Z" in url for url in seen)
+    assert since.astimezone(UTC).hour == 8
+
+
+def test_a_changed_list_item_without_a_url_stops_the_comparison() -> None:
+    from datetime import UTC, datetime
+
+    client = CongressGovClient(
+        "k",
+        fetch=lambda url: json.dumps({"bills": [{"number": "1"}], "pagination": {}}),
+        limiter=RateLimiter(10**6),
+    )
+    with pytest.raises(src.SourceShapeError, match="no url"):
+        src.fetch_changed_since(client, 119, datetime(2026, 11, 12, tzinfo=UTC))
+
+
+def test_filter_comparison_names_a_changed_record_the_lists_did_not_report() -> None:
+    from datetime import UTC, datetime
+
+    seen: list[str] = []
+    client = CongressGovClient(
+        "k",
+        fetch=changed_list_fetch(["bill/119/hr/5269", "bill/119/hr/9999"], [], seen),
+        limiter=RateLimiter(10**6),
+    )
+    reported = LegislationKey("bill", 119, "hr", "5269")
+    unreported = LegislationKey("bill", 119, "s", "2274")
+    started = datetime(2026, 11, 12, 6, 0, tzinfo=UTC)
+    result = src.compare_with_filter(
+        client, 119, started, in_scope={reported, unreported}, changed={reported, unreported}
+    )
+    assert result.since == started - src.FILTER_OVERLAP
+    assert (result.reported, result.reported_in_scope, result.changed) == (2, 1, 2)
+    assert result.missed == [unreported]
+    assert result.requests == 2
+    assert any("NOT REPORTED" in line and "bill/119/s/2274" in line for line in result.lines())
+
+    clean = src.compare_with_filter(client, 119, started, in_scope={reported}, changed={reported})
+    assert clean.missed == []
+    assert clean.lines()[-1] == "Every changed record was reported by the filter."

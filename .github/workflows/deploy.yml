@@ -198,6 +198,20 @@ jobs:
           echo "## Deployment size" >> "$GITHUB_STEP_SUMMARY"
           node scripts/strip-prefetch-payloads.mjs .vercel/output/static | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # The Hobby plan refuses a CLI upload over 100 MB, and the upload is this output as one
+      # tgz. It was 31.5 MB at twenty members on 2026-11-13 and is the first limit growth meets
+      # (ADR 0023), so every deploy records it and warns from 80 MB. The figure is this runner's
+      # own gzip of the output, a close estimate of what the CLI sends, not the CLI's number.
+      - name: Report the upload size against the 100 MB limit
+        working-directory: site
+        run: |
+          bytes=$(tar -czf - -C .vercel output | wc -c)
+          mb=$(( bytes / 1000000 ))
+          echo "- Upload (tgz of the output): about ${mb} MB of the 100 MB a Hobby upload may be" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$mb" -ge 80 ]; then
+            echo "::warning::the deployment upload is about ${mb} MB; the Hobby limit is 100 MB (ADR 0023)"
+          fi
+
       # A static export should produce no functions at all. Vercel reported 3.13 GB of function
       # storage for this project on 2026-09-20, which nothing in the repo accounts for, so every
       # deploy now records what the builder actually emitted.

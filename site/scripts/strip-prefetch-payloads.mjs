@@ -11,8 +11,18 @@
 // Only payload files go: a `.txt` is removed when the page it belongs to sits beside it, so a
 // real asset (robots.txt, a text fixture) is left alone even though it shares the extension.
 import { readdirSync, realpathSync, rmdirSync, statSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+/**
+ * The part of the site a shipped file belongs to: its first path segment, without `.html`
+ * (`bills/119/hr/1.html` and `bills.html` are both `bills`). ADR 0023 projects the deployment
+ * from bytes per bill page and per member page, so each deploy reports them.
+ */
+export function routeFamily(outDir, path) {
+  const first = relative(outDir, path).split(/[\\/]/)[0];
+  return first.endsWith('.html') ? first.slice(0, -'.html'.length) : first;
+}
 
 /** Every file under `dir`, with the directories that held them, deepest first. */
 function walk(dir, files = [], dirs = []) {
@@ -47,6 +57,8 @@ export function stripPrefetchPayloads(outDir) {
   let removedBytes = 0;
   let keptBytes = 0;
   let pages = 0;
+  /** family -> { bytes, pages } for what ships */
+  const families = {};
   for (const file of files) {
     const size = statSync(file).size;
     if (isPrefetchPayload(file, exists)) {
@@ -55,7 +67,12 @@ export function stripPrefetchPayloads(outDir) {
       removedBytes += size;
     } else {
       keptBytes += size;
-      if (file.endsWith('.html')) pages += 1;
+      const family = (families[routeFamily(outDir, file)] ??= { bytes: 0, pages: 0 });
+      family.bytes += size;
+      if (file.endsWith('.html')) {
+        pages += 1;
+        family.pages += 1;
+      }
     }
   }
   // `__next.<segment>` directories are left empty; drop them so the upload has no dead entries.
@@ -66,7 +83,20 @@ export function stripPrefetchPayloads(outDir) {
       // not empty: a directory the site still serves from
     }
   }
-  return { pages, removed, removedBytes, kept: files.length - removed, keptBytes };
+  return { pages, removed, removedBytes, kept: files.length - removed, keptBytes, families };
+}
+
+/** One line for the run summary: the five heaviest parts of the site, heaviest first. */
+export function familyLine(families) {
+  const parts = Object.entries(families)
+    .sort(([, a], [, b]) => b.bytes - a.bytes)
+    .slice(0, 5)
+    .map(([name, f]) => {
+      const each = f.pages > 0 ? `, ${Math.round(f.bytes / f.pages / 1000)} KB each` : '';
+      const count = f.pages > 0 ? ` in ${f.pages.toLocaleString('en-US')} pages${each}` : '';
+      return `${name} ${(f.bytes / 1e6).toFixed(1)} MB${count}`;
+    });
+  return `- By part of the site: ${parts.join('; ')}`;
 }
 
 const mb = (bytes) => `${(bytes / 1e6).toFixed(1)} MB`;
@@ -98,4 +128,5 @@ if (runAsCommand()) {
     `- Deploying ${result.pages.toLocaleString('en-US')} pages, ` +
       `${result.kept.toLocaleString('en-US')} files, ${mb(result.keptBytes)} unpacked`,
   );
+  console.log(familyLine(result.families));
 }

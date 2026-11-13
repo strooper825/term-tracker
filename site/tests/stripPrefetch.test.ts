@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 // @ts-expect-error - plain .mjs build script, no type declarations
-import { stripPrefetchPayloads } from '../scripts/strip-prefetch-payloads.mjs';
+import { familyLine, stripPrefetchPayloads } from '../scripts/strip-prefetch-payloads.mjs';
 
 let out: string;
 
@@ -86,6 +86,16 @@ describe('stripPrefetchPayloads', () => {
     expect(result.removedBytes).toBeGreaterThan(0);
     expect(result.keptBytes).toBeGreaterThan(0);
     expect(result.kept).toBe(6);
+  });
+
+  it('reports what ships by part of the site, so growth can be projected (ADR 0023)', () => {
+    const { families } = stripPrefetchPayloads(out);
+    // bills/119/hr/1.html; members.html and members/S001213.html count together
+    expect(families.bills).toEqual({ bytes: '<html>H.R. 1</html>'.length, pages: 1 });
+    expect(families.members.pages).toBe(2);
+    expect(families._next.pages).toBe(0);
+    expect(familyLine(families)).toMatch(/^- By part of the site: /);
+    expect(familyLine(families)).toContain('members 0.0 MB in 2 pages');
   });
 
   it('is safe to run twice, so a re-run of the build step changes nothing', () => {
