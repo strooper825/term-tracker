@@ -110,7 +110,7 @@ def test_old_single_job_workflow_is_gone() -> None:
 
 def test_ingest_workflow_shape() -> None:
     workflow, triggers, raw = _workflow("ingest.yml")
-    assert triggers["schedule"] == [{"cron": "0 6 * * *"}]
+    assert triggers["schedule"] == [{"cron": "0 6 * * *"}, {"cron": "0 18 * * *"}]
     inputs = triggers["workflow_dispatch"]["inputs"]
     assert inputs["full_refresh"]["type"] == "boolean"
     assert inputs["max_age_hours"]["default"] == 26
