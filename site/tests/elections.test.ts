@@ -5,6 +5,7 @@ import {
   changed,
   chosen,
   control,
+  flipped,
   freezeHolders,
   nextKey,
   standing,
@@ -148,6 +149,18 @@ describe('candidates and results', () => {
       SENATORS,
     );
     expect(tally(map, {}, 'final')).toEqual({ D: 48, R: 51, I: 0, U: 1 });
+  });
+
+  it('a flip is a different party from the holder; undecided and a vacant seat are not', () => {
+    const race = build({ winnerParty: 'Democratic' });
+    expect(flipped(race, {}, 'play')).toBe(false);
+    expect(flipped(race, { [race.id]: 'D' }, 'play')).toBe(true);
+    expect(flipped(race, { [race.id]: 'R' }, 'play')).toBe(false);
+    expect(flipped(race, { [race.id]: 'U' }, 'play')).toBe(false);
+    expect(flipped(race, {}, 'final')).toBe(true);
+    expect(flipped(build({}), {}, 'final')).toBe(false);
+    const vacant = build({ holder: { party: 'Vacant' } });
+    expect(flipped(vacant, { [vacant.id]: 'D' }, 'play')).toBe(false);
   });
 
   it('the file overrides the seat data, which is how a vacancy is recorded', () => {
