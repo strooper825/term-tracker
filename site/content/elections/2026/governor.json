@@ -5,347 +5,613 @@
       "id": "2026-governor-ak",
       "state": "AK",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-al",
       "state": "AL",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ar",
       "state": "AR",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-az",
       "state": "AZ",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ca",
       "state": "CA",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-co",
       "state": "CO",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ct",
       "state": "CT",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-fl",
       "state": "FL",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ga",
       "state": "GA",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-hi",
       "state": "HI",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ia",
       "state": "IA",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-id",
       "state": "ID",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-il",
       "state": "IL",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ks",
       "state": "KS",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ma",
       "state": "MA",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-md",
       "state": "MD",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-me",
       "state": "ME",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-mi",
       "state": "MI",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-mn",
       "state": "MN",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ne",
       "state": "NE",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-nh",
       "state": "NH",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-nm",
       "state": "NM",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-nv",
       "state": "NV",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ny",
       "state": "NY",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-oh",
       "state": "OH",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ok",
       "state": "OK",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-or",
       "state": "OR",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-pa",
       "state": "PA",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-ri",
       "state": "RI",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-sc",
       "state": "SC",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-sd",
       "state": "SD",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-tn",
       "state": "TN",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-tx",
       "state": "TX",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-vt",
       "state": "VT",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-wi",
       "state": "WI",
       "holder": {
-        "party": "Democratic"
+        "party": "Democratic",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Democratic",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     },
     {
       "id": "2026-governor-wy",
       "state": "WY",
       "holder": {
-        "party": "Republican"
+        "party": "Republican",
+        "caucus": "",
+        "name": "",
+        "member": ""
       },
-      "candidates": []
+      "candidates": [],
+      "winnerParty": "Republican",
+      "winnerCaucus": "",
+      "calledOn": "2026-11-03",
+      "note": ""
     }
   ],
   "others": [
     {
       "state": "DE",
-      "party": "Democratic"
+      "party": "Democratic",
+      "caucus": ""
     },
     {
       "state": "IN",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "KY",
-      "party": "Democratic"
+      "party": "Democratic",
+      "caucus": ""
     },
     {
       "state": "LA",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "MO",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "MS",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "MT",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "NC",
-      "party": "Democratic"
+      "party": "Democratic",
+      "caucus": ""
     },
     {
       "state": "ND",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "NJ",
-      "party": "Democratic"
+      "party": "Democratic",
+      "caucus": ""
     },
     {
       "state": "UT",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     },
     {
       "state": "VA",
-      "party": "Democratic"
+      "party": "Democratic",
+      "caucus": ""
     },
     {
       "state": "WA",
-      "party": "Democratic"
+      "party": "Democratic",
+      "caucus": ""
     },
     {
       "state": "WV",
-      "party": "Republican"
+      "party": "Republican",
+      "caucus": ""
     }
   ]
 }
