@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Term">
+  <!-- Inline in HTML: the T follows the CSS text color (currentColor); the brackets follow the term-accent CSS variable. -->
+  <g style="fill: var(--term-accent, #33477a)"><rect x="1" y="4" width="6" height="40"/><rect x="1" y="4" width="12" height="6"/><rect x="1" y="38" width="12" height="6"/><rect x="41" y="4" width="6" height="40"/><rect x="35" y="4" width="12" height="6"/><rect x="35" y="38" width="12" height="6"/></g>
+  <g style="fill: currentColor"><rect x="13" y="12" width="22" height="7"/><rect x="20" y="12" width="8" height="25"/></g>
+</svg>

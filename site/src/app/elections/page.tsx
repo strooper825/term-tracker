@@ -6,8 +6,8 @@ import { ELECTION_RACES } from '@/lib/sections';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Elections · Term Tracker',
-  description: 'Presidential, Senate, House and governor races: coming to Term Tracker.',
+  title: 'Elections · Term',
+  description: 'Presidential, Senate, House and governor races: coming to Term.',
 };
 
 /* Route: /elections, the section's front page; every race type is a placeholder for now (ADR 0022). */

@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { race: slug } = await params;
   const race = ELECTION_RACES.find((r) => r.slug === slug);
   return race
-    ? { title: `${race.label} elections · Term Tracker`, description: `${race.blurb} Coming soon.` }
+    ? { title: `${race.label} elections · Term`, description: `${race.blurb} Coming soon.` }
     : {};
 }
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges">
+  <title>Term</title>
+  <style>
+    .br { fill: #33477a; } .t { fill: #1a1a19; }
+    @media (prefers-color-scheme: dark) { .br { fill: #7f8db5; } .t { fill: #ffffff; } }
+  </style>
+  <!-- left bracket -->
+  <rect class="br" x="1" y="1" width="2" height="14"/>
+  <rect class="br" x="1" y="1" width="4" height="2"/>
+  <rect class="br" x="1" y="13" width="4" height="2"/>
+  <!-- right bracket -->
+  <rect class="br" x="13" y="1" width="2" height="14"/>
+  <rect class="br" x="11" y="1" width="4" height="2"/>
+  <rect class="br" x="11" y="13" width="4" height="2"/>
+  <!-- T -->
+  <rect class="t" x="5" y="4" width="6" height="2"/>
+  <rect class="t" x="7" y="4" width="2" height="8"/>
+</svg>

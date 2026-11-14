@@ -6,7 +6,7 @@ import { SiteSearch } from '@/components/SiteSearch';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Search · Term Tracker',
+  title: 'Search · Term',
   description: 'Find a member of Congress or a bill.',
 };
 

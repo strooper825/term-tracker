@@ -6,8 +6,8 @@ import { indexPageProps } from '@/lib/pages';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Members · Term Tracker',
-  description: 'Term dashboards for the members of Congress Term Tracker follows.',
+  title: 'Members · Term',
+  description: 'Dashboards for each member of Congress that Term follows.',
 };
 
 /* Route: /members, the tracked members' index (it was also the homepage until ADR 0022). */

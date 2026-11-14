@@ -5,8 +5,8 @@ import { PageShell } from '@/components/SiteFrame';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'States · Term Tracker',
-  description: 'State governments, governors and legislatures: coming to Term Tracker.',
+  title: 'States · Term',
+  description: 'State governments, governors and legislatures: coming to Term.',
 };
 
 /* Route: /states, a placeholder until the state-government section has data (ADR 0022). */

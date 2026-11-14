@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="512" height="512" role="img" aria-label="Term">
+  <circle cx="24" cy="24" r="24" fill="#33477a"/>
+  <g transform="translate(12 12) scale(0.5)">
+    <g fill="#aab4cd"><rect x="1" y="4" width="6" height="40"/><rect x="1" y="4" width="12" height="6"/><rect x="1" y="38" width="12" height="6"/><rect x="41" y="4" width="6" height="40"/><rect x="35" y="4" width="12" height="6"/><rect x="35" y="38" width="12" height="6"/></g>
+    <g fill="#ffffff"><rect x="13" y="12" width="22" height="7"/><rect x="20" y="12" width="8" height="25"/></g>
+  </g>
+</svg>

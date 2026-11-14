@@ -1,4 +1,4 @@
-# Term Tracker site
+# Term site
 
 Next.js + Tailwind, statically generated from the Phase 1d API at build time and deployed as
 prebuilt output. No runtime server, no client-side data fetching: every number on a page is a
