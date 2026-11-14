@@ -2,5 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "npm ci --no-audit --no-fund",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "redirects": [
+    { "source": "/elections", "destination": "/elections/2028/president", "permanent": false },
+    { "source": "/elections/presidential", "destination": "/elections/2028/president", "permanent": false },
+    { "source": "/elections/senate", "destination": "/elections/2028/senate", "permanent": false },
+    { "source": "/elections/governor", "destination": "/elections/2028/governor", "permanent": false }
+  ]
 }

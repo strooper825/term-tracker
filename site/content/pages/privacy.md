@@ -9,6 +9,10 @@ Term has no accounts, no sign-up, and no advertising, and it sets no cookies of 
 
 The site is served by Vercel, which keeps standard web server logs (such as the address a request came from, the page requested and the browser used) to operate and protect the service. Term does not use those logs to identify anyone.
 
+## Election maps
+
+When you change a what-if election map, your picks are saved in your own browser so they are still there when you come back. They are not sent to Term or to anyone else, and the Reset button on the map removes them.
+
 ## Links to other sites
 
 Pages link to the public records they cite and to members' official websites. Those sites have their own privacy policies.

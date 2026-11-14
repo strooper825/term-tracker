@@ -82,3 +82,151 @@ collections:
             fields:
               - { name: label, label: Name (e.g. Bluesky), widget: string }
               - { name: url, label: Address, widget: string }
+
+  # The what-if election maps (ADR 0024). One file per map, so one save publishes a whole map.
+  # A race's id, state and seat class say which seat it is and are not for editing.
+  - name: elections
+    label: Elections
+    files:
+      - name: senate-2026
+        label: 2026 Senate
+        file: site/content/elections/2026/senate.json
+        format: json
+        fields:
+          - { name: archived, label: Archived (the map opens on the final result), widget: boolean, default: false, required: false }
+          - name: races
+            label: Races
+            widget: list
+            allow_add: false
+            summary: "{{state}} {{winnerParty}}"
+            fields:
+              - { name: id, label: Race id (do not change), widget: string }
+              - { name: state, label: State, widget: string }
+              - { name: seatClass, label: Senate class (do not change), widget: number, value_type: int }
+              - { name: special, label: Special election, widget: boolean, default: false, required: false }
+              - name: holder
+                label: Held going in by (leave empty to use the sitting senator)
+                widget: object
+                required: false
+                collapsed: true
+                fields: &holder
+                  - { name: party, label: Party, widget: select, required: false, options: [Democratic, Republican, Independent, Libertarian, Green, Other, Vacant] }
+                  - { name: caucus, label: Counts toward control with, widget: select, required: false, options: [Democratic, Republican] }
+                  - { name: name, label: Name, widget: string, required: false }
+                  - { name: member, label: Member id (Bioguide) for a profile link, widget: string, required: false }
+              - name: candidates
+                label: Candidates
+                label_singular: Candidate
+                widget: list
+                required: false
+                summary: "{{name}} ({{party}})"
+                fields: &candidate
+                  - { name: name, label: Name, widget: string }
+                  - { name: party, label: Party, widget: select, options: [Democratic, Republican, Independent, Libertarian, Green, Other] }
+                  - { name: caucus, label: Counts toward control with (independents), widget: select, required: false, options: [Democratic, Republican] }
+                  - { name: member, label: Member id (Bioguide) for a profile link, widget: string, required: false }
+                  - { name: fecId, label: FEC candidate id (for later), widget: string, required: false }
+                  - { name: winner, label: Winner, widget: boolean, default: false, required: false }
+              - { name: winnerParty, label: Winner's party (only when no candidates are entered), widget: select, required: false, options: [Democratic, Republican, Independent, Other] }
+              - { name: winnerCaucus, label: Winner counts toward control with, widget: select, required: false, options: [Democratic, Republican] }
+              - { name: calledOn, label: Called on, widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD, required: false }
+              - { name: note, label: Note, widget: string, required: false }
+      - name: governor-2026
+        label: 2026 Governor
+        file: site/content/elections/2026/governor.json
+        format: json
+        fields:
+          - { name: archived, label: Archived (the map opens on the final result), widget: boolean, default: false, required: false }
+          - name: races
+            label: Races
+            widget: list
+            allow_add: false
+            summary: "{{state}} {{winnerParty}}"
+            fields:
+              - { name: id, label: Race id (do not change), widget: string }
+              - { name: state, label: State, widget: string }
+              - { name: holder, label: Held going in by, widget: object, collapsed: true, fields: *holder }
+              - { name: candidates, label: Candidates, label_singular: Candidate, widget: list, required: false, summary: "{{name}} ({{party}})", fields: *candidate }
+              - { name: winnerParty, label: Winner's party (only when no candidates are entered), widget: select, required: false, options: [Democratic, Republican, Independent, Other] }
+              - { name: winnerCaucus, label: Winner counts toward control with, widget: select, required: false, options: [Democratic, Republican] }
+              - { name: calledOn, label: Called on, widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD, required: false }
+              - { name: note, label: Note, widget: string, required: false }
+          - name: others
+            label: States with no race this cycle
+            widget: list
+            allow_add: false
+            summary: "{{state}} ({{party}})"
+            fields:
+              - { name: state, label: State, widget: string }
+              - { name: party, label: Party, widget: select, options: [Democratic, Republican, Independent, Other, Vacant] }
+              - { name: caucus, label: Counts toward control with, widget: select, required: false, options: [Democratic, Republican] }
+      - name: president-2028
+        label: 2028 President
+        file: site/content/elections/2028/president.json
+        format: json
+        fields:
+          - { name: archived, label: Archived (the map opens on the final result), widget: boolean, default: false, required: false }
+          - { name: candidates, label: Candidates (the same in every state), label_singular: Candidate, widget: list, required: false, summary: "{{name}} ({{party}})", fields: *candidate }
+          - name: races
+            label: States and districts
+            widget: list
+            allow_add: false
+            summary: "{{state}} {{district}} {{winnerParty}}"
+            fields:
+              - { name: id, label: Race id (do not change), widget: string }
+              - { name: state, label: State, widget: string }
+              - { name: district, label: District (Maine and Nebraska only), widget: number, value_type: int, required: false }
+              - { name: winnerParty, label: Winner's party, widget: select, required: false, options: [Democratic, Republican, Independent, Other] }
+              - { name: calledOn, label: Called on, widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD, required: false }
+              - { name: note, label: Note, widget: string, required: false }
+      - name: senate-2028
+        label: 2028 Senate
+        file: site/content/elections/2028/senate.json
+        format: json
+        fields:
+          - { name: archived, label: Archived (the map opens on the final result), widget: boolean, default: false, required: false }
+          - name: races
+            label: Races
+            widget: list
+            allow_add: false
+            summary: "{{state}} {{winnerParty}}"
+            fields:
+              - { name: id, label: Race id (do not change), widget: string }
+              - { name: state, label: State, widget: string }
+              - { name: seatClass, label: Senate class (do not change), widget: number, value_type: int }
+              - { name: special, label: Special election, widget: boolean, default: false, required: false }
+              - { name: holder, label: Held going in by (leave empty to use the 2026 result or the sitting senator), widget: object, required: false, collapsed: true, fields: *holder }
+              - { name: candidates, label: Candidates, label_singular: Candidate, widget: list, required: false, summary: "{{name}} ({{party}})", fields: *candidate }
+              - { name: winnerParty, label: Winner's party (only when no candidates are entered), widget: select, required: false, options: [Democratic, Republican, Independent, Other] }
+              - { name: winnerCaucus, label: Winner counts toward control with, widget: select, required: false, options: [Democratic, Republican] }
+              - { name: calledOn, label: Called on, widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD, required: false }
+              - { name: note, label: Note, widget: string, required: false }
+      - name: governor-2028
+        label: 2028 Governor
+        file: site/content/elections/2028/governor.json
+        format: json
+        fields:
+          - { name: archived, label: Archived (the map opens on the final result), widget: boolean, default: false, required: false }
+          - name: races
+            label: Races
+            widget: list
+            allow_add: false
+            summary: "{{state}} {{winnerParty}}"
+            fields:
+              - { name: id, label: Race id (do not change), widget: string }
+              - { name: state, label: State, widget: string }
+              - { name: holder, label: Held going in by (leave empty to use the 2026 map), widget: object, required: false, collapsed: true, fields: *holder }
+              - { name: candidates, label: Candidates, label_singular: Candidate, widget: list, required: false, summary: "{{name}} ({{party}})", fields: *candidate }
+              - { name: winnerParty, label: Winner's party (only when no candidates are entered), widget: select, required: false, options: [Democratic, Republican, Independent, Other] }
+              - { name: winnerCaucus, label: Winner counts toward control with, widget: select, required: false, options: [Democratic, Republican] }
+              - { name: calledOn, label: Called on, widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD, required: false }
+              - { name: note, label: Note, widget: string, required: false }
+          - name: others
+            label: States with no race, where they differ from the 2026 map (a vacancy, a succession)
+            widget: list
+            required: false
+            summary: "{{state}} ({{party}})"
+            fields:
+              - { name: state, label: State (two letters), widget: string }
+              - { name: party, label: Party, widget: select, options: [Democratic, Republican, Independent, Other, Vacant] }
+              - { name: caucus, label: Counts toward control with, widget: select, required: false, options: [Democratic, Republican] }

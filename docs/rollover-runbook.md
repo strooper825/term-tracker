@@ -70,3 +70,13 @@ so the archive should be built from the last nightly that ran before that happen
 - The old Congress's rows stay in `raw`. Remove them only after confirming the dump restores.
 - Links from elsewhere to a 119th bill on the live site no longer resolve; the same path exists
   on the archive.
+
+## The election maps (ADR 0024)
+
+Before the first nightly of the new Congress, while the seat data still describes the old one:
+
+1. Write the outgoing Senate map's holders into its file, from `site/`, with the API running
+   against the mart: `API_BASE_URL=http://127.0.0.1:8000 node scripts/freeze-election-holders.mjs 2026 senate`.
+   Commit the changed file. Without this the 2026 map would show the new senators as the ones
+   who held the seats going in.
+2. Once every race of the cycle is called, tick "Archived" on each of its maps at `/admin`.
