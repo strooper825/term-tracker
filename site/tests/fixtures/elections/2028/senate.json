@@ -1,0 +1,216 @@
+{
+  "archived": false,
+  "races": [
+    {
+      "id": "2028-senate-ak",
+      "state": "AK",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-al",
+      "state": "AL",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ar",
+      "state": "AR",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-az",
+      "state": "AZ",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ca",
+      "state": "CA",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-co",
+      "state": "CO",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ct",
+      "state": "CT",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-fl",
+      "state": "FL",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ga",
+      "state": "GA",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-hi",
+      "state": "HI",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ia",
+      "state": "IA",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-id",
+      "state": "ID",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-il",
+      "state": "IL",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-in",
+      "state": "IN",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ks",
+      "state": "KS",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ky",
+      "state": "KY",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-la",
+      "state": "LA",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-md",
+      "state": "MD",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-mo",
+      "state": "MO",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-nc",
+      "state": "NC",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-nd",
+      "state": "ND",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-nh",
+      "state": "NH",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-nv",
+      "state": "NV",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ny",
+      "state": "NY",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-oh",
+      "state": "OH",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ok",
+      "state": "OK",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-or",
+      "state": "OR",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-pa",
+      "state": "PA",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-sc",
+      "state": "SC",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-sd",
+      "state": "SD",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-tn-special",
+      "state": "TN",
+      "seatClass": 1,
+      "special": true,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-ut",
+      "state": "UT",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-vt",
+      "state": "VT",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-wa",
+      "state": "WA",
+      "seatClass": 3,
+      "candidates": []
+    },
+    {
+      "id": "2028-senate-wi",
+      "state": "WI",
+      "seatClass": 3,
+      "candidates": []
+    }
+  ]
+}

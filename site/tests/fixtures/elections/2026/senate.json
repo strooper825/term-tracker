@@ -1,0 +1,217 @@
+{
+  "archived": false,
+  "races": [
+    {
+      "id": "2026-senate-ak",
+      "state": "AK",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-al",
+      "state": "AL",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ar",
+      "state": "AR",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-co",
+      "state": "CO",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-de",
+      "state": "DE",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-fl-special",
+      "state": "FL",
+      "seatClass": 3,
+      "special": true,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ga",
+      "state": "GA",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ia",
+      "state": "IA",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-id",
+      "state": "ID",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-il",
+      "state": "IL",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ks",
+      "state": "KS",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ky",
+      "state": "KY",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-la",
+      "state": "LA",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ma",
+      "state": "MA",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-me",
+      "state": "ME",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-mi",
+      "state": "MI",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-mn",
+      "state": "MN",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ms",
+      "state": "MS",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-mt",
+      "state": "MT",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-nc",
+      "state": "NC",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ne",
+      "state": "NE",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-nh",
+      "state": "NH",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-nj",
+      "state": "NJ",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-nm",
+      "state": "NM",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-oh-special",
+      "state": "OH",
+      "seatClass": 3,
+      "special": true,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ok",
+      "state": "OK",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-or",
+      "state": "OR",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-ri",
+      "state": "RI",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-sc",
+      "state": "SC",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-sd",
+      "state": "SD",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-tn",
+      "state": "TN",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-tx",
+      "state": "TX",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-va",
+      "state": "VA",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-wv",
+      "state": "WV",
+      "seatClass": 2,
+      "candidates": []
+    },
+    {
+      "id": "2026-senate-wy",
+      "state": "WY",
+      "seatClass": 2,
+      "candidates": []
+    }
+  ]
+}

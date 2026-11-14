@@ -1,4 +1,10 @@
+import { join } from 'node:path';
 import type { SeatHolder } from '@/lib/types';
+
+/** The election files as they were first shipped: every race, no candidates, nothing called.
+ *  Tests read these and never site/content, which the owner edits: a result entered at /admin
+ *  must not be able to fail a test. */
+export const FIXTURES = join(process.cwd(), 'tests', 'fixtures');
 
 // Every senator of the 119th Congress by state, class and party, as GET /congress/seats lists
 // them. I is an independent who caucuses with the Democrats (King and Sanders).
