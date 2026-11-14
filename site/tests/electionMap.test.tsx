@@ -55,7 +55,7 @@ describe('ElectionMap', () => {
     fireEvent.click(state('Texas')); // Republican -> other
     fireEvent.click(state('Texas')); // -> undecided
     fireEvent.click(state('Texas')); // -> Democratic
-    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic');
+    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic, flipped');
     expect(count().getByText('48')).toBeInTheDocument();
     expect(count().getByText('52')).toBeInTheDocument();
     expect(count().getByText('Change: D +1, R −1')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('ElectionMap', () => {
     Object.assign(file.races!.find((r) => r.state === 'TX')!, { winnerParty: 'Democratic', calledOn: '2026-11-04' });
     await show(file);
     fireEvent.click(screen.getByRole('button', { name: 'Final result' }));
-    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic');
+    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic, flipped');
     expect(state('Arkansas')).toHaveAccessibleName('Arkansas: Not called');
     expect(screen.getByText('1 of 35 races called.')).toBeInTheDocument();
     // 34 Democrats not on the ballot plus Texas; 31 Republicans not on the ballot
@@ -112,7 +112,7 @@ describe('ElectionMap', () => {
     const texas = map.races.find((r) => r.state === 'TX')!.id;
     window.localStorage.setItem(storageKey(map), JSON.stringify({ [texas]: 'D', gone: 'R' }));
     await show(map);
-    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic');
+    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic, flipped');
     expect(count().getByText('48')).toBeInTheDocument();
 
     fireEvent.click(state('Arkansas')); // Republican -> other
@@ -158,6 +158,37 @@ describe('ElectionMap', () => {
     expect(screen.getByRole('button', { name: 'Final result' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Play it out' }));
     fireEvent.click(state('Texas'));
-    expect(state('Texas')).toHaveAccessibleName('Texas: Independent');
+    expect(state('Texas')).toHaveAccessibleName('Texas: Independent, flipped');
+  });
+
+  it('a seat that changes party is hatched and counted as flipped, on the play and final views', async () => {
+    const file = loadElectionFile(2026, 'senate', FIXTURES);
+    Object.assign(file.races!.find((r) => r.state === 'TX')!, { winnerParty: 'Democratic' });
+    Object.assign(file.races!.find((r) => r.state === 'AR')!, { winnerParty: 'Republican' });
+    await show(file);
+    expect(count().getByText(/Flipped:/)).toHaveTextContent('Flipped: 0');
+    expect(state('Maine').getAttribute('fill')).toBe('#B9302F');
+
+    fireEvent.click(state('Maine')); // Republican -> other: a flip
+    expect(state('Maine')).toHaveAccessibleName('Maine: Independent, flipped');
+    expect(state('Maine').getAttribute('fill')).toBe('url(#flip-I)');
+    fireEvent.click(state('Maine')); // -> undecided: not a flip
+    expect(state('Maine')).toHaveAccessibleName('Maine: Undecided');
+    fireEvent.click(state('Maine')); // -> Democratic
+    expect(state('Maine').getAttribute('fill')).toBe('url(#flip-D)');
+    expect(count().getByText(/Flipped:/)).toHaveTextContent('Flipped: 1');
+
+    // the full view shows whole delegations, so it marks splits and not flips
+    fireEvent.click(screen.getByRole('button', { name: 'Full Senate' }));
+    expect(state('Maine')).toHaveAccessibleName('Maine: One Democratic senator, one independent');
+    expect(count().queryByText(/Flipped:/)).toBeNull();
+
+    // the final view marks the owner's calls: Texas flipped, Arkansas held
+    fireEvent.click(screen.getByRole('button', { name: 'Final result' }));
+    expect(state('Texas')).toHaveAccessibleName('Texas: Democratic, flipped');
+    expect(state('Texas').getAttribute('fill')).toBe('url(#flip-D)');
+    expect(state('Arkansas')).toHaveAccessibleName('Arkansas: Republican');
+    expect(state('Arkansas').getAttribute('fill')).toBe('#B9302F');
+    expect(count().getByText(/Flipped:/)).toHaveTextContent('Flipped: 1');
   });
 });

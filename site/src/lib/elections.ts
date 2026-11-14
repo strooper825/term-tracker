@@ -398,6 +398,13 @@ export function chosen(race: Race, picks: Picks, view: View): Choice {
   return resolve(race, view === 'final' ? race.result : (picks[race.id] ?? race.start));
 }
 
+/** True when a race's choice in a view is a different party from the one that holds the seat.
+ *  An undecided or uncalled race, and a seat that was vacant, is not a flip. */
+export function flipped(race: Race, picks: Picks, view: View): boolean {
+  const to = chosen(race, picks, view).party;
+  return to !== 'U' && race.holder.party !== 'U' && to !== race.holder.party;
+}
+
 /** The key a click moves a race to: the next choice in the list, wrapping round. */
 export function nextKey(race: Race, current: string): string {
   let at = race.choices.findIndex((c) => c.key === current);

@@ -14,6 +14,7 @@ import {
   changed,
   chosen,
   control,
+  flipped,
   nextKey,
   standing,
   stateSeats,
@@ -56,10 +57,14 @@ function fillOf(seats: Side[] | undefined): string {
   return a === b ? SIDE_FILL[a] : `url(#stripe-${a}${b})`;
 }
 
-function chipStyle(seats: Side[]): { background: string; color: string } {
+/** The white hatching that marks a flipped seat, laid over its winner's colour. */
+const HATCH = 'repeating-linear-gradient(-45deg, rgba(255,255,255,0.75) 0 2px, transparent 2px 7px)';
+
+function chipStyle(seats: Side[], flip = false): { background: string; color: string } {
   const [a, b] = stripeOf(seats);
+  const base = a === b ? SIDE_FILL[a] : `linear-gradient(135deg, ${SIDE_FILL[a]} 50%, ${SIDE_FILL[b]} 50%)`;
   return {
-    background: a === b ? SIDE_FILL[a] : `linear-gradient(135deg, ${SIDE_FILL[a]} 50%, ${SIDE_FILL[b]} 50%)`,
+    background: flip ? `${HATCH}, ${base}` : base,
     color: a === 'U' && b === 'U' ? '#1A1A19' : '#FFFFFF',
   };
 }
@@ -131,6 +136,12 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
   const counts = tally(map, picks, view);
   const now = useMemo(() => standing(map), [map]);
   const moved = changed(map, picks);
+  /** Flips are marked where one shape is one race: not on the full view, which shows whole delegations. */
+  const flips = useMemo(
+    () => new Set(view === 'full' ? [] : map.races.filter((r) => flipped(r, picks, view)).map((r) => r.id)),
+    [map, picks, view],
+  );
+  const flipIn = (abbr: string) => flips.has(byState.get(abbr)?.id ?? '');
 
   const select = (race: Race) => setSelected(race.district === null ? race.state : race.id);
   const pick = (race: Race, key: string) => {
@@ -254,6 +265,12 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
           <span>
             Other: <strong className="text-party-i">{counts.I}</strong> · {view === 'final' ? 'Not called' : 'Undecided'}:{' '}
             <strong className="text-ink">{counts.U}</strong>
+            {view !== 'full' && (
+              <>
+                {' '}
+                · Flipped: <strong className="text-ink">{flips.size}</strong>
+              </>
+            )}
           </span>
           <span>
             Change: D {signed(counts.D - now.D)}, R {signed(counts.R - now.R)}
@@ -282,6 +299,12 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
                       <rect width="5" height="10" fill={SIDE_FILL[b]} />
                     </pattern>
                   ))}
+                  {(['D', 'R', 'I'] as const).map((s) => (
+                    <pattern key={s} id={`flip-${s}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+                      <rect width="7" height="7" fill={SIDE_FILL[s]} />
+                      <rect width="7" height="2" fill="#FFFFFF" fillOpacity="0.75" />
+                    </pattern>
+                  ))}
                 </defs>
                 {shapes.states.map((s) => {
                   const here = seats.get(s.abbr);
@@ -292,7 +315,7 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
                       d={s.d}
                       role="button"
                       tabIndex={0}
-                      aria-label={`${s.name}: ${seatWords(map, here, view)}`}
+                      aria-label={`${s.name}: ${seatWords(map, here, view)}${flipIn(s.abbr) ? ', flipped' : ''}`}
                       aria-pressed={isSelected}
                       onClick={() => press(byState.get(s.abbr), s.abbr)}
                       onKeyDown={(e) => {
@@ -301,7 +324,7 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
                           press(byState.get(s.abbr), s.abbr);
                         }
                       }}
-                      fill={fillOf(here)}
+                      fill={flipIn(s.abbr) && here ? `url(#flip-${here[0]})` : fillOf(here)}
                       stroke={isSelected ? '#1A1A19' : here ? '#FDFDFC' : '#CCD1D5'}
                       strokeWidth={isSelected ? 2.5 : 1}
                       strokeLinejoin="round"
@@ -319,9 +342,9 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
               <button
                 key={abbr}
                 type="button"
-                aria-label={`${STATE_NAMES[abbr] ?? 'District of Columbia'}: ${seatWords(map, seats.get(abbr), view)}`}
+                aria-label={`${STATE_NAMES[abbr] ?? 'District of Columbia'}: ${seatWords(map, seats.get(abbr), view)}${flipIn(abbr) ? ', flipped' : ''}`}
                 onClick={() => press(byState.get(abbr), abbr)}
-                style={chipStyle(seats.get(abbr) ?? [])}
+                style={chipStyle(seats.get(abbr) ?? [], flipIn(abbr))}
                 className={`min-w-[44px] min-h-[44px] px-2 rounded-ctl border-2 text-[13px] font-semibold cursor-pointer ${
                   abbr === selected ? 'border-ink' : 'border-transparent'
                 }`}
@@ -335,9 +358,9 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
                 <button
                   key={unit.id}
                   type="button"
-                  aria-label={`${unit.district === null ? `${unit.label}, statewide` : unit.label}: ${seatWords(map, [side], view)}`}
+                  aria-label={`${unit.district === null ? `${unit.label}, statewide` : unit.label}: ${seatWords(map, [side], view)}${flips.has(unit.id) ? ', flipped' : ''}`}
                   onClick={() => press(unit, unit.state)}
-                  style={chipStyle([side])}
+                  style={chipStyle([side], flips.has(unit.id))}
                   className={`min-w-[44px] min-h-[44px] px-2 rounded-ctl border-2 text-[13px] font-semibold cursor-pointer ${
                     (unit.district === null ? unit.state : unit.id) === selected ? 'border-ink' : 'border-transparent'
                   }`}
@@ -362,7 +385,13 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
                   Not on the ballot
                 </li>
               )}
-              {map.office === 'senate' && view !== 'play' && (
+              {view !== 'full' && (
+                <li className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="w-3 h-3 rounded-[2px]" style={{ background: `${HATCH}, #57564F` }} />
+                  Flipped
+                </li>
+              )}
+              {map.office === 'senate' && view === 'full' && (
                 <li className="inline-flex items-center gap-1.5">
                   <span aria-hidden className="w-3 h-3 rounded-[2px]" style={chipStyle(['D', 'R'])} />
                   Split
