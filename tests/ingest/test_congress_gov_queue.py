@@ -98,6 +98,85 @@ def test_run_hands_over_to_the_queue_in_incremental_mode(monkeypatch: pytest.Mon
     assert calls == [{"c": CONGRESS, "request_budget": 77, "full_refresh": True}]
 
 
+def test_a_dropped_database_connection_reconnects_and_spends_only_what_is_left(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Neon closed the connection 62 minutes into a run on 2026-11-14 and the source stopped."""
+    from psycopg import OperationalError
+
+    opened: list[object] = []
+    budgets: list[int] = []
+
+    class Conn:
+        def __enter__(self) -> Conn:
+            opened.append(self)
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+    def load(conn: object, client: CongressGovClient, congress: int, **kw: int) -> int:
+        budgets.append(kw["request_budget"])
+        client.requests_made += 30
+        if len(budgets) < 3:
+            raise OperationalError("consuming input failed: SSL connection has been closed")
+        return 9
+
+    settings = Settings(
+        _env_file=None,
+        congress_gov_api_key="k",
+        bill_ingest_mode="incremental",
+        bill_request_budget=100,
+        current_congress=CONGRESS,
+    )
+    waits: list[float] = []
+    monkeypatch.setattr(src, "get_settings", lambda: settings)
+    monkeypatch.setattr(src, "connect", Conn)
+    monkeypatch.setattr(src.time, "sleep", waits.append)
+    monkeypatch.setattr(queue, "load", load)
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
+
+    assert src.run() == 9
+    # a new connection each time, and one budget across all three attempts
+    assert len(opened) == 3
+    assert budgets == [100, 70, 40]
+    assert waits == [src.RECONNECT_WAIT_SECONDS, 2 * src.RECONNECT_WAIT_SECONDS]
+    assert "closed the connection 2 time(s)" in (tmp_path / "summary.md").read_text()
+
+
+def test_a_database_that_keeps_dropping_the_connection_fails_the_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from psycopg import OperationalError
+
+    attempts: list[int] = []
+
+    class Conn:
+        def __enter__(self) -> Conn:
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+    def load(*args: object, **kw: object) -> int:
+        attempts.append(1)
+        raise OperationalError("the connection is lost")
+
+    settings = Settings(
+        _env_file=None,
+        congress_gov_api_key="k",
+        bill_ingest_mode="incremental",
+        current_congress=CONGRESS,
+    )
+    monkeypatch.setattr(src, "get_settings", lambda: settings)
+    monkeypatch.setattr(src, "connect", Conn)
+    monkeypatch.setattr(src.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(queue, "load", load)
+    with pytest.raises(OperationalError):
+        src.run()
+    assert len(attempts) == src.MAX_RECONNECTS + 1
+
+
 # --- database tests ---------------------------------------------------------------------
 
 
