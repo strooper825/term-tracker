@@ -1,0 +1,235 @@
+{
+  "archived": false,
+  "candidates": [],
+  "races": [
+    {
+      "id": "2028-president-ak",
+      "state": "AK"
+    },
+    {
+      "id": "2028-president-al",
+      "state": "AL"
+    },
+    {
+      "id": "2028-president-ar",
+      "state": "AR"
+    },
+    {
+      "id": "2028-president-az",
+      "state": "AZ"
+    },
+    {
+      "id": "2028-president-ca",
+      "state": "CA"
+    },
+    {
+      "id": "2028-president-co",
+      "state": "CO"
+    },
+    {
+      "id": "2028-president-ct",
+      "state": "CT"
+    },
+    {
+      "id": "2028-president-dc",
+      "state": "DC"
+    },
+    {
+      "id": "2028-president-de",
+      "state": "DE"
+    },
+    {
+      "id": "2028-president-fl",
+      "state": "FL"
+    },
+    {
+      "id": "2028-president-ga",
+      "state": "GA"
+    },
+    {
+      "id": "2028-president-hi",
+      "state": "HI"
+    },
+    {
+      "id": "2028-president-ia",
+      "state": "IA"
+    },
+    {
+      "id": "2028-president-id",
+      "state": "ID"
+    },
+    {
+      "id": "2028-president-il",
+      "state": "IL"
+    },
+    {
+      "id": "2028-president-in",
+      "state": "IN"
+    },
+    {
+      "id": "2028-president-ks",
+      "state": "KS"
+    },
+    {
+      "id": "2028-president-ky",
+      "state": "KY"
+    },
+    {
+      "id": "2028-president-la",
+      "state": "LA"
+    },
+    {
+      "id": "2028-president-ma",
+      "state": "MA"
+    },
+    {
+      "id": "2028-president-md",
+      "state": "MD"
+    },
+    {
+      "id": "2028-president-me",
+      "state": "ME"
+    },
+    {
+      "id": "2028-president-me-1",
+      "state": "ME",
+      "district": 1
+    },
+    {
+      "id": "2028-president-me-2",
+      "state": "ME",
+      "district": 2
+    },
+    {
+      "id": "2028-president-mi",
+      "state": "MI"
+    },
+    {
+      "id": "2028-president-mn",
+      "state": "MN"
+    },
+    {
+      "id": "2028-president-mo",
+      "state": "MO"
+    },
+    {
+      "id": "2028-president-ms",
+      "state": "MS"
+    },
+    {
+      "id": "2028-president-mt",
+      "state": "MT"
+    },
+    {
+      "id": "2028-president-nc",
+      "state": "NC"
+    },
+    {
+      "id": "2028-president-nd",
+      "state": "ND"
+    },
+    {
+      "id": "2028-president-ne",
+      "state": "NE"
+    },
+    {
+      "id": "2028-president-ne-1",
+      "state": "NE",
+      "district": 1
+    },
+    {
+      "id": "2028-president-ne-2",
+      "state": "NE",
+      "district": 2
+    },
+    {
+      "id": "2028-president-ne-3",
+      "state": "NE",
+      "district": 3
+    },
+    {
+      "id": "2028-president-nh",
+      "state": "NH"
+    },
+    {
+      "id": "2028-president-nj",
+      "state": "NJ"
+    },
+    {
+      "id": "2028-president-nm",
+      "state": "NM"
+    },
+    {
+      "id": "2028-president-nv",
+      "state": "NV"
+    },
+    {
+      "id": "2028-president-ny",
+      "state": "NY"
+    },
+    {
+      "id": "2028-president-oh",
+      "state": "OH"
+    },
+    {
+      "id": "2028-president-ok",
+      "state": "OK"
+    },
+    {
+      "id": "2028-president-or",
+      "state": "OR"
+    },
+    {
+      "id": "2028-president-pa",
+      "state": "PA"
+    },
+    {
+      "id": "2028-president-ri",
+      "state": "RI"
+    },
+    {
+      "id": "2028-president-sc",
+      "state": "SC"
+    },
+    {
+      "id": "2028-president-sd",
+      "state": "SD"
+    },
+    {
+      "id": "2028-president-tn",
+      "state": "TN"
+    },
+    {
+      "id": "2028-president-tx",
+      "state": "TX"
+    },
+    {
+      "id": "2028-president-ut",
+      "state": "UT"
+    },
+    {
+      "id": "2028-president-va",
+      "state": "VA"
+    },
+    {
+      "id": "2028-president-vt",
+      "state": "VT"
+    },
+    {
+      "id": "2028-president-wa",
+      "state": "WA"
+    },
+    {
+      "id": "2028-president-wi",
+      "state": "WI"
+    },
+    {
+      "id": "2028-president-wv",
+      "state": "WV"
+    },
+    {
+      "id": "2028-president-wy",
+      "state": "WY"
+    }
+  ]
+}

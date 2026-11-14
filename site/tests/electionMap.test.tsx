@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ElectionMap, storageKey } from '@/components/ElectionMap';
 import { buildElectionMap, type ElectionFile, type ElectionMapData } from '@/lib/elections';
 import { loadElectionFile, loadElectionMap } from '@/lib/electionsContent';
-import { SENATORS } from './electionFixtures';
+import { FIXTURES, SENATORS } from './electionFixtures';
 
 const SHAPES = {
   w: 100,
@@ -17,7 +17,7 @@ const OFFICES = [
   { label: 'Governor', href: '/elections/2026/governor' },
 ];
 
-async function show(source: ElectionFile | ElectionMapData = loadElectionFile(2026, 'senate')) {
+async function show(source: ElectionFile | ElectionMapData = loadElectionFile(2026, 'senate', FIXTURES)) {
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(SHAPES) })));
   const map = 'office' in source ? source : buildElectionMap(2026, 'senate', source, SENATORS);
   await act(async () => {
@@ -68,7 +68,7 @@ describe('ElectionMap', () => {
   });
 
   it('the side panel picks a winner by name and links the member who has a profile', async () => {
-    const file = loadElectionFile(2026, 'senate');
+    const file = loadElectionFile(2026, 'senate', FIXTURES);
     file.races!.find((r) => r.state === 'AR')!.candidates = [
       { name: 'Tom Cotton', party: 'Republican', member: 'C001095' },
       { name: 'A Challenger', party: 'Democratic' },
@@ -95,7 +95,7 @@ describe('ElectionMap', () => {
   });
 
   it('once a race is called there is a final view that counts only what is called', async () => {
-    const file = loadElectionFile(2026, 'senate');
+    const file = loadElectionFile(2026, 'senate', FIXTURES);
     Object.assign(file.races!.find((r) => r.state === 'TX')!, { winnerParty: 'Democratic', calledOn: '2026-11-04' });
     await show(file);
     fireEvent.click(screen.getByRole('button', { name: 'Final result' }));
@@ -108,7 +108,7 @@ describe('ElectionMap', () => {
   });
 
   it('a visitor\'s map is kept in their browser and comes back on the next visit', async () => {
-    const map = buildElectionMap(2026, 'senate', loadElectionFile(2026, 'senate'), SENATORS);
+    const map = buildElectionMap(2026, 'senate', loadElectionFile(2026, 'senate', FIXTURES), SENATORS);
     const texas = map.races.find((r) => r.state === 'TX')!.id;
     window.localStorage.setItem(storageKey(map), JSON.stringify({ [texas]: 'D', gone: 'R' }));
     await show(map);
@@ -125,7 +125,7 @@ describe('ElectionMap', () => {
   });
 
   it('President: electoral votes to 270, Maine and Nebraska by district, and no full view', async () => {
-    await show(loadElectionMap({ cycle: 2028, office: 'president' }, SENATORS));
+    await show(loadElectionMap({ cycle: 2028, office: 'president' }, SENATORS, FIXTURES));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('2028 presidential election');
     expect(count().getByText('226')).toBeInTheDocument();
     expect(count().getByText('312')).toBeInTheDocument();
@@ -150,7 +150,7 @@ describe('ElectionMap', () => {
   });
 
   it('an archived map opens on the final result and still plays', async () => {
-    const file = loadElectionFile(2026, 'senate');
+    const file = loadElectionFile(2026, 'senate', FIXTURES);
     file.archived = true;
     Object.assign(file.races!.find((r) => r.state === 'TX')!, { winnerParty: 'Republican' });
     await show(file);

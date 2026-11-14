@@ -1,0 +1,61 @@
+{
+  "archived": false,
+  "races": [
+    {
+      "id": "2028-governor-de",
+      "state": "DE",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-in",
+      "state": "IN",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-mo",
+      "state": "MO",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-mt",
+      "state": "MT",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-nc",
+      "state": "NC",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-nd",
+      "state": "ND",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-nh",
+      "state": "NH",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-ut",
+      "state": "UT",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-vt",
+      "state": "VT",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-wa",
+      "state": "WA",
+      "candidates": []
+    },
+    {
+      "id": "2028-governor-wv",
+      "state": "WV",
+      "candidates": []
+    }
+  ],
+  "others": []
+}

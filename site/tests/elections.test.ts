@@ -16,17 +16,16 @@ import {
   type Picks,
 } from '@/lib/elections';
 import { listElectionMaps, loadElectionFile, loadElectionMap, mapHref } from '@/lib/electionsContent';
-import { SENATORS } from './electionFixtures';
+import { FIXTURES, SENATORS } from './electionFixtures';
 
-// The owner's real files, so a bad edit fails here before it fails the build.
-const senate = () => buildElectionMap(2026, 'senate', loadElectionFile(2026, 'senate'), SENATORS);
-const governor = () => buildElectionMap(2026, 'governor', loadElectionFile(2026, 'governor'), []);
+const senate = () => buildElectionMap(2026, 'senate', loadElectionFile(2026, 'senate', FIXTURES), SENATORS);
+const governor = () => buildElectionMap(2026, 'governor', loadElectionFile(2026, 'governor', FIXTURES), []);
 const flip = (map: ReturnType<typeof senate>, states: string[], key: string): Picks =>
   Object.fromEntries(states.map((s) => [map.races.find((r) => r.state === s)!.id, key]));
 
 describe('the election files', () => {
   it('lists a map per file, with a permanent address', () => {
-    const maps = listElectionMaps();
+    const maps = listElectionMaps(FIXTURES);
     expect(maps).toContainEqual({ cycle: 2026, office: 'senate' });
     expect(maps).toContainEqual({ cycle: 2026, office: 'governor' });
     // newest cycle first, offices in menu order
@@ -168,7 +167,7 @@ describe('candidates and results', () => {
 });
 
 describe('2028', () => {
-  const president = () => loadElectionMap({ cycle: 2028, office: 'president' }, SENATORS);
+  const president = () => loadElectionMap({ cycle: 2028, office: 'president' }, SENATORS, FIXTURES);
   const idOf = (map: ReturnType<typeof president>, seat: string) => map.races.find((r) => r.seat === seat)!.id;
 
   it('President: 538 electoral votes over 56 units, starting from 2024', () => {
@@ -202,7 +201,7 @@ describe('2028', () => {
   });
 
   it('the national candidates are offered in every state, and a state is called by party', () => {
-    const file = loadElectionFile(2028, 'president');
+    const file = loadElectionFile(2028, 'president', FIXTURES);
     file.candidates = [{ name: 'D Ticket', party: 'Democratic' }, { name: 'R Ticket', party: 'Republican' }];
     file.races!.find((r) => r.state === 'AR')!.winnerParty = 'Republican';
     const map = buildElectionMap(2028, 'president', file, []);
@@ -213,39 +212,39 @@ describe('2028', () => {
   });
 
   it('Senate and Governor with nothing called in 2026 start from today', () => {
-    const senate = loadElectionMap({ cycle: 2028, office: 'senate' }, SENATORS);
+    const senate = loadElectionMap({ cycle: 2028, office: 'senate' }, SENATORS, FIXTURES);
     // the 34 seats of Class 3 and the special election for Tennessee's Class 1 seat
     expect(senate.races).toHaveLength(35);
     expect(senate.others).toHaveLength(65);
     expect(senate.races.find((r) => r.special)).toMatchObject({ seat: 'TN-1', id: '2028-senate-tn-special' });
     expect(standing(senate)).toEqual({ D: 47, R: 53, I: 0, U: 0 });
-    const governor = loadElectionMap({ cycle: 2028, office: 'governor' }, []);
+    const governor = loadElectionMap({ cycle: 2028, office: 'governor' }, [], FIXTURES);
     expect(governor.races).toHaveLength(11);
     expect(governor.others).toHaveLength(39);
     expect(standing(governor)).toEqual({ D: 24, R: 26, I: 0, U: 0 });
   });
 
   it('a 2026 result becomes the 2028 starting map: seats not on the ballot and seats up again', () => {
-    const file26 = loadElectionFile(2026, 'senate');
+    const file26 = loadElectionFile(2026, 'senate', FIXTURES);
     const call = (state: string, extra: object) => Object.assign(file26.races!.find((r) => r.state === state)!, extra);
     call('TX', { winnerParty: 'Democratic' }); // class 2: not on the 2028 ballot
     call('FL', { candidates: [{ name: 'New Senator', party: 'Democratic', winner: true }] }); // special for a class 3 seat
     const prior = buildElectionMap(2026, 'senate', file26, SENATORS);
-    const map = buildElectionMap(2028, 'senate', loadElectionFile(2028, 'senate'), SENATORS, prior);
+    const map = buildElectionMap(2028, 'senate', loadElectionFile(2028, 'senate', FIXTURES), SENATORS, prior);
     expect(map.others.find((o) => o.seat === 'TX-2')).toMatchObject({ party: 'D', name: null });
     expect(map.races.find((r) => r.seat === 'FL-3')!.holder).toMatchObject({ party: 'D', name: 'New Senator' });
     expect(standing(map)).toEqual({ D: 49, R: 51, I: 0, U: 0 });
     // an uncalled 2026 race changes nothing: Arkansas is still its sitting senator
     expect(map.others.find((o) => o.seat === 'AR-2')).toMatchObject({ party: 'R', name: 'Tom Cotton' });
 
-    const gov26 = loadElectionFile(2026, 'governor');
+    const gov26 = loadElectionFile(2026, 'governor', FIXTURES);
     Object.assign(gov26.races!.find((r) => r.state === 'NH')!, { winnerParty: 'Democratic' });
     Object.assign(gov26.races!.find((r) => r.state === 'TX')!, { winnerParty: 'Democratic' });
-    const governor = buildElectionMap(2028, 'governor', loadElectionFile(2028, 'governor'), [], buildElectionMap(2026, 'governor', gov26, []));
+    const governor = buildElectionMap(2028, 'governor', loadElectionFile(2028, 'governor', FIXTURES), [], buildElectionMap(2026, 'governor', gov26, []));
     expect(governor.races.find((r) => r.seat === 'NH')!.holder.party).toBe('D');
     expect(standing(governor)).toEqual({ D: 26, R: 24, I: 0, U: 0 });
     // the 2028 file can still override a state with no race: a vacancy, a succession
-    const edited = buildElectionMap(2028, 'governor', { ...loadElectionFile(2028, 'governor'), others: [{ state: 'TX', party: 'Republican' }] }, [], buildElectionMap(2026, 'governor', gov26, []));
+    const edited = buildElectionMap(2028, 'governor', { ...loadElectionFile(2028, 'governor', FIXTURES), others: [{ state: 'TX', party: 'Republican' }] }, [], buildElectionMap(2026, 'governor', gov26, []));
     expect(standing(edited)).toEqual({ D: 25, R: 25, I: 0, U: 0 });
     expect(control(edited, standing(edited))).toBe('Even split');
   });
@@ -253,7 +252,7 @@ describe('2028', () => {
 
 describe('keeping a map', () => {
   it('a saved map keeps only picks the file still offers', () => {
-    const map = buildElectionMap(2026, 'senate', loadElectionFile(2026, 'senate'), SENATORS);
+    const map = buildElectionMap(2026, 'senate', loadElectionFile(2026, 'senate', FIXTURES), SENATORS);
     const [first, second] = map.races;
     expect(validPicks(map, { [first.id]: 'D', [second.id]: 'c-someone-removed', 'no-such-race': 'R', other: 3 })).toEqual({ [first.id]: 'D' });
     expect(validPicks(map, null)).toEqual({});
@@ -261,7 +260,7 @@ describe('keeping a map', () => {
   });
 
   it('freezing writes each holder into the file and leaves an entered one alone', () => {
-    const file = loadElectionFile(2026, 'senate');
+    const file = loadElectionFile(2026, 'senate', FIXTURES);
     file.races!.find((r) => r.state === 'AL')!.holder = { party: 'Vacant' };
     const frozen = freezeHolders(file, buildElectionMap(2026, 'senate', file, SENATORS));
     const holder = (state: string) => frozen.races!.find((r) => r.state === state)!.holder;
@@ -270,5 +269,23 @@ describe('keeping a map', () => {
     // with the holders in the file, the map no longer needs the seat data for its races
     const later = buildElectionMap(2026, 'senate', frozen, []);
     expect(later.races.find((r) => r.state === 'AR')!.holder).toMatchObject({ party: 'R', name: 'Tom Cotton' });
+  });
+});
+
+describe("the owner's files in site/content", () => {
+  // Whatever has been entered, each map must still build and still hold every race. Nothing
+  // here may depend on which candidates or results are in the files.
+  const RACES: Record<string, number> = { '2026/senate': 35, '2026/governor': 36, '2028/president': 56, '2028/senate': 35, '2028/governor': 11 };
+
+  it('every map builds from the live files and keeps all its races', () => {
+    const maps = listElectionMaps();
+    expect(maps.map((m) => `${m.cycle}/${m.office}`).sort()).toEqual(Object.keys(RACES).sort());
+    for (const ref of maps) {
+      const map = loadElectionMap(ref, SENATORS);
+      expect(map.races, `${ref.cycle} ${ref.office}`).toHaveLength(RACES[`${ref.cycle}/${ref.office}`]);
+      expect(new Set(map.races.map((r) => r.id)).size).toBe(map.races.length);
+      const seats = map.races.length + map.others.length;
+      expect(seats, `${ref.cycle} ${ref.office}`).toBe(ref.office === 'president' ? 56 : map.total);
+    }
   });
 });
