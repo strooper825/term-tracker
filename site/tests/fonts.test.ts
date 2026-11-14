@@ -26,7 +26,7 @@ describe('fonts', () => {
   it('every font file the layout names is in the repository', () => {
     const layout = join(SRC, 'app/layout.tsx');
     const paths = [...readFileSync(layout, 'utf-8').matchAll(/path:\s*'([^']+\.woff2)'/g)];
-    expect(paths.length).toBe(4);
+    expect(paths.length).toBe(5); // Plex 400/500/600/700, and JetBrains Mono 700 for the wordmark
     for (const [, relative] of paths) {
       expect(existsSync(resolve(dirname(layout), relative)), relative).toBe(true);
     }

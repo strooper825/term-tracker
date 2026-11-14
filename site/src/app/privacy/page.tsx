@@ -8,7 +8,7 @@ export const dynamic = 'force-static';
 const page = loadPage('privacy');
 
 export const metadata: Metadata = {
-  title: `${page.title} · Term Tracker`,
+  title: `${page.title} · Term`,
   description: page.description || undefined,
 };
 

@@ -1,4 +1,4 @@
-/** Design tokens for Term Tracker, copied from design/tailwind.config.js (Claude Design export).
+/** Design tokens for Term, copied from design/tailwind.config.js (Claude Design export).
  *  Only the content globs differ. Light theme only. Party colors are reserved for party badges
  *  and the member's own vote positions, never page chrome or a UI accent: red, blue and purple mean
  *  Republican, Democratic and Independent on a badge or on the homepage map (ADR 0022), Yea (blue)
@@ -37,6 +37,8 @@ module.exports = {
         lockRule: '#CCD1D5',
         lockInk: '#676E75',
         navy: '#33477A',
+        // the wordmark's brackets on the ink footer (5.3:1 on ink); nowhere else
+        navyOnDark: '#7F8DB5',
         party: { r: '#B9302F', d: '#1F4E9C', i: '#6B3FA0' },
         partyTint: { r: '#FBF0EF', d: '#EEF3FB' },
         event: {
@@ -47,7 +49,11 @@ module.exports = {
           speech: '#26355E', // RESERVED for Phase 3; not rendered in v1
         },
       },
-      fontFamily: { sans: ['var(--font-plex)', '"IBM Plex Sans"', 'system-ui', 'sans-serif'] },
+      fontFamily: {
+        sans: ['var(--font-plex)', '"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        // the [Term] wordmark only (src/components/Logo.tsx); bold weight is the only file loaded
+        mono: ['var(--font-mono)', '"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
       fontSize: {
         micro: ['10px', { lineHeight: '1.3' }],
         label: ['11px', { lineHeight: '1.3', letterSpacing: '0.06em' }],

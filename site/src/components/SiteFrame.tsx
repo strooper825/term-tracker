@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { ARCHIVE_BANNER, ARCHIVE_LINKS } from '@/lib/archive';
 import { loadSite } from '@/lib/content';
 import { ELECTION_LINKS } from '@/lib/sections';
+import { Logo } from './Logo';
 import { NavMenu } from './NavMenu';
 import { ArchiveNotice, newTab } from './SiteChrome';
 
@@ -17,7 +18,7 @@ export const CONGRESS_LINKS = [
 ];
 
 export const ABOUT_LINKS = [
-  { label: 'About Term Tracker', href: '/about' },
+  { label: 'About Term', href: '/about' },
   { label: 'Methodology & sources', href: '/methodology' },
 ];
 
@@ -68,12 +69,7 @@ export function SiteHeader({ active }: { active: NavKey }) {
               <span className="hidden md:inline">Support</span>
             </a>
           </div>
-          <a
-            href="/"
-            className="text-[17px] md:text-[20px] font-bold uppercase tracking-[0.14em] text-navy text-center whitespace-nowrap"
-          >
-            Term Tracker
-          </a>
+          <Logo size="header" />
           <div className="flex justify-end">
             <a
               href="/search"
@@ -117,7 +113,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
     { label: 'About', href: '/about' },
     { label: 'Methodology', href: '/methodology' },
     ...(site.contactEmail ? [{ label: 'Contact', href: `mailto:${site.contactEmail}` }] : []),
-    { label: 'Support Term Tracker', href: '/support' },
+    { label: 'Support Term', href: '/support' },
     { label: 'Privacy policy', href: '/privacy' },
   ];
   const column = (title: string, links: { label: string; href: string }[]) => (
@@ -139,7 +135,9 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
       <div className="max-w-[1180px] mx-auto px-6 pt-14 pb-6 flex flex-col gap-8">
         <div className="flex flex-wrap justify-between gap-10">
           <div className="flex-[1_1_340px] max-w-[520px] flex flex-col gap-4">
-            <span className="text-[18px] font-bold uppercase tracking-[0.14em] text-white">Term Tracker</span>
+            <div>
+              <Logo size="footer" tone="dark" />
+            </div>
             {site.mission && <p className="m-0 text-[15px] leading-relaxed">{site.mission}</p>}
             <p className="m-0 text-[15px]">
               We are <strong className="text-white">nonpartisan and independent.</strong>
@@ -167,7 +165,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
           </div>
         </div>
         <div className="border-t border-[#3A3A37] pt-4 flex flex-wrap gap-x-5 gap-y-2 text-meta text-[#A6A39C]">
-          <span>© {new Date().getFullYear()} Term Tracker</span>
+          <span>© {new Date().getFullYear()} Term</span>
           {lastUpdated && <span>Data last updated {lastUpdated}</span>}
           {ARCHIVE_LINKS.map((archive) => (
             <a key={archive.href} href={archive.href} className="hover:text-white">

@@ -6,8 +6,8 @@ import { loadArticles } from '@/lib/content';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Articles · Term Tracker',
-  description: 'Articles and analysis from Term Tracker.',
+  title: 'Articles · Term',
+  description: 'Articles and analysis from Term.',
 };
 
 /* Route: /articles, every published article in site/content/articles, newest first. */

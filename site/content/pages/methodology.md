@@ -1,9 +1,9 @@
 ---
 title: Methodology and sources
-description: Where every number on Term Tracker comes from, and how often it is refreshed.
+description: Where every number on Term comes from, and how often it is refreshed.
 ---
 
-Every number on Term Tracker is read from a public record and links back to it. The site is rebuilt every night from those records; nothing is entered by hand except the few items noted below.
+Every number on Term is read from a public record and links back to it. The site is rebuilt every night from those records; nothing is entered by hand except the few items noted below.
 
 ## Sources
 

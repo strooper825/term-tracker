@@ -17,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ bioguide: string }>;
 }): Promise<Metadata> {
   const { bioguide } = await params;
-  return { title: `${await memberTitle(bioguide)} · Term Tracker` };
+  return { title: `${await memberTitle(bioguide)} · Term` };
 }
 
 export default async function MemberPage({ params }: { params: Promise<{ bioguide: string }> }) {

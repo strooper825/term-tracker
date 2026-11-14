@@ -6,8 +6,8 @@ import { loadSite } from '@/lib/content';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Support · Term Tracker',
-  description: 'Help keep Term Tracker independent and free to read.',
+  title: 'Support · Term',
+  description: 'Help keep Term independent and free to read.',
 };
 
 /* Route: /support, the header's Support button. The Ko-fi address is site/content/site.json
@@ -16,9 +16,9 @@ export default function SupportPage() {
   const { kofiUrl } = loadSite();
   return (
     <PageShell active="About">
-      <ReadingPage title="Support Term Tracker">
+      <ReadingPage title="Support Term">
         <p className="m-0 text-[16px] leading-relaxed text-ink">
-          Term Tracker is independent, has no advertising, and is free to read. If you find it
+          Term is independent, has no advertising, and is free to read. If you find it
           useful, a tip helps pay for hosting and for the time it takes to keep the records current.
         </p>
         {kofiUrl ? (

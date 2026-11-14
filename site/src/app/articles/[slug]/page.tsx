@@ -20,8 +20,8 @@ type Params = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const article = loadArticles().find((a) => a.slug === slug);
-  if (!article) return { title: 'Articles · Term Tracker' };
-  return { title: `${article.title} · Term Tracker`, description: article.summary || undefined };
+  if (!article) return { title: 'Articles · Term' };
+  return { title: `${article.title} · Term`, description: article.summary || undefined };
 }
 
 export default async function ArticlePage({ params }: { params: Params }) {

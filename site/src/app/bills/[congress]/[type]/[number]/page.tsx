@@ -16,10 +16,10 @@ type Params = Promise<{ congress: string; type: string; number: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { congress, type, number } = await params;
-  if (isNoBillsRoute(type)) return { title: 'No bills yet · Term Tracker' };
+  if (isNoBillsRoute(type)) return { title: 'No bills yet · Term' };
   const props = await billPageProps(Number(congress), type, number);
   return {
-    title: `${props.bill.label} · Term Tracker`,
+    title: `${props.bill.label} · Term`,
     description: `${props.bill.label}: ${props.bill.title}`,
   };
 }

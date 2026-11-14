@@ -123,6 +123,14 @@ describe('the site header and footer', () => {
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/congress');
   });
 
+  it('the wordmark reads [Term], links home, and is announced as "Term — home"', () => {
+    render(<SiteHeader active="Home" />);
+    const logo = screen.getByRole('link', { name: 'Term — home' });
+    expect(logo).toHaveAttribute('href', '/');
+    expect(logo).toHaveTextContent(/^\[Term\]$/);
+    expect(screen.queryByText(/Tracker/)).toBeNull();
+  });
+
   it('Elections opens the four race types, each marked Soon, and States is its own tab', () => {
     render(<SiteHeader active="States" />);
     expect(screen.getByRole('link', { name: /^States/ })).toHaveAttribute('href', '/states');
@@ -148,7 +156,7 @@ describe('the site header and footer', () => {
     );
     const footer = screen.getByRole('contentinfo');
     expect(within(footer).getByText(/nonpartisan and independent/)).toBeInTheDocument();
-    for (const name of ['About', 'Methodology', 'Support Term Tracker', 'Privacy policy']) {
+    for (const name of ['About', 'Methodology', 'Support Term', 'Privacy policy']) {
       expect(within(footer).getByRole('link', { name })).toBeInTheDocument();
     }
     expect(within(footer).queryByRole('link', { name: /github/i })).toBeNull();
