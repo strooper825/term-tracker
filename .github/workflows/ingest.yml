@@ -19,6 +19,10 @@ name: Nightly ingest
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC nightly (plan section 3)
+    # 18:00 UTC, a second run a day since 2026-11-14: each incremental run reads one request
+    # budget of queued bills (ADR 0023), so two runs drain a backlog twice as fast. The
+    # concurrency group below makes a run wait for the one before it.
+    - cron: "0 18 * * *"
   workflow_dispatch:
     inputs:
       full_refresh:
