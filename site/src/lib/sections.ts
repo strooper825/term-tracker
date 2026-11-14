@@ -1,38 +1,25 @@
-/** The sections that are announced but not built yet (ADR 0022). Each has a placeholder page so
- *  the header can link to it today and the real page can replace it at the same address. */
+/** The Elections menu (ADR 0024): the what-if maps that exist, and the races that are announced
+ *  but not built. A "soon" race has a placeholder page so the header can link to it today. */
 
-export interface ElectionRace {
+/** The cycle the header menu and /elections open on. */
+export const DEFAULT_CYCLE = 2028;
+
+export interface SoonRace {
   slug: string;
   label: string;
-  /** One line on what the page will cover. */
+  /** The page's heading. */
+  title: string;
+  /** One line on what the page will be. */
   blurb: string;
 }
 
-export const ELECTION_RACES: ElectionRace[] = [
-  {
-    slug: 'presidential',
-    label: 'Presidential',
-    blurb: 'The race for the White House: primaries, candidates, fundraising and results by state.',
-  },
-  {
-    slug: 'senate',
-    label: 'Senate',
-    blurb: 'Every Senate seat on the ballot, with the incumbent, the challengers and the money.',
-  },
-  {
-    slug: 'house',
-    label: 'House',
-    blurb: 'All 435 House races, district by district, from the primary to the result.',
-  },
-  {
-    slug: 'governor',
-    label: 'Governor',
-    blurb: 'Governor races in every state that holds one, with candidates and results.',
-  },
+export const SOON_RACES: SoonRace[] = [
+  { slug: 'house', label: 'House', title: 'House elections', blurb: 'All 435 House races, district by district.' },
 ];
 
-export const ELECTION_LINKS = ELECTION_RACES.map((r) => ({
-  label: r.label,
-  href: `/elections/${r.slug}`,
-  soon: true,
-}));
+export const ELECTION_LINKS = [
+  { label: 'President', href: `/elections/${DEFAULT_CYCLE}/president` },
+  { label: 'Senate', href: `/elections/${DEFAULT_CYCLE}/senate` },
+  { label: 'Governor', href: `/elections/${DEFAULT_CYCLE}/governor` },
+  ...SOON_RACES.map((r) => ({ label: r.label, href: `/elections/${r.slug}`, soon: true })),
+];

@@ -131,20 +131,20 @@ describe('the site header and footer', () => {
     expect(screen.queryByText(/Tracker/)).toBeNull();
   });
 
-  it('Elections opens the four race types, each marked Soon, and States is its own tab', () => {
+  it('Elections opens the maps that exist and marks the rest Soon, and States is its own tab', () => {
     render(<SiteHeader active="States" />);
     expect(screen.getByRole('link', { name: /^States/ })).toHaveAttribute('href', '/states');
     expect(screen.getByRole('link', { name: /^States/ })).toHaveAttribute('aria-current', 'page');
     fireEvent.click(screen.getByRole('button', { name: 'Elections' }));
-    for (const [label, slug] of [
-      ['Presidential', 'presidential'],
-      ['Senate', 'senate'],
-      ['House', 'house'],
-      ['Governor', 'governor'],
-    ]) {
+    for (const [label, href, soon] of [
+      ['President', '/elections/2028/president', false],
+      ['Senate', '/elections/2028/senate', false],
+      ['Governor', '/elections/2028/governor', false],
+      ['House', '/elections/house', true],
+    ] as const) {
       const link = screen.getByRole('link', { name: new RegExp(`^${label}`) });
-      expect(link).toHaveAttribute('href', `/elections/${slug}`);
-      expect(link).toHaveTextContent('Soon');
+      expect(link).toHaveAttribute('href', href);
+      expect(link.textContent?.includes('Soon')).toBe(soon);
     }
   });
 

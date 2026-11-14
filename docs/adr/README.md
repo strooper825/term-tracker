@@ -27,6 +27,7 @@ also recorded here once made.
 - [0021. The site describes one Congress; a finished Congress becomes a frozen archive](0021-one-congress-at-a-time-and-a-frozen-archive.md)
 - [0022. A homepage for several sections, a map of every seat, and words the owner edits](0022-homepage-sections-and-owner-content.md)
 - [0023. Groundwork for all 535 members: ingest the whole Congress incrementally, set limits first, stop hand-maintaining per-member data](0023-groundwork-for-all-535-members.md)
+- [0024. Elections is a set of what-if maps the owner feeds by hand](0024-elections-what-if-maps.md)
 
 ## Format
 

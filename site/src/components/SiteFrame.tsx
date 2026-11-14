@@ -105,7 +105,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   const sections = [
     { label: 'Congress overview', href: '/congress' },
     { label: 'Members', href: '/members' },
-    { label: 'Elections (soon)', href: '/elections' },
+    { label: 'Elections', href: ELECTION_LINKS[0].href },
     { label: 'States (soon)', href: '/states' },
     { label: 'Articles', href: '/articles' },
   ];
