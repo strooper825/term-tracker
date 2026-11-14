@@ -36,13 +36,14 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from psycopg import Connection
+from psycopg import Connection, OperationalError
 from psycopg.types.json import Jsonb
 
 from api.config import get_settings
@@ -478,6 +479,61 @@ def tracked_member_ids(conn: Connection) -> list[str]:
         return [row[0] for row in cur.fetchall()]
 
 
+MAX_RECONNECTS = 5
+RECONNECT_WAIT_SECONDS = 10
+
+
+def run_incremental(client: CongressGovClient, settings: Any, *, full_refresh: bool) -> int:
+    """The incremental load, started again on a new connection when the database drops one.
+
+    A long run holds its connection for hours, and a managed Postgres can close it: Neon ended
+    one mid-write on 2026-11-14 ("SSL connection has been closed unexpectedly") and the source
+    stopped with two thirds of its budget unspent. Every record is its own transaction and the
+    queue and watermark are in the database, so starting again loses at most the record that
+    was being written: the listing costs two requests and the queue resumes where it stopped.
+    The request budget is for the whole run, not for each attempt.
+    """
+    # imported here: that module builds on this one
+    from ingest.sources import congress_gov_queue
+
+    spent_before = client.requests_made
+    reconnects = 0
+    while True:
+        budget = settings.bill_request_budget - (client.requests_made - spent_before)
+        try:
+            with connect() as conn:
+                rows = congress_gov_queue.load(
+                    conn,
+                    client,
+                    settings.current_congress,
+                    request_budget=max(budget, 0),
+                    full_refresh=full_refresh,
+                )
+            break
+        except OperationalError as exc:
+            reconnects += 1
+            if reconnects > MAX_RECONNECTS:
+                raise
+            log.warning(
+                "the database closed the connection (%s); reconnecting, attempt %d of %d",
+                str(exc).strip() or type(exc).__name__,
+                reconnects,
+                MAX_RECONNECTS,
+            )
+            time.sleep(RECONNECT_WAIT_SECONDS * reconnects)
+    if reconnects:
+        line = (
+            f"The database closed the connection {reconnects} time(s) and the load reconnected; "
+            "the counts above are since the last reconnect."
+        )
+        print(f"::warning::{line}")
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with Path(summary).open("a", encoding="utf-8") as fh:
+                fh.write(f"- {line}\n\n")
+    return rows
+
+
 def run(*, full_refresh: bool = False) -> int:
     settings = get_settings()
     if not settings.congress_gov_api_key:
@@ -487,18 +543,9 @@ def run(*, full_refresh: bool = False) -> int:
         limiter=RateLimiter(settings.congress_gov_requests_per_hour),
     )
     try:
+        if settings.bill_ingest_mode == "incremental":
+            return run_incremental(client, settings, full_refresh=full_refresh)
         with connect() as conn:
-            if settings.bill_ingest_mode == "incremental":
-                # imported here: that module builds on this one
-                from ingest.sources import congress_gov_queue
-
-                return congress_gov_queue.load(
-                    conn,
-                    client,
-                    settings.current_congress,
-                    request_budget=settings.bill_request_budget,
-                    full_refresh=full_refresh,
-                )
             return load(
                 conn,
                 client,
