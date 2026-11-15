@@ -113,14 +113,15 @@ describe('the homepage map', () => {
 });
 
 describe('the site header and footer', () => {
-  it('marks the current section and offers Support and search', () => {
+  it('marks the current section and offers Support, with bills under Congress and no search icon', () => {
     render(<SiteHeader active="Articles" />);
     expect(screen.getByRole('link', { name: 'Articles' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Support' })).toHaveAttribute('href', '/support');
-    expect(screen.getByRole('link', { name: 'Search members and bills' })).toHaveAttribute('href', '/search');
+    expect(screen.queryByRole('link', { name: /Search/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Congress' }));
     expect(screen.getByRole('link', { name: 'Members' })).toHaveAttribute('href', '/members');
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/congress');
+    expect(screen.getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/bills');
   });
 
   it('the wordmark reads [Term], links home, and is announced as "Term — home"', () => {

@@ -51,6 +51,41 @@ class BillListItem(BillKey):
     congress_gov_url: str
 
 
+class BillIndexItem(BillKey):
+    """One row of the browse page: every bill of the Congress, with or without a page here."""
+
+    title: str
+    policy_area: str | None
+    origin_chamber: str = Field(description="House or Senate")
+    introduced_date: dt.date | None
+    latest_action_date: dt.date | None
+    latest_action_text: str | None
+    sponsor_name: str | None
+    sponsor_party: str | None
+    sponsor_state: str | None
+    cosponsor_count: int
+    cosponsors_democratic: int
+    cosponsors_republican: int
+    stage: int = Field(
+        description="1 introduced, 2 reported by a committee, 3 passed one chamber, "
+        "4 passed both or presented to the President, 5 became law"
+    )
+    has_floor_vote: bool = Field(description="A recorded roll call on it in either chamber")
+    is_minor: bool = Field(
+        description="An amendment, a simple or concurrent resolution, or a post office naming"
+    )
+    has_page: bool = Field(description="Whether /bills/{congress}/{type}/{number} exists")
+    congress_gov_url: str
+
+
+class BillIndexResponse(BaseModel):
+    items: list[BillIndexItem]
+    total: int
+    limit: int
+    offset: int
+    sources: list[SourceRef]
+
+
 class BillListResponse(BaseModel):
     items: list[BillListItem]
     total: int = Field(description="Bills in the mart, ignoring limit and offset")
