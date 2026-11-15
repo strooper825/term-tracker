@@ -84,8 +84,10 @@ models:
 
   - name: statement_source
     description: >
-      One row per tracked member: `feed` (releases ingested from the office's own feed) or `link`
-      (the tab links to the press page). Counts and dates are zero/null for a link member.
+      One row per tracked member with somewhere to link: `feed` (releases ingested from the
+      office's own feed) or `link` (the tab links out). A member with no row in
+      seed.statement_sources is `link` to the press page the probe found, else to the official
+      website (link_kind). Counts and dates are zero/null for a link member.
     columns:
       - name: bioguide_id
         tests:
@@ -96,7 +98,13 @@ models:
         tests:
           - not_null
           - accepted_values: { arguments: { values: ["feed", "link"] } }
+      - name: link_kind
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["press_page", "official_website"] } }
       - name: press_url
+        tests: [not_null]
+      - name: label
         tests: [not_null]
       - name: statements
         tests: [not_null]

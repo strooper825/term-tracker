@@ -132,3 +132,42 @@ unit_tests:
         - {bill_type: hres, bill_number: "7", stage: 1, has_floor_vote: false, is_minor: true, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
         - {bill_type: samdt, bill_number: "8", stage: 1, has_floor_vote: false, is_minor: true, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
 
+
+  # ADR 0023: a tracked member nobody checked links out by default. The fixture and live
+  # databases have a hand-checked row for every tracked member, so the default is built here.
+  - name: statement_source_defaults_to_a_link
+    model: statement_source
+    given:
+      - input: ref('member')
+        rows:
+          - {bioguide_id: CHECKED01}
+          - {bioguide_id: PROBED001}
+          - {bioguide_id: REFUSED01}
+          - {bioguide_id: NOPRESS01}
+          - {bioguide_id: NOSITE001}
+      - input: ref('statement_sources')
+        rows:
+          - {bioguide_id: CHECKED01, mode: link, label: checked.house.gov, press_url: "https://checked.house.gov/media/press-releases", feed_url: null}
+      - input: ref('member_contact')
+        rows:
+          - {bioguide_id: CHECKED01, website_url: "https://checked.house.gov", fetched_at: "2026-11-01 06:00:00+00"}
+          - {bioguide_id: PROBED001, website_url: "https://www.probed.senate.gov", fetched_at: "2026-11-01 06:00:00+00"}
+          - {bioguide_id: REFUSED01, website_url: "https://www.refused.senate.gov", fetched_at: "2026-11-01 06:00:00+00"}
+          - {bioguide_id: NOPRESS01, website_url: "https://nopress.house.gov/", fetched_at: "2026-11-01 06:00:00+00"}
+          - {bioguide_id: NOSITE001, website_url: null, fetched_at: "2026-11-01 06:00:00+00"}
+      - input: ref('stg_press_pages')
+        rows:
+          - {bioguide_id: PROBED001, outcome: found, press_url: "https://www.probed.senate.gov/newsroom/press-releases", fetched_at: "2026-11-10 06:00:00+00"}
+          - {bioguide_id: REFUSED01, outcome: unreachable, press_url: null, fetched_at: "2026-11-10 06:00:00+00"}
+          - {bioguide_id: NOPRESS01, outcome: not_found, press_url: null, fetched_at: "2026-11-10 06:00:00+00"}
+      - input: ref('statement')
+        format: sql
+        rows: |
+          select null::text as bioguide_id, null::timestamptz as published_at, null::timestamptz as fetched_at
+          where false
+    expect:
+      rows:
+        - {bioguide_id: CHECKED01, mode: link, link_kind: press_page, label: checked.house.gov, press_url: "https://checked.house.gov/media/press-releases", source: press_page}
+        - {bioguide_id: PROBED001, mode: link, link_kind: press_page, label: probed.senate.gov, press_url: "https://www.probed.senate.gov/newsroom/press-releases", source: press_page}
+        - {bioguide_id: REFUSED01, mode: link, link_kind: official_website, label: refused.senate.gov, press_url: "https://www.refused.senate.gov", source: official_website}
+        - {bioguide_id: NOPRESS01, mode: link, link_kind: official_website, label: nopress.house.gov, press_url: "https://nopress.house.gov/", source: official_website}

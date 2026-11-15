@@ -1,7 +1,9 @@
 # 0015. Public statements: official press feeds from a hand-verified seed, link-out for everyone else
 
 Date: 2026-09-19
-Status: Accepted
+Status: Accepted. Amended by ADR 0023 (2026-11-13): a tracked member with no seed row no longer
+keeps the "Soon" tab; the tab links to the office's press page as found by a monthly probe, else
+to its official website. The seed remains the only way a member gets a feed.
 
 ## Context
 

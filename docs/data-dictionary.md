@@ -142,19 +142,22 @@ Reported, `53` Passed House, `55` Passed Senate, `49` Public Law), `actionDate`,
 404, and that empty array is stored, which is what keeps the nightly from re-asking. The
 endpoint does not exist for amendments (it answers 404), so amendments never have a row here.
 
-## Raw tables: OpenFEC (Alembic migration `0005`)
+## Raw tables: OpenFEC (Alembic migrations `0005`, `0010`)
 
 Loaded by `python -m ingest.run --source fec` for every member in `seed.tracked_members`,
 current cycle only (`fec_cycle`, derived from `CURRENT_CONGRESS`: 119 -> 2026). All rows share
-`payload jsonb`, `source_url text`, `fetched_at timestamptz`. Every record is re-fetched each
-run (about four requests per member; `--full-refresh` changes nothing for this source). See
+`payload jsonb`, `source_url text`, `fetched_at timestamptz`. Records are asked for many ids
+at a time (`/candidates/`, `/committees/`, `/totals/house-senate/`; ADR 0023): about three
+requests a run for twenty members. Totals are read every run. Candidates and committees are
+read again when the stored ones are a week old, when a tracked member has none, or with
+`--full-refresh`. `source_url` is the per-record address, which returns the same record. See
 ADR 0006 for what is and is not loaded.
 
 | Table | Key | One row per |
 |---|---|---|
-| `raw.fec_candidate` | `candidate_id` | `/candidate/{id}/` record for every id in the member's congress-legislators `id.fec` list, old offices included; `bioguide_id` links it back |
-| `raw.fec_committee` | `committee_id`, `cycle` | item of `/candidate/{id}/committees/?cycle=` for the member's current-office candidate: every committee linked to the candidate in the cycle (`candidate_id` column), whatever its designation |
-| `raw.fec_committee_totals` | `committee_id`, `cycle` | `/committee/{id}/totals/?cycle=` record of the principal campaign committee |
+| `raw.fec_candidate` | `candidate_id` | candidate record for every id in the member's congress-legislators `id.fec` list, old offices included; `bioguide_id` links it back |
+| `raw.fec_committee` | `committee_id`, `cycle`, `candidate_id` | every committee linked in the cycle to a member's current-office candidate, whatever its designation. A committee that names two tracked candidates (joint fundraising) has a row for each. A link the FEC no longer reports is deleted at the next weekly read |
+| `raw.fec_committee_totals` | `committee_id`, `cycle` | totals record of the principal campaign committee (the same record `/committee/{id}/totals/?cycle=` returns) |
 
 Source shapes (verified 2026-09-13): the totals endpoint has no `cash_on_hand_end_period`;
 cash on hand and debts are `last_cash_on_hand_end_period` and `last_debts_owed_by_committee`.
@@ -163,6 +166,26 @@ House and Senate committees both report transfers as
 equal the committee totals for all six tracked members (no second authorized committee).
 The key reports a 60-requests-per-minute limit in `X-RateLimit-Limit` on top of the
 documented 1,000 per hour; the client throttles on both.
+
+## Raw table: press pages (Alembic migration `0011`)
+
+Loaded by `python -m ingest.run --source press_pages` for every tracked member with no row in
+`seed.statement_sources` and a website in `raw.legislator` (ADR 0023). The probe asks the
+office's own site for a short list of known paths, robots.txt honoured, one request a second,
+and stores the first that answers with a press listing. Nothing is copied from the site.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.press_page` | `bioguide_id` | latest probe of the member's official website (`source_url`) |
+
+`payload.outcome` is `found` (`payload.press_url` answered with a press listing), `not_found`,
+`disallowed` (robots.txt forbids every path) or `unreachable` (the site refused or did not
+answer; `press_url` is then the one found before, if any). A settled outcome is asked again
+after 30 days; `unreachable` and a member with no row on the next run. Tried on 70 office sites
+from a home connection on 2026-11-15, the rule found a page on 66, found none on 3 and was
+disallowed by 1 (McConnell). Of the twenty sites a person had checked it found the same page on
+14 and another news or press page of the same office on 4. Two of the 66 are a general media
+page that mentions press releases, not a listing of them.
 
 ## Raw tables: press-release feeds (Alembic migration `0007`)
 
@@ -229,7 +252,7 @@ every state and district. The Data API needs `CENSUS_API_KEY`.
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
 | `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
 | `seed.election_dates` | `cycle`, `state`, `office`, `districts`, `event`, `date` | The states' congressional election calendars (ADR 0023). `office` is blank when the date is the same for the House and the Senate, else `house` or `senate`; `districts` (space-separated) only when a House date applies to some districts; `event` is `filing_deadline`, `primary`, `primary_runoff` or `general_runoff`; `qualifier` is a short tag for the label (noon, incumbents, if needed); `basis` is `official`, `statutory` or `projected`; `rule` is the statute or the reason where a person wrote one down; `checked_on`. Holds 2026 for all 50 states (119 rows), from the FEC's "2026 Congressional Primary Dates and Candidate Filing Deadlines for Ballot Access" (data as of 2026-05-18); its primary and runoff dates agree with NCSL's table of 2026-05-27. Arkansas's filing deadline (2025-11-12) is the state's; the FEC lists November 11. Changes after May 2026 were not checked. |
-| `seed.statement_sources` | `bioguide_id` | How the Public statements tab treats each tracked member (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
+| `seed.statement_sources` | `bioguide_id` | The members whose statements source a person checked; a tracked member with no row links out by default (ADR 0023). How the Public statements tab treats each of them (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
 | `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
 ## Staging views (`staging` schema, dbt)
@@ -429,13 +452,18 @@ value and is not used for statements: it was stale or wrong for most tracked mem
 
 ### `mart.statement_source`
 
-One row per tracked member: how the Public statements tab treats them (ADR 0015). Key
-`bioguide_id`. Columns `mode` (`feed` or `link`), `label`, `press_url`, `feed_url` (null for
+One row per tracked member with somewhere to send a reader: how the Public statements tab
+treats them (ADR 0015, ADR 0023). A member in `seed.statement_sources` is as the seed says. Any
+other tracked member is `link`: to the press page the probe found (`raw.press_page`), else to
+the official website; a member with neither has no row. Key `bioguide_id`. Columns `mode`
+(`feed` or `link`), `link_kind` (`press_page`, or `official_website` when `press_url` is only
+the office's home page), `label` (the host), `press_url`, `feed_url` (null for
 `link`), `statements` (rows in `mart.statement`, 0 for `link`), `oldest_published_at`,
 `newest_published_at`, `fetched_at` (latest fetch of the feed; for a `link` member the dbt var
-`statement_sources_checked_at`, the day a person checked the press URL), `source` (`press_feed` or
-`press_page`) and `source_url` (the press listing a reader can open to check the tab against).
-`GET /members/{id}/statements` returns `mode` `feed`, `link`, or `none` (not in the seed), the
+`statement_sources_checked_at`, the day a person checked the press URL, or the day of the
+probe), `source` (`press_feed`, `press_page` or `official_website`) and `source_url` (the page a
+reader can open to check the tab against).
+`GET /members/{id}/statements` returns `mode` `feed`, `link`, or `none` (nowhere to link), the
 statements newest first when `feed`, and `total`. A feed member with nothing loaded yet is shown as
 a link by the site. The warning test `assert_statement_feeds_fresh` names any `feed` member whose
 newest statement is over 45 days old or that has none, which is how a feed that has gone stale or

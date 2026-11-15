@@ -629,6 +629,8 @@ export interface StatementsModel {
   /** The host the statements come from, e.g. sanders.senate.gov. */
   label: string;
   pressUrl: string;
+  /** False when pressUrl is only the office's home page: no press listing was found on it. */
+  isPressPage: boolean;
   statements: StatementRow[];
   /** Newest first. Every release the office's feed gave since the tracked Congress began. */
   total: number;
@@ -636,14 +638,15 @@ export interface StatementsModel {
   sourceUrl: string | null;
 }
 
-/** The Public statements tab from mart.statement_source and mart.statement, or null when the
- *  member is not in the seed (the tab is then not yet published). A feed member with nothing
+/** The Public statements tab from mart.statement_source and mart.statement, or null when there
+ *  is nowhere to send a reader (the tab is then not yet published). A feed member with nothing
  *  loaded yet falls back to the link, so the tab is never empty. */
 export function buildStatements(r: StatementsResponse): StatementsModel | null {
   if (r.mode === 'none' || !r.press_url || !r.label) return null;
   const base = {
     label: r.label,
     pressUrl: r.press_url,
+    isPressPage: r.link_kind !== 'official_website',
     sourceUrl: r.sources[0]?.source_url ?? null,
   };
   if (r.mode === 'link' || r.items.length === 0) {

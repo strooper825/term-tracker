@@ -15,7 +15,15 @@ Step 2 is built and switched off: the incremental loader, its queue and watermar
 mart's explicit scope rule are in, and the nightly keeps using the `full` loader until the
 repository variable `BILL_INGEST_MODE` is set to `incremental`. Set it after five nightlies whose
 "Bill change filter" section reports every changed record. Not built yet: the nightly member-list
-spot check. Steps 3 to 7 are not started.
+spot check. Step 3 is done: the 119th is loaded and the queue is empty (2026-11-15). Step 4's
+loader is built: FEC is read in batches and identity records weekly; the panel's "last checked"
+and "next report due" dates and the per-source freshness thresholds are not. Step 5 is built:
+a tracked member with no row in `seed.statement_sources` links out, to the press page a monthly
+probe finds on the office's site, else to the official website. The probe runs inside the
+nightly and does its own monthly timing, so no source needed its own freshness threshold and
+none was added. Step 6 is built for 2026:
+`seed.election_dates` holds every state's filing deadline, primary and runoff; 2028 is added at
+the rollover. Step 7 is not started.
 
 ## Order of work
 

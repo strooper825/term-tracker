@@ -109,7 +109,8 @@ seeds:
 
   - name: statement_sources
     description: >
-      How the Public statements tab treats each tracked member (ADR 0015). mode `feed`: the
+      The members whose statements source a person checked (ADR 0015); a tracked member with no
+      row links out by default (ADR 0023, mart.statement_source). mode `feed`: the
       office's own press-release RSS feed (feed_url) is ingested and the releases shown; mode
       `link`: the tab links to press_url. A member is `feed` only after a person checked that the
       feed is press-scoped, carries full text, and matches the listing's newest item. press_url

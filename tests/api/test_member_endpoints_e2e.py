@@ -276,6 +276,7 @@ def test_statements(built_mart: None, client: TestClient) -> None:
     steil = client.get(f"{STEIL}/statements").json()
     assert steil["mode"] == "link" and steil["items"] == [] and steil["total"] == 0
     assert steil["press_url"] == "https://steil.house.gov/media/press-releases"
+    assert steil["link_kind"] == "press_page"
     assert steil["sources"][0]["source"] == "press_page"
 
 

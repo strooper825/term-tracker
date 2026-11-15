@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -79,24 +80,45 @@ def test_fixture_names() -> None:
     )
 
 
-def test_candidate_committees_totals_from_fixtures() -> None:
+def test_a_list_of_ids_is_one_repeated_parameter() -> None:
+    url = FecClient.url("candidates", candidate_id=["H8WI01156", "S4AR00103"], per_page=100)
+    ids = "candidate_id=H8WI01156&candidate_id=S4AR00103"
+    assert url == f"{BASE_URL}/candidates/?{ids}&per_page=100"
+
+
+def test_candidates_committees_totals_from_fixtures() -> None:
     client = fixture_client()
+    candidates = src.fetch_candidates(client, [c for c, _ in PRINCIPAL.values()])
+    committees = src.fetch_committees(client, sorted(candidates), CYCLE)
+    totals = src.fetch_totals(client, [k for _, k in PRINCIPAL.values()], CYCLE)
+    assert client.requests_made == 3
     for bioguide, (candidate_id, committee_id) in PRINCIPAL.items():
-        candidate = src.fetch_candidate(client, candidate_id)
-        assert candidate is not None and candidate["office"] == candidate_id[0], bioguide
-        committees = src.fetch_candidate_committees(client, candidate_id, CYCLE)
-        principal = src.select_principal_committee(committees)
+        assert candidates[candidate_id]["office"] == candidate_id[0], bioguide
+        linked = [c for c in committees if candidate_id in c["candidate_ids"]]
+        principal = src.select_principal_committee(linked)
         assert principal is not None and principal["committee_id"] == committee_id, bioguide
-        totals = src.fetch_committee_totals(client, committee_id, CYCLE)
-        assert totals is not None and totals["cycle"] == CYCLE and totals["receipts"] > 0
+        assert totals[committee_id]["cycle"] == CYCLE and totals[committee_id]["receipts"] > 0
+
+
+def test_ids_go_out_in_batches() -> None:
+    asked: list[list[str]] = []
+
+    def fetch(url: str) -> str:
+        asked.append(parse_qs(urlparse(url).query)["candidate_id"])
+        return json.dumps({"results": [], "pagination": {"pages": 1}})
+
+    client = FecClient(
+        "k", fetch=fetch, hourly=RateLimiter(10**6), per_minute=RateLimiter(10**6, 60)
+    )
+    ids = [f"H{n:08d}" for n in range(src.CANDIDATES_PER_REQUEST + 5)]
+    assert src.fetch_candidates(client, ids) == {}
+    assert [len(batch) for batch in asked] == [src.CANDIDATES_PER_REQUEST, 5]
 
 
 def test_cotton_house_id_is_not_the_senate_candidate() -> None:
     """The old House id H2AR04083 stays in raw but is never the current-office candidate."""
-    client = fixture_client()
-    house = src.fetch_candidate(client, "H2AR04083")
-    senate = src.fetch_candidate(client, "S4AR00103")
-    assert house is not None and senate is not None
+    found = src.fetch_candidates(fixture_client(), ["H2AR04083", "S4AR00103"])
+    house, senate = found["H2AR04083"], found["S4AR00103"]
     assert src.select_candidate("senate", [house, senate])["candidate_id"] == "S4AR00103"
     assert src.select_candidate("house", [senate]) is None
 
@@ -120,48 +142,56 @@ def test_two_principal_committees_stop_the_run() -> None:
 
 
 def test_kiley_leadership_pac_is_listed_but_not_principal() -> None:
-    client = fixture_client()
-    committees = src.fetch_candidate_committees(client, "H2CA03157", CYCLE)
+    committees = src.fetch_committees(fixture_client(), ["H2CA03157"], CYCLE)
     designations = {c["committee_id"]: c["designation"] for c in committees}
     assert designations == {"C00801985": "P", "C00818328": "D"}
 
 
+def _one_page(path: str, query: str, results: list[dict]) -> FecClient:
+    url = f"{BASE_URL}/{path}/?{query}"
+    return _client({url: {"results": results, "pagination": {"pages": 1}}})
+
+
 @pytest.mark.parametrize(
-    ("path", "body"),
+    "record",
     [
-        ("candidate/H8WI01156", {"results": [{"candidate_id": "H8WI01156", "name": "X"}]}),
-        (
-            "candidate/H8WI01156",
-            {"results": [{"candidate_id": "H8WI01156", "name": "X", "office": "Z"}]},
-        ),
-        (
-            "candidate/H8WI01156",
-            {"results": [{"candidate_id": "OTHER0001", "name": "X", "office": "H"}]},
-        ),
+        {"candidate_id": "H8WI01156", "name": "X"},
+        {"candidate_id": "H8WI01156", "name": "X", "office": "Z"},
+        {"candidate_id": "OTHER0001", "name": "X", "office": "H"},
     ],
 )
-def test_candidate_shape_changes_stop_the_run(path: str, body: dict) -> None:
-    client = _client({f"{BASE_URL}/{path}/": body})
+def test_candidate_shape_changes_stop_the_run(record: dict) -> None:
+    client = _one_page("candidates", "per_page=100&page=1&candidate_id=H8WI01156", [record])
     with pytest.raises(src.SourceShapeError):
-        src.fetch_candidate(client, "H8WI01156")
+        src.fetch_candidates(client, ["H8WI01156"])
 
 
-def test_missing_candidate_and_unfiled_cycle_are_none() -> None:
-    client = _client(
-        {
-            f"{BASE_URL}/candidate/H0000000/": {"results": []},
-            f"{BASE_URL}/committee/C1/totals/?per_page=100&page=1&cycle=2026": {
-                "results": [],
-                "pagination": {"pages": 1},
-            },
-        }
-    )
-    assert src.fetch_candidate(client, "H0000000") is None
-    assert src.fetch_committee_totals(client, "C1", 2026) is None
+def test_missing_candidate_and_unfiled_cycle_are_absent() -> None:
+    client = _one_page("candidates", "per_page=100&page=1&candidate_id=H00000000", [])
+    assert src.fetch_candidates(client, ["H00000000"]) == {}
+    client = _one_page("totals/house-senate", "per_page=100&page=1&committee_id=C1&cycle=2026", [])
+    assert src.fetch_totals(client, ["C1"], 2026) == {}
 
 
 def test_totals_for_another_cycle_stop_the_run() -> None:
-    body = {"results": [{"committee_id": "C1", "cycle": 2024}], "pagination": {"pages": 1}}
-    client = _client({f"{BASE_URL}/committee/C1/totals/?per_page=100&page=1&cycle=2026": body})
+    client = _one_page(
+        "totals/house-senate",
+        "per_page=100&page=1&committee_id=C1&cycle=2026",
+        [{"committee_id": "C1", "cycle": 2024}],
+    )
     with pytest.raises(src.SourceShapeError, match="another committee or cycle"):
-        src.fetch_committee_totals(client, "C1", 2026)
+        src.fetch_totals(client, ["C1"], 2026)
+
+
+def test_a_committee_that_names_no_asked_candidate_stops_the_run() -> None:
+    committee = {
+        "committee_id": "C00000001",
+        "name": "X",
+        "designation": "J",
+        "candidate_ids": ["S0XX00001"],
+    }
+    client = _one_page(
+        "committees", "per_page=100&page=1&candidate_id=H8WI01156&cycle=2026", [committee]
+    )
+    with pytest.raises(src.SourceShapeError, match="names none of the candidates"):
+        src.fetch_committees(client, ["H8WI01156"], 2026)
