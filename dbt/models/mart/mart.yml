@@ -505,8 +505,9 @@ models:
 
   - name: congress_bill_outcome
     description: >
-      One row per bill in mart.bill, with the outcome facts the Congress overview counts
-      (ADR 0013). Every figure on the page reads all of it.
+      One row per bill of the Congress (mart.bill_index, with or without a page), with the
+      outcome facts the Congress overview counts (ADR 0013). Every figure on the page reads
+      all of it.
     columns:
       - name: label
         tests: [not_null]

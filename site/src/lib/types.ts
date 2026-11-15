@@ -629,6 +629,8 @@ export interface PassedBothItem {
   senate_yea: number | null;
   senate_nay: number | null;
   congress_gov_url: string;
+  /** Whether the bill has a page on the site; most bills of the Congress do not. */
+  has_page: boolean;
 }
 
 export interface CongressOverviewResponse {

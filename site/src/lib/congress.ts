@@ -47,7 +47,8 @@ export interface PassedRow {
   label: string;
   href: string;
   title: string;
-  billPath: string;
+  /** The bill's page here, or null when it has none. */
+  billPath: string | null;
   houseVote: string;
   senateVote: string;
   outcome: PassedBothItem['outcome'];
@@ -156,7 +157,7 @@ function passedRow(item: PassedBothItem): PassedRow {
     label: item.label,
     href: item.congress_gov_url,
     title: item.title ?? item.label,
-    billPath: `/bills/${base}`,
+    billPath: item.has_page ? `/bills/${base}` : null,
     houseVote: vote(item.house_yea, item.house_nay),
     senateVote: vote(item.senate_yea, item.senate_nay),
     outcome: item.outcome,

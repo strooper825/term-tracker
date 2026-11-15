@@ -55,7 +55,7 @@ OVERVIEW_SQL = text("SELECT * FROM mart.congress_overview")
 PASSED_BOTH_SQL = text(
     """
     SELECT congress, bill_type, bill_number, label, title, outcome, public_law_number,
-           outcome_date, house_yea, house_nay, senate_yea, senate_nay, congress_gov_url
+           outcome_date, house_yea, house_nay, senate_yea, senate_nay, congress_gov_url, has_page
     FROM mart.congress_bill_outcome
     WHERE passed_both_chambers
     ORDER BY outcome_date DESC NULLS LAST, label

@@ -38,6 +38,14 @@ models:
         tests: [not_null]
       - name: bioguide_id
         tests: [not_null]
+  - name: stg_bill_action_codes
+    description: >
+      Every action of every bill raw holds for the Congress, uncollapsed and not limited to
+      bills with a page: the codes the Congress overview counts outcomes from (ADR 0025).
+    columns:
+      - name: bill_number
+        tests: [not_null]
+
   - name: stg_bill_scope
     description: >
       Keys of the bills and amendments the mart keeps (ADR 0023): sponsored or cosponsored by a

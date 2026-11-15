@@ -193,6 +193,16 @@ describe('congress overview: given these mart rows, this text renders', () => {
     expect(screen.queryByText(/voice vote/i)).not.toBeInTheDocument();
   });
 
+  it('a bill with no page here keeps its Congress.gov link and its title is plain text', () => {
+    // the table now lists every bill of the Congress, and most have no page on the site
+    const items = OVERVIEW.passed_both.items.map((i) => (i.label === 'H.R. 4405' ? { ...i, has_page: false } : i));
+    page({ ...OVERVIEW, passed_both: { ...OVERVIEW.passed_both, items } });
+    const row = screen.getByRole('link', { name: /H\.R\. 4405/ }).closest('div') as HTMLElement;
+    expect(within(row).getByText('Epstein Files Transparency Act')).toBeInTheDocument();
+    expect(within(row).queryByRole('link', { name: 'Epstein Files Transparency Act' })).toBeNull();
+    expect(within(row).getAllByRole('link')).toHaveLength(1);
+  });
+
   it('every link to another site opens in a new tab; links within the site do not', () => {
     page();
     const links = screen.getAllByRole('link') as HTMLAnchorElement[];
