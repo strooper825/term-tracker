@@ -11,7 +11,7 @@ The site is served by Vercel, which keeps standard web server logs (such as the 
 
 ## Election maps
 
-When you change a what-if election map, your picks are saved in your own browser so they are still there when you come back. They are not sent to Term or to anyone else, and the Reset button on the map removes them.
+When you change a what-if election map, your picks are saved in your own browser so they are still there when you come back. They are not sent to Term or to anyone else, and the Reset button on the map removes them. If you dismiss a notice at the top of the site, that is remembered in your browser the same way.
 
 ## Links to other sites
 

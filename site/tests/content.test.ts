@@ -35,6 +35,23 @@ describe('loadSite', () => {
     expect(site.socials).toEqual([{ label: 'Bluesky', url: 'https://bsky.app/profile/example' }]);
   });
 
+  it('the banner is off until it is switched on and has a message', () => {
+    const load = (banner: object) => loadSite(contentDir({ 'site.json': JSON.stringify({ headline: 'H', banner }) })).banner;
+    expect(loadSite(contentDir({ 'site.json': SITE })).banner).toBeNull();
+    expect(load({ show: false, message: 'Hello' })).toBeNull();
+    expect(load({ show: true, message: '  ' })).toBeNull();
+    expect(load({ show: true, message: ' Maps are live ', linkText: 'See them', linkUrl: '/elections', until: '2026-12-01', style: 'Quiet' })).toEqual({
+      message: 'Maps are live',
+      linkText: 'See them',
+      linkUrl: '/elections',
+      until: '2026-12-01',
+      quiet: true,
+    });
+    // a link needs words and a usable address, or there is no link
+    expect(load({ show: true, message: 'M', linkText: 'x', linkUrl: 'javascript:alert(1)' })).toMatchObject({ linkText: '', linkUrl: '', quiet: false, until: '' });
+    expect(load({ show: true, message: 'M', linkUrl: 'https://example.org' })).toMatchObject({ linkText: '', linkUrl: '' });
+  });
+
   it('treats a missing Ko-fi page, email and socials as not set', () => {
     const site = loadSite(
       contentDir({ 'site.json': JSON.stringify({ headline: 'H', kofiUrl: 'ko-fi.com/x', contactEmail: 'nope' }) }),

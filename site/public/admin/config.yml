@@ -75,6 +75,17 @@ collections:
           - { name: mission, label: Footer description, widget: text }
           - { name: kofiUrl, label: Ko-fi page address (https://ko-fi.com/...), widget: string, required: false }
           - { name: contactEmail, label: Contact email (shown in the footer when set), widget: string, required: false }
+          - name: banner
+            label: Banner (a notice across the top of every page)
+            widget: object
+            required: false
+            fields:
+              - { name: show, label: Show the banner, widget: boolean, default: false, required: false }
+              - { name: message, label: Message, widget: string, required: false }
+              - { name: linkText, label: Link text (optional), widget: string, required: false }
+              - { name: linkUrl, label: "Link address (optional; /elections/2028/president or https://...)", widget: string, required: false }
+              - { name: until, label: Take it down after (optional), widget: datetime, time_format: false, format: YYYY-MM-DD, date_format: YYYY-MM-DD, required: false }
+              - { name: style, label: Style, widget: select, default: Announcement, required: false, options: [Announcement, Quiet] }
           - name: socials
             label: Social accounts (shown in the footer when added)
             widget: list

@@ -7,6 +7,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
+import type { Banner } from './banner';
 
 export const CONTENT_DIR = join(process.cwd(), 'content');
 
@@ -25,6 +26,8 @@ export interface SiteContent {
   contactEmail: string;
   /** Footer icons; the row is hidden while this is empty. */
   socials: Social[];
+  /** Null while it is switched off or has no message. */
+  banner: Banner | null;
 }
 
 export interface Page {
@@ -65,6 +68,19 @@ export function loadSite(dir = CONTENT_DIR): SiteContent {
         .map((s) => ({ label: text(s?.label), url: text(s?.url) }))
         .filter((s) => s.label && /^https?:\/\//.test(s.url))
     : [];
+  const b = (raw.banner ?? {}) as unknown as Record<string, unknown>;
+  const linkUrl = /^(\/|https?:\/\/)/.test(text(b.linkUrl)) ? text(b.linkUrl) : '';
+  const linked = Boolean(linkUrl && text(b.linkText));
+  const banner: Banner | null =
+    b.show === true && text(b.message)
+      ? {
+          message: text(b.message),
+          linkText: linked ? text(b.linkText) : '',
+          linkUrl: linked ? linkUrl : '',
+          until: isoDate(b.until),
+          quiet: text(b.style).toLowerCase().startsWith('quiet'),
+        }
+      : null;
   return {
     headline: text(raw.headline),
     intro: text(raw.intro),
@@ -72,6 +88,7 @@ export function loadSite(dir = CONTENT_DIR): SiteContent {
     kofiUrl: /^https:\/\//.test(text(raw.kofiUrl)) ? text(raw.kofiUrl) : '',
     contactEmail: text(raw.contactEmail).includes('@') ? text(raw.contactEmail) : '',
     socials,
+    banner,
   };
 }
 
