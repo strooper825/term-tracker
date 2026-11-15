@@ -224,7 +224,7 @@ describe('congress overview: given these mart rows, this text renders', () => {
     expect(chips()).toContain('Overridden');
     expect(chips()).toContain('Adopted');
     expect(chips()).not.toContain('Vetoed'); // the ninth row, still folded
-    fireEvent.click(screen.getByRole('button', { name: 'Show all 11 →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show all 11' }));
     expect(screen.getByText(/Showing 11 of 11/)).toBeInTheDocument();
     expect(screen.getByText('Extra measure 3')).toBeInTheDocument();
     expect(chips()).toContain('Vetoed');

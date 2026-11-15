@@ -205,7 +205,7 @@ export function ElectionMap({ map, offices, cycles }: { map: ElectionMapData; of
         <nav aria-label="Race" className="flex flex-wrap gap-1">
           {offices.map((o) =>
             o.soon ? (
-              <span key={o.label} className="inline-flex items-center gap-2 min-h-[44px] px-4 text-[15px] text-ink3 border-b-[3px] border-transparent">
+              <span key={o.label} className="inline-flex items-center gap-2 min-h-[44px] px-4 text-[15px] text-ink2 border-b-[3px] border-transparent">
                 {o.label}
                 <span className="text-micro font-semibold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-chip bg-lockBg text-ink2">Soon</span>
               </span>

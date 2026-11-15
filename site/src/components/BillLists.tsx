@@ -15,7 +15,7 @@ function MoreButton({ label, onClick }: { label: string; onClick: () => void }) 
       <button
         type="button"
         onClick={onClick}
-        className="text-body border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas hover:border-lockInk"
+        className="min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
       >
         {label}
       </button>
@@ -34,20 +34,20 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
           <h2 id="cosponsors-title" className="text-heading font-semibold text-ink m-0">
             Cosponsors
           </h2>
-          <span className="text-meta text-ink3 tnum">{cosponsors.meta}</span>
+          <span className="text-meta text-ink2 tnum">{cosponsors.meta}</span>
         </div>
         {cosponsors.total > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {cosponsors.chips.map((chip) => (
               <span
                 key={chip.label}
-                className="text-label uppercase text-ink2 bg-[#F6F5F2] border border-rule rounded-chip px-1.5 py-0.5 tnum"
+                className="text-label uppercase text-ink2 bg-canvas border border-rule rounded-chip px-1.5 py-0.5 tnum"
               >
                 {chip.label}
               </span>
             ))}
             {cosponsors.withdrawn > 0 && (
-              <span className="text-label uppercase text-ink3 border border-dashed border-rule rounded-chip px-1.5 py-0.5 tnum">
+              <span className="text-label uppercase text-ink2 border border-dashed border-rule rounded-chip px-1.5 py-0.5 tnum">
                 {cosponsors.withdrawn} withdrawn
               </span>
             )}
@@ -56,7 +56,7 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
       </div>
 
       {cosponsors.total === 0 ? (
-        <p className="text-body text-ink3 px-[18px] py-4 m-0">
+        <p className="text-body text-ink2 px-[18px] py-4 m-0">
           No member has cosponsored this measure.
         </p>
       ) : (
@@ -74,10 +74,10 @@ export function BillCosponsors({ cosponsors }: { cosponsors: CosponsorsModel }) 
                 ) : (
                   row.name
                 )}
-                {row.meta && <span className="text-ink3"> · {row.meta}</span>}
-                {row.withdrawn && <span className="text-ink4"> · withdrawn</span>}
+                {row.meta && <span className="text-ink2"> · {row.meta}</span>}
+                {row.withdrawn && <span className="text-ink2"> · withdrawn</span>}
               </span>
-              <span className="flex-none text-meta text-ink3 tnum">{row.date}</span>
+              <span className="flex-none text-meta text-ink2 tnum">{row.date}</span>
             </div>
           ))}
           {hidden > 0 && (
@@ -100,14 +100,14 @@ export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: str
         <h2 id="actions-title" className="text-heading font-semibold text-ink m-0">
           Action history
         </h2>
-        <span className="text-meta text-ink3 tnum">{meta}</span>
+        <span className="text-meta text-ink2 tnum">{meta}</span>
       </div>
       {groups.length === 0 && (
-        <p className="text-body text-ink3 px-[18px] py-4 m-0">No actions recorded yet.</p>
+        <p className="text-body text-ink2 px-[18px] py-4 m-0">No actions recorded yet.</p>
       )}
       {visible.map((group) => (
         <div key={group.date}>
-          <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-[#FAF9F6] border-b border-ruleSoft text-label uppercase text-ink3 tnum">
+          <div className="sticky top-0 z-10 px-[18px] py-2.5 bg-canvas border-b border-ruleSoft text-label uppercase text-ink2 tnum">
             {group.date}
           </div>
           {group.items.map((item, i) => (
@@ -121,7 +121,7 @@ export function BillActions({ groups, meta }: { groups: ActionGroup[]; meta: str
               />
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                 <p className="text-base leading-snug m-0">{item.text}</p>
-                {item.meta && <p className="text-body text-ink3 m-0">{item.meta}</p>}
+                {item.meta && <p className="text-body text-ink2 m-0">{item.meta}</p>}
               </div>
             </div>
           ))}

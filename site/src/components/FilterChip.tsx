@@ -1,5 +1,6 @@
-// Ported from design/src/components/FilterChip.jsx.
-/* Zero-count chips render greyed and non-interactive so a click cannot empty the results. */
+// A filter that is on or off, with how many rows it covers. One style for every list on the
+// site (the votes list, the members index, the browse page's stage buttons).
+/* A zero-count chip is greyed and cannot be pressed, so a click cannot empty the results. */
 export function FilterChip({
   label,
   count,
@@ -9,35 +10,29 @@ export function FilterChip({
 }: {
   label: string;
   count: number;
+  /** A small square of this colour before the label, for a party or a vote position. */
   color?: string;
   on: boolean;
   onToggle: () => void;
 }) {
   const empty = count === 0;
-  const fg = empty ? '#C6C3BC' : on ? '#555C62' : '#A6A39C';
   return (
     <button
       type="button"
       disabled={empty}
       onClick={onToggle}
       aria-pressed={on}
-      className="flex-none inline-flex items-center gap-[7px] text-label whitespace-nowrap rounded-ctl px-[10px] py-[6px] border disabled:cursor-default hover:enabled:border-ink"
-      style={{
-        color: fg,
-        background: empty ? '#FAFAFB' : '#FFFFFF',
-        borderColor: empty ? '#EFEDE8' : '#E0E3E6',
-      }}
+      className={`flex-none inline-flex items-center gap-2 min-h-[44px] px-3 rounded-ctl border-2 text-[14px] whitespace-nowrap disabled:cursor-default ${
+        empty
+          ? 'border-ruleSoft bg-card text-ink2 opacity-60'
+          : on
+            ? 'border-navy bg-lockBg text-ink font-semibold cursor-pointer'
+            : 'border-rule bg-card text-ink cursor-pointer hover:border-ink3'
+      }`}
     >
-      {color && (
-        <i
-          className="w-[7px] h-[7px] rounded-[1px] flex-none"
-          style={{ background: empty ? '#E0DDD7' : on ? color : '#C6C3BC' }}
-        />
-      )}
+      {color && <i className="w-2 h-2 rounded-[1px] flex-none" style={{ background: empty ? '#C6C3BC' : color }} />}
       <span>{label}</span>
-      <span className="tnum" style={{ color: empty ? '#D3D0C9' : '#676E75' }}>
-        {count.toLocaleString('en-US')}
-      </span>
+      <span className="text-meta font-normal text-ink2 tnum">{count.toLocaleString('en-US')}</span>
     </button>
   );
 }

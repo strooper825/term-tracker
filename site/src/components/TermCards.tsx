@@ -13,7 +13,7 @@ function FactRows({ rows }: { rows: FactRow[] }) {
           <dt className="text-meta text-ink2">{r.label}</dt>
           <dd className="m-0 text-right min-w-0 tnum">
             <span className="text-base font-semibold text-ink">{r.value}</span>
-            {r.note && <span className="block text-meta text-ink3">{r.note}</span>}
+            {r.note && <span className="block text-meta text-ink2">{r.note}</span>}
           </dd>
         </div>
       ))}
@@ -33,7 +33,7 @@ export function RecordCard({ record }: { record: RecordModel }) {
       {record.history.length > 0 && (
         <>
           <div className="px-[18px] pt-3.5 pb-2 border-t border-rule">
-            <h3 className="text-label uppercase text-ink3 m-0">Terms in office</h3>
+            <h3 className="text-label uppercase text-ink2 m-0">Terms in office</h3>
           </div>
           <FactRows rows={record.history} />
         </>

@@ -15,7 +15,7 @@ const TONE: Record<JourneyTone, { text: string }> = {
   done: { text: 'text-ink' },
   failed: { text: 'text-[#8A2F2E]' },
   neutral: { text: 'text-ink2' },
-  pending: { text: 'text-ink4' },
+  pending: { text: 'text-ink2' },
 };
 
 function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }) {
@@ -62,14 +62,14 @@ function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }
           </span>
           {stage.date && (
             <span
-              className={`text-meta tnum whitespace-nowrap ${filled ? 'text-white/60' : 'text-ink3'}`}
+              className={`text-meta tnum whitespace-nowrap ${filled ? 'text-white/60' : 'text-ink2'}`}
             >
               {stage.date}
             </span>
           )}
         </div>
         {stage.endsJourney && (
-          <div className={`text-meta pl-[112px] leading-snug ${filled ? 'text-white/60' : 'text-ink4'}`}>
+          <div className={`text-meta pl-[112px] leading-snug ${filled ? 'text-white/60' : 'text-ink2'}`}>
             Nothing is recorded after this vote.
           </div>
         )}
@@ -77,7 +77,7 @@ function StepperRow({ stage, last }: { stage: JourneyStageModel; last: boolean }
       {!last && (
         <span
           aria-hidden
-          className="absolute left-[38px] -bottom-[16px] text-meta text-ink3 leading-none"
+          className="absolute left-[38px] -bottom-[16px] text-meta text-ink2 leading-none"
         >
           ↓
         </span>
@@ -99,7 +99,7 @@ export function JourneyStepper({
         <h2 id="journey-title" className="text-heading font-semibold text-ink m-0">
           Journey
         </h2>
-        <span className="text-meta text-ink3">
+        <span className="text-meta text-ink2">
           Recorded roll calls and enactment actions
           {durationDays !== null && ` · ${formatNumber(durationDays)} days`}
         </span>
@@ -189,7 +189,7 @@ function VoteCard({
           <h2 id={titleId} className="text-heading font-semibold text-ink m-0">
             {title}
           </h2>
-          <span className="text-meta text-ink3">
+          <span className="text-meta text-ink2">
             {[question, date].filter(Boolean).join(' · ')}
           </span>
         </div>
@@ -209,7 +209,7 @@ function VoteCard({
               [
                 ['Yea', vote.yeaCount, 'text-ink'],
                 ['Nay', vote.nayCount, 'text-ink'],
-                ['Not voting', vote.notVotingCount, 'text-ink3'],
+                ['Not voting', vote.notVotingCount, 'text-ink2'],
               ] as const
             ).map(([label, count, valueColor]) => (
               <div key={label} className="flex flex-col gap-1">

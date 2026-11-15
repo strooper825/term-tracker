@@ -187,9 +187,9 @@ describe('member dashboard: given these mart rows, this text renders', () => {
     expect(screen.getAllByText('DEMOCRATIC').length).toBeGreaterThan(0);
   });
 
-  it('source links open in a new tab', () => {
+  it('links that leave the site open in a new tab', () => {
     render(dashboard());
-    const links = screen.getAllByRole('link', { name: /source ↗/ });
+    const links = screen.getAllByRole('link').filter((a) => /^https?:/.test(a.getAttribute('href') ?? ''));
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {
       expect(link).toHaveAttribute('target', '_blank');
@@ -232,17 +232,21 @@ describe('roll call votes', () => {
     expect(screen.getByText('On the Nomination · Nomination Confirmed 52–45')).toHaveClass('line-clamp-2');
     expect(screen.getByText('Did not vote', { exact: false })).toBeInTheDocument();
     expect(screen.queryByText(/Introduced H\.R\. 4735/)).not.toBeInTheDocument(); // not a vote
-    expect(screen.getByText(/4 recorded/)).toBeInTheDocument();
+    expect(screen.getByText(/^4 votes in the/)).toBeInTheDocument();
     expect(screen.getByText('4 of 4 votes')).toBeInTheDocument();
   });
 
   it('gives each vote one destination: the bill page when the mart has one, else the source', () => {
     render(list());
-    const details = screen.getAllByRole('link', { name: 'Details →' });
-    expect(details.map((a) => a.getAttribute('href'))).toEqual(['/bills/119/hr/4795']);
-    const sources = screen.getAllByRole('link', { name: /source ↗/ });
-    expect(sources).toHaveLength(3);
-    for (const link of sources) expect(link).toHaveAttribute('target', '_blank');
+    // the title is the link, and each row has exactly one
+    const links = items().map((li) => within(li).getByRole('link'));
+    const here = links.filter((a) => !a.getAttribute('target'));
+    expect(here.map((a) => a.getAttribute('href'))).toEqual(['/bills/119/hr/4795']);
+    const elsewhere = links.filter((a) => a.getAttribute('target') === '_blank');
+    expect(elsewhere).toHaveLength(3);
+    for (const link of elsewhere) expect(link).toHaveAccessibleName(/opens the public record in a new tab/);
+    // how the member voted is a tag beside the title
+    expect(within(items()[0]).getByText('Yea')).toBeInTheDocument();
   });
 
   it('filters by position and by search, says when nothing matches, and clears', () => {
@@ -384,7 +388,7 @@ describe('member tabs', () => {
     // the source has no contact form or fax for this member, so neither row is drawn
     expect(within(panel).queryByText('Contact form')).not.toBeInTheDocument();
     expect(within(panel).queryByText('Fax')).not.toBeInTheDocument();
-    expect(within(panel).getByRole('link', { name: /source/ })).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: /^Source/ })).toBeInTheDocument();
   });
 
   it('a member with a contact form shows it', () => {
@@ -601,7 +605,7 @@ describe('fundraising card: given a mart.member_fundraising row, this text rende
     expect(within(c).getByText(/Money moved in from a joint fundraising committee/)).toBeInTheDocument();
     expect(within(c).getByText('Through Jul 22, 2026 · Pre-Primary report')).toBeInTheDocument();
     expect(within(c).getByText('Steil for Wisconsin, Inc. · principal campaign committee')).toBeInTheDocument();
-    expect(within(c).getByRole('link', { name: /source/ })).toHaveAttribute(
+    expect(within(c).getByRole('link', { name: /^Source/ })).toHaveAttribute(
       'href',
       'https://www.fec.gov/data/committee/C00677286/?cycle=2026',
     );
@@ -629,16 +633,16 @@ describe('fundraising card: given a mart.member_fundraising row, this text rende
     const { unmount } = render(dashboard(STEIL, NO_FILINGS_FUNDRAISING));
     expect(within(card()).getByText(/Steil for Wisconsin, Inc\. has not filed a report covering the 2025–26 cycle yet/)).toBeInTheDocument();
     expect(within(card()).queryByText('$0')).not.toBeInTheDocument();
-    expect(within(card()).getByRole('link', { name: /source/ })).toHaveAttribute('href', 'https://www.fec.gov/data/committee/C00677286/?cycle=2026');
+    expect(within(card()).getByRole('link', { name: /^Source/ })).toHaveAttribute('href', 'https://www.fec.gov/data/committee/C00677286/?cycle=2026');
     unmount();
 
     const second = render(dashboard(STEIL, NO_COMMITTEE_FUNDRAISING));
     expect(within(card()).getByText(/No principal campaign committee is registered with the FEC for the 2025–26 cycle/)).toBeInTheDocument();
-    expect(within(card()).getByRole('link', { name: /source/ })).toHaveAttribute('href', 'https://www.fec.gov/data/candidate/H8WI01156/?cycle=2026&election_full=false');
+    expect(within(card()).getByRole('link', { name: /^Source/ })).toHaveAttribute('href', 'https://www.fec.gov/data/candidate/H8WI01156/?cycle=2026&election_full=false');
     second.unmount();
 
     render(dashboard(STEIL, NO_CANDIDATE_FUNDRAISING));
     expect(within(card()).getByText(/The FEC has no House candidate record for this member/)).toBeInTheDocument();
-    expect(within(card()).queryByRole('link', { name: /source/ })).not.toBeInTheDocument();
+    expect(within(card()).queryByRole('link', { name: /^Source/ })).not.toBeInTheDocument();
   });
 });

@@ -166,7 +166,7 @@ export function SiteSearch({
             setQuery(e.target.value);
           }}
           onKeyDown={onKeyDown}
-          className="flex-1 min-w-0 h-11 border-0 outline-none bg-transparent text-[16px] text-ink placeholder:text-ink3"
+          className="flex-1 min-w-0 h-11 border-0 outline-none bg-transparent text-[16px] text-ink placeholder:text-ink2"
         />
         <button
           type="submit"

@@ -84,7 +84,7 @@ function MapCard({ model }: { model: ConstituencyModel }) {
         {model.views.length > 1 && <ViewToggle views={model.views} active={view.key} onSelect={setActive} />}
       </div>
       <MapSvg view={view} place={model.place} />
-      <p className="text-meta text-ink3 m-0">
+      <p className="text-meta text-ink2 m-0">
         {model.boundaryCongress ? `${model.boundaryCongress} district lines. ` : ''}
         Hover a county to see its name.
       </p>
@@ -119,42 +119,42 @@ function DemographicsCard({ model, d }: { model: ConstituencyModel; d: Demograph
   return (
     <section aria-label="Demographics" className="border border-rule rounded-card bg-card p-[18px] md:p-6 flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <div className="text-label uppercase text-ink3">
+        <div className="text-label uppercase text-ink2">
           {model.area === 'district' ? 'People in the district' : 'People in the state'}
         </div>
         <div className="flex items-baseline gap-3 flex-wrap">
           <span className="text-title font-semibold text-ink tnum">{d.population.value}</span>
           {d.population.margin && (
-            <span className="text-meta text-ink3 tnum" title="Margin of error at 90 percent confidence">
+            <span className="text-meta text-ink2 tnum" title="Margin of error at 90 percent confidence">
               {d.population.margin}
             </span>
           )}
         </div>
-        <div className="text-meta text-ink3">{d.period} American Community Survey estimate</div>
+        <div className="text-meta text-ink2">{d.period} American Community Survey estimate</div>
       </div>
 
       <dl className="m-0 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3.5">
         {d.facts.map((f) => (
           <div key={f.label} className="flex flex-col gap-0.5 border-t border-rule pt-3">
-            <dt className="text-label uppercase text-ink3">{f.label}</dt>
+            <dt className="text-label uppercase text-ink2">{f.label}</dt>
             <dd className="m-0 flex items-baseline gap-2 flex-wrap">
               <span className="text-stat font-semibold text-ink tnum">{f.value}</span>
               {f.margin && (
-                <span className="text-meta text-ink3 tnum" title="Margin of error at 90 percent confidence">
+                <span className="text-meta text-ink2 tnum" title="Margin of error at 90 percent confidence">
                   {f.margin}
                 </span>
               )}
             </dd>
-            {f.note && <div className="text-meta text-ink3">{f.note}</div>}
+            {f.note && <div className="text-meta text-ink2">{f.note}</div>}
           </div>
         ))}
       </dl>
 
       {d.race.length > 0 && (
         <div className="flex flex-col gap-3 border-t border-rule pt-4">
-          <h3 className="text-label uppercase text-ink3 m-0">Race and ethnicity</h3>
+          <h3 className="text-label uppercase text-ink2 m-0">Race and ethnicity</h3>
           <RaceBar rows={d.race} />
-          <p className="text-meta text-ink3 m-0">
+          <p className="text-meta text-ink2 m-0">
             Each group other than Hispanic or Latino excludes Hispanic residents, so the shares
             sum to 100.
           </p>
@@ -172,7 +172,7 @@ export function ConstituencyTab({ model }: { model: ConstituencyModel }) {
         {model.demographics && <DemographicsCard model={model} d={model.demographics} />}
       </div>
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-meta text-ink3 m-0 max-w-[80ch]">
+        <p className="text-meta text-ink2 m-0 max-w-[80ch]">
           Boundaries are the Census Bureau&rsquo;s cartographic boundary files, drawn from the
           districts in force this Congress. Demographics are five-year survey estimates with a
           margin of error, not counts; a figure marked &ldquo;±&rdquo; could be off by that much.

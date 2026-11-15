@@ -20,8 +20,8 @@ export interface BillPageProps {
    rather than "EDUCATION" on its own. */
 function Chip({ name, children }: { name?: string; children: React.ReactNode }) {
   return (
-    <span className="text-label uppercase text-ink2 bg-[#F6F5F2] border border-rule rounded-chip px-1.5 py-0.5">
-      {name && <span className="text-ink4">{name} </span>}
+    <span className="text-label uppercase text-ink2 bg-canvas border border-rule rounded-chip px-1.5 py-0.5">
+      {name && <span className="text-ink2">{name} </span>}
       {children}
     </span>
   );
@@ -50,7 +50,7 @@ function BillHeader({ bill }: { bill: BillPageModel }) {
           ) : (
             bill.sponsorName
           )}
-          {bill.sponsorMeta && <span className="text-ink3"> ({bill.sponsorMeta})</span>}
+          {bill.sponsorMeta && <span className="text-ink2"> ({bill.sponsorMeta})</span>}
         </span>
         <span className="text-[#C6C3BC]">|</span>
         <span className="tnum">Introduced {bill.introduced}</span>
@@ -67,7 +67,7 @@ function BillHeader({ bill }: { bill: BillPageModel }) {
         )}
       </div>
       {bill.latestAction && (
-        <div className="text-body text-ink3 leading-snug">
+        <div className="text-body text-ink2 leading-snug">
           <span className="tnum">Latest action {bill.latestAction.date}</span>
           {bill.latestAction.text && <> · {bill.latestAction.text}</>}
         </div>
@@ -83,11 +83,11 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
         <h2 id="summary-title" className="text-heading font-semibold text-ink m-0">
           Summary
         </h2>
-        <span className="text-meta text-ink3">Congressional Research Service</span>
+        <span className="text-meta text-ink2">Congressional Research Service</span>
       </div>
       {bill.summary ? (
         <div className="px-[18px] py-4 flex flex-col gap-3">
-          <div className="text-meta text-ink3 tnum">
+          <div className="text-meta text-ink2 tnum">
             As of {bill.summary.asOf} · {bill.summary.stage}
           </div>
           <div
@@ -98,14 +98,14 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
           />
           {bill.summary.versions.length > 1 && (
             <div className="border-t border-ruleSoft pt-3 flex flex-col gap-1.5">
-              <div className="text-label uppercase text-ink3">
+              <div className="text-label uppercase text-ink2">
                 Earlier versions ({bill.summary.versions.length} in all)
               </div>
               <ul className="m-0 pl-0 list-none flex flex-col gap-1">
                 {bill.summary.versions.map((v) => (
                   <li key={`${v.label} ${v.date}`} className="text-meta text-ink2 tnum">
                     {v.date} · {v.label}
-                    {v.current && <span className="text-ink4"> · shown above</span>}
+                    {v.current && <span className="text-ink2"> · shown above</span>}
                   </li>
                 ))}
               </ul>
@@ -113,7 +113,7 @@ function SummaryCard({ bill }: { bill: BillPageModel }) {
           )}
         </div>
       ) : (
-        <p className="text-body text-ink3 leading-snug px-[18px] py-4 m-0">{bill.summaryEmpty}</p>
+        <p className="text-body text-ink2 leading-snug px-[18px] py-4 m-0">{bill.summaryEmpty}</p>
       )}
     </section>
   );

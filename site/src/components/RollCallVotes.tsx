@@ -7,9 +7,15 @@ import { useMemo, useState } from 'react';
 import { ALL_DATES, type DateRange, type PolicyAreaCount, type VotePosition, type VoteRow } from '@/lib/model';
 import { FilterChip } from './FilterChip';
 import { PolicyAreaSelect } from './PolicyAreaSelect';
-import { DetailsLink, SourceLink } from './SiteChrome';
 
 const PAGE = 10;
+const POSITION_TAG: Record<VotePosition, string> = {
+  Yea: 'bg-party-d text-white',
+  Nay: 'bg-party-r text-white',
+  Present: 'bg-lockBg text-ink',
+  'Not Voting': 'bg-lockBg text-ink',
+  Other: 'bg-lockBg text-ink',
+};
 const POSITIONS: VotePosition[] = ['Yea', 'Nay', 'Present', 'Not Voting'];
 
 export function RollCallVotes({
@@ -90,8 +96,8 @@ export function RollCallVotes({
           <h2 id="votes-title" className="text-heading font-semibold text-ink m-0">
             Roll call votes
           </h2>
-          <span className="text-label uppercase text-ink3 tnum">
-            {congressLabel} · {total} recorded · most recent first
+          <span className="text-meta text-ink2 tnum">
+            {total} votes in the {congressLabel}
           </span>
         </div>
 
@@ -100,13 +106,13 @@ export function RollCallVotes({
           type="button"
           aria-expanded={filtersOpen}
           onClick={() => setFiltersOpen((v) => !v)}
-          className="md:hidden self-start flex items-center gap-1.5 text-body border border-[#D9D6CF] rounded-ctl px-2.5 py-[7px]"
+          className="md:hidden self-start flex items-center gap-1.5 min-h-[44px] text-base text-ink bg-card border border-lockRule rounded-ctl px-3"
         >
           Filters
           {isFiltered && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-ink2" />}
-          <span aria-hidden="true" className="text-ink4">
-            {filtersOpen ? '▴' : '▾'}
-          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={filtersOpen ? 'rotate-180' : ''}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
         </button>
 
         <div className={`${filtersOpen ? 'flex' : 'hidden'} md:flex flex-col gap-[11px]`}>
@@ -120,7 +126,7 @@ export function RollCallVotes({
               }}
               placeholder="Search votes by bill, question or policy area…"
               aria-label="Search roll call votes"
-              className="flex-1 basis-64 min-w-[200px] text-body bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
+              className="flex-1 basis-64 min-w-[200px] min-h-[44px] text-base text-ink bg-card border border-lockRule rounded-ctl px-3 placeholder:text-ink2 focus:border-navy focus:outline-none"
             />
             {dateRanges.length > 0 && (
               <select
@@ -130,8 +136,8 @@ export function RollCallVotes({
                   setRangeKey(e.target.value);
                   reset();
                 }}
-                className={`text-body rounded-ctl px-[10px] py-[8px] border ${
-                  rangeKey !== ALL_DATES ? 'border-ink3 bg-[#F2F0EA]' : 'border-rule bg-card'
+                className={`min-h-[44px] text-base text-ink rounded-ctl px-3 border ${
+                  rangeKey !== ALL_DATES ? 'border-navy bg-lockBg' : 'border-lockRule bg-card'
                 }`}
               >
                 {dateRanges.map((r) => (
@@ -154,7 +160,7 @@ export function RollCallVotes({
             />
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1.5 [scrollbar-width:thin]">
+          <div className="flex items-center gap-2 flex-wrap">
             {POSITIONS.map((p) => (
               <FilterChip
                 key={p}
@@ -171,7 +177,7 @@ export function RollCallVotes({
         </div>
 
         <div className="flex items-baseline gap-2.5 flex-wrap">
-          <span className="text-label uppercase text-ink3 tnum">
+          <span className="text-meta text-ink2 tnum">
             {list.length.toLocaleString('en-US')} of {total} votes
           </span>
           {isFiltered && (
@@ -186,7 +192,7 @@ export function RollCallVotes({
         </div>
 
         {withoutPolicyArea > 0 && (
-          <p className="text-meta text-ink3 leading-snug m-0 tnum">
+          <p className="text-meta text-ink2 leading-snug m-0 tnum">
             {withoutPolicyArea.toLocaleString('en-US')}{' '}
             {withoutPolicyArea === 1 ? 'vote has' : 'votes have'} no policy area and{' '}
             {withoutPolicyArea === 1 ? 'is' : 'are'} hidden while this filter is on. Congress.gov
@@ -199,27 +205,41 @@ export function RollCallVotes({
         {list.slice(0, shown).map((v) => (
           <li
             key={v.key}
-            className="flex items-start gap-3 px-[18px] py-[11px] border-b border-ruleSoft last:border-b-0"
+            className="flex items-start gap-3 px-[18px] py-3.5 border-b border-ruleSoft last:border-b-0"
           >
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <p className="text-base font-semibold text-ink leading-snug m-0">
-                {v.lead && <strong className="font-semibold text-ink">{v.lead}</strong>}
-                {v.subject}
-              </p>
+            <div className="flex-1 min-w-0 flex flex-col gap-1">
+              {/* The title is the link: the bill's page here when it has one, else the public
+                  record. "Voted NAY on" is still read out; sighted readers get the tag. */}
+              <a
+                href={v.detailsHref ?? v.source}
+                {...(v.detailsHref ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                className="text-heading font-semibold text-ink leading-snug hover:text-navy"
+              >
+                {/* "Voted YEA on S. 1: Title" is read out whole; what shows is "S. 1: Title" */}
+                <span className="sr-only">
+                  {v.lead}
+                  {v.subject.startsWith('on ') ? 'on ' : ''}
+                </span>
+                <span className="inline-block first-letter:uppercase">{v.subject.replace(/^on /, '')}</span>
+                {!v.detailsHref && <span className="sr-only"> (opens the public record in a new tab)</span>}
+              </a>
               {v.secondary && (
                 <p
-                  className="text-meta text-ink2 tnum m-0 line-clamp-2"
+                  className="text-body text-ink tnum m-0 line-clamp-2"
                   title={v.secondaryFull ?? v.secondary}
                 >
                   {v.secondary}
                 </p>
               )}
-              <p className="text-label uppercase text-ink3 tnum m-0">
+              <p className="text-meta text-ink2 tnum m-0">
                 {v.date}
                 {v.policyArea ? ` · ${v.policyArea}` : ''}
+                {v.detailsHref ? '' : ' · public record'}
               </p>
             </div>
-            {v.detailsHref ? <DetailsLink href={v.detailsHref} /> : <SourceLink href={v.source} />}
+            <span aria-hidden="true" className={`flex-none text-label font-semibold uppercase px-2 py-1 rounded-chip ${POSITION_TAG[v.position]}`}>
+              {v.position}
+            </span>
           </li>
         ))}
       </ul>
@@ -234,7 +254,7 @@ export function RollCallVotes({
           <button
             type="button"
             onClick={clear}
-            className="text-body border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas"
+            className="min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
           >
             Clear filters
           </button>
@@ -246,11 +266,11 @@ export function RollCallVotes({
           <button
             type="button"
             onClick={() => setShown((s) => s + PAGE)}
-            className="text-label uppercase font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
+            className="min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
           >
-            Show {Math.min(PAGE, list.length - shown)} more →
+            Show {Math.min(PAGE, list.length - shown)} more
           </button>
-          <span className="text-label uppercase text-ink3 tnum">
+          <span className="text-meta text-ink2 tnum">
             Showing {shown} of {list.length.toLocaleString('en-US')}
             {isFiltered ? ' matching' : ''}
           </span>

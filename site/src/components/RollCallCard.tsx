@@ -48,7 +48,7 @@ function RollCallPositions({
   return (
     <div className="flex flex-col gap-2 mt-0.5">
       {needsControls && summary.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink3 tnum">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink2 tnum">
           {summary.map((line) => (
             <span key={line.label}>
               {line.label}: <span className="text-ink2 font-medium">{line.text}</span>
@@ -63,11 +63,11 @@ function RollCallPositions({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search this vote by name…"
           aria-label="Search this roll call by name"
-          className="text-body bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[6px] w-full max-w-[240px] focus:border-ink3 focus:outline-none"
+          className="min-h-[44px] text-base text-ink bg-card border border-lockRule rounded-ctl px-3 placeholder:text-ink2 focus:border-navy focus:outline-none w-full max-w-[280px]"
         />
       )}
       {filtered.length === 0 ? (
-        <p className="text-meta text-ink3 m-0">No tracked member matches &ldquo;{query}&rdquo;.</p>
+        <p className="text-meta text-ink2 m-0">No tracked member matches &ldquo;{query}&rdquo;.</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {visible.map((p) => (
@@ -79,7 +79,7 @@ function RollCallPositions({
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="self-start text-label uppercase font-semibold text-ink underline decoration-[#C9CED2] underline-offset-4"
+          className="self-start min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
         >
           {expanded ? 'Show fewer' : `Show all ${positions.length}`}
         </button>
@@ -95,10 +95,10 @@ export function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string
         <h2 id="rollcalls-title" className="text-heading font-semibold text-ink m-0">
           Roll calls
         </h2>
-        <span className="text-meta text-ink3 tnum">{meta}</span>
+        <span className="text-meta text-ink2 tnum">{meta}</span>
       </div>
       {rows.length === 0 ? (
-        <p className="text-body text-ink3 px-[18px] py-4 m-0">
+        <p className="text-body text-ink2 px-[18px] py-4 m-0">
           No recorded roll call has named this measure.
         </p>
       ) : (
@@ -113,7 +113,7 @@ export function RollCallCard({ rows, meta }: { rows: RollCallRow[]; meta: string
               <SourceLink href={row.source} title="View the roll call record" />
             </div>
             {row.question && <div className="text-body text-ink2 leading-snug">{row.question}</div>}
-            <div className="text-meta text-ink3 tnum">
+            <div className="text-meta text-ink2 tnum">
               <span className="text-ink font-semibold">{row.tally}</span> · {row.detail}
             </div>
             <RollCallPositions positions={row.positions} summary={row.positionSummary} />

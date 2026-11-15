@@ -16,7 +16,7 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
         <h2 id="fundraising-title" className="text-heading font-semibold text-ink m-0">
           Fundraising
         </h2>
-        <span className="text-label uppercase text-ink3 tnum">
+        <span className="text-meta text-ink2 tnum">
           {model.cycleLabel}
         </span>
       </div>
@@ -33,19 +33,19 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
                 className="flex items-baseline justify-between gap-3 min-w-0 md:flex-col md:items-start md:justify-start md:gap-1.5"
                 title={s.title}
               >
-                <div className="text-label uppercase text-ink3 leading-tight">{s.label}</div>
+                <div className="text-label uppercase text-ink2 leading-tight">{s.label}</div>
                 <div className="flex items-baseline justify-end gap-x-2 flex-wrap min-w-0 md:flex-col md:items-start md:gap-1.5">
                   <span className="text-stat font-semibold text-ink tnum leading-none whitespace-nowrap">
                     {s.value}
                   </span>
-                  {s.note && <span className="text-meta text-ink3 tnum">{s.note}</span>}
+                  {s.note && <span className="text-meta text-ink2 tnum">{s.note}</span>}
                 </div>
               </div>
             ))}
           </div>
 
           <div className="flex flex-col gap-3.5">
-            <div className="text-label uppercase text-ink3 leading-tight">
+            <div className="text-label uppercase text-ink2 leading-tight">
               Where the money came from · share of total raised
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-[18px]">
@@ -55,25 +55,25 @@ export function FundraisingCard({ model }: { model: FundraisingModel }) {
                     <span className="text-ink min-w-0 leading-snug">{row.label}</span>
                     <span className="flex-none whitespace-nowrap">
                       <span className="text-ink2">{row.amount}</span>
-                      <span className="text-ink3"> · </span>
+                      <span className="text-ink2"> · </span>
                       <span className="text-ink font-semibold">{row.pctLabel}</span>
                     </span>
                   </div>
-                  <div className="h-2 bg-[#ECEEF3] rounded-[3px] overflow-hidden">
+                  <div className="h-2 bg-lockBg rounded-[3px] overflow-hidden">
                     <div className="h-full bg-navy" style={{ width: `${row.pct}%` }} />
                   </div>
-                  {row.note && <div className="text-meta text-ink3 leading-snug">{row.note}</div>}
+                  {row.note && <div className="text-meta text-ink2 leading-snug">{row.note}</div>}
                 </div>
               ))}
             </div>
           </div>
         </>
       ) : (
-        <p className="text-base text-ink3 leading-snug m-0 flex-1">{model.message}</p>
+        <p className="text-base text-ink2 leading-snug m-0 flex-1">{model.message}</p>
       )}
 
       <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-        <div className="text-label uppercase text-ink3 leading-snug tnum min-w-0">
+        <div className="text-meta text-ink2 leading-snug tnum min-w-0">
           {model.footer.map((line) => (
             <div key={line}>{line}</div>
           ))}
