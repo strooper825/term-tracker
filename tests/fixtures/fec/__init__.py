@@ -4,10 +4,17 @@ Files are named after the API path with ``/`` replaced by ``__`` plus ``__cycle=
 request carries a cycle, e.g. ``candidate__H8WI01156__committees__cycle=2026.json``. Page
 parameters are ignored (every recorded list fits one page). Recorded 2026-09-13 for the six
 tracked members' candidate ids; contact fields were removed (see tests/fixtures/README.md).
+
+The loader asks for many ids at a time (``/candidates/``, ``/committees/``,
+``/totals/house-senate/``). Those answers are put together here from the per-record files:
+on 2026-11-15 the batched endpoints returned the same records, field for field the pipeline
+declares, for all twenty tracked members. An id with no file is left out, as the API leaves
+out an id it does not know.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -46,7 +53,39 @@ def fixture_name(url: str) -> str:
     return path.replace("/", "__") + (f"__cycle={cycle}" if cycle else "") + ".json"
 
 
+def _recorded(name: str) -> list[dict]:
+    path = FIXTURE_DIR / name
+    return json.loads(path.read_text(encoding="utf-8"))["results"] if path.exists() else []
+
+
+def _batched(url: str) -> list[dict] | None:
+    """The results of a many-ids request, or None when ``url`` is a per-record address."""
+    parsed = urlparse(url)
+    path = parsed.path.removeprefix(urlparse(BASE_URL).path).strip("/")
+    query = parse_qs(parsed.query)
+    cycle = query.get("cycle", [None])[0]
+    if path == "candidates":
+        return [r for i in query["candidate_id"] for r in _recorded(f"candidate__{i}.json")]
+    if path == "committees":
+        found = {
+            r["committee_id"]: r
+            for i in query["candidate_id"]
+            for r in _recorded(f"candidate__{i}__committees__cycle={cycle}.json")
+        }
+        return list(found.values())
+    if path == "totals/house-senate":
+        return [
+            r
+            for i in query["committee_id"]
+            for r in _recorded(f"committee__{i}__totals__cycle={cycle}.json")
+        ]
+    return None
+
+
 def fixture_fetch(url: str) -> str:
+    batched = _batched(url)
+    if batched is not None:
+        return json.dumps({"results": batched, "pagination": {"pages": 1}})
     path = FIXTURE_DIR / fixture_name(url)
     if not path.exists():
         raise FileNotFoundError(f"no fixture for {url} ({path.name})")

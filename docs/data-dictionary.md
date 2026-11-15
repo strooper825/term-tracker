@@ -142,19 +142,22 @@ Reported, `53` Passed House, `55` Passed Senate, `49` Public Law), `actionDate`,
 404, and that empty array is stored, which is what keeps the nightly from re-asking. The
 endpoint does not exist for amendments (it answers 404), so amendments never have a row here.
 
-## Raw tables: OpenFEC (Alembic migration `0005`)
+## Raw tables: OpenFEC (Alembic migrations `0005`, `0010`)
 
 Loaded by `python -m ingest.run --source fec` for every member in `seed.tracked_members`,
 current cycle only (`fec_cycle`, derived from `CURRENT_CONGRESS`: 119 -> 2026). All rows share
-`payload jsonb`, `source_url text`, `fetched_at timestamptz`. Every record is re-fetched each
-run (about four requests per member; `--full-refresh` changes nothing for this source). See
+`payload jsonb`, `source_url text`, `fetched_at timestamptz`. Records are asked for many ids
+at a time (`/candidates/`, `/committees/`, `/totals/house-senate/`; ADR 0023): about three
+requests a run for twenty members. Totals are read every run. Candidates and committees are
+read again when the stored ones are a week old, when a tracked member has none, or with
+`--full-refresh`. `source_url` is the per-record address, which returns the same record. See
 ADR 0006 for what is and is not loaded.
 
 | Table | Key | One row per |
 |---|---|---|
-| `raw.fec_candidate` | `candidate_id` | `/candidate/{id}/` record for every id in the member's congress-legislators `id.fec` list, old offices included; `bioguide_id` links it back |
-| `raw.fec_committee` | `committee_id`, `cycle` | item of `/candidate/{id}/committees/?cycle=` for the member's current-office candidate: every committee linked to the candidate in the cycle (`candidate_id` column), whatever its designation |
-| `raw.fec_committee_totals` | `committee_id`, `cycle` | `/committee/{id}/totals/?cycle=` record of the principal campaign committee |
+| `raw.fec_candidate` | `candidate_id` | candidate record for every id in the member's congress-legislators `id.fec` list, old offices included; `bioguide_id` links it back |
+| `raw.fec_committee` | `committee_id`, `cycle`, `candidate_id` | every committee linked in the cycle to a member's current-office candidate, whatever its designation. A committee that names two tracked candidates (joint fundraising) has a row for each. A link the FEC no longer reports is deleted at the next weekly read |
+| `raw.fec_committee_totals` | `committee_id`, `cycle` | totals record of the principal campaign committee (the same record `/committee/{id}/totals/?cycle=` returns) |
 
 Source shapes (verified 2026-09-13): the totals endpoint has no `cash_on_hand_end_period`;
 cash on hand and debts are `last_cash_on_hand_end_period` and `last_debts_owed_by_committee`.
