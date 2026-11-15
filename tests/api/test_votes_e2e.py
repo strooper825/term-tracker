@@ -53,7 +53,9 @@ def test_member_votes_are_tracked_members_with_normalised_positions(
         by_member.setdefault(r["bioguide_id"], []).append(r)
     # Sanders, Kiley, and (since the twelve-member expansion) Baldwin are in the vote fixtures
     # (ADR 0005 coverage for Sanders/Kiley); Slotkin and Jeffries are not
-    assert set(by_member) == {"S001213", "C001095", "S000033", "K000401", "B001230"}
+    # Aguilar is in the House fixture roll calls and has been tracked since 2026-11-15
+    assert set(by_member) == {"S001213", "C001095", "S000033", "K000401", "B001230", "A000371"}
+    assert len(by_member["A000371"]) == 5
     assert len(by_member["S001213"]) == 5 and len(by_member["C001095"]) == 3
     assert len(by_member["S000033"]) == 3 and len(by_member["K000401"]) == 5
     assert len(by_member["B001230"]) == 3
@@ -89,6 +91,7 @@ def test_attendance_query_shape(built_mart: None, migrated_engine: Engine) -> No
         """,
     )
     assert {r["bioguide_id"]: r["positions"] for r in rows} == {
+        "A000371": 5,
         "B001230": 3,
         "C001095": 3,
         "K000401": 5,
