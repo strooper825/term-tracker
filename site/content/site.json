@@ -4,13 +4,13 @@
   "mission": "Term follows members of Congress through their terms using public records from Congress.gov, Senate.gov and the FEC. Everything is refreshed nightly, and every number links to its source.",
   "kofiUrl": "",
   "contactEmail": "",
-  "socials": [],
   "banner": {
-    "show": false,
-    "message": "",
+    "show": true,
+    "message": "Update: Final 2026 Senate & Governor Results",
     "linkText": "",
-    "linkUrl": "",
-    "until": "",
+    "linkUrl": "https://term-tracker-tau.vercel.app/elections/2026/senate",
+    "until": "2026-11-17",
     "style": "Announcement"
-  }
+  },
+  "socials": []
 }
