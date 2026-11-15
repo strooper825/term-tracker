@@ -23,7 +23,8 @@ probe finds on the office's site, else to the official website. The probe runs i
 nightly and does its own monthly timing, so no source needed its own freshness threshold and
 none was added. Step 6 is built for 2026:
 `seed.election_dates` holds every state's filing deadline, primary and runoff; 2028 is added at
-the rollover. Step 7 is not started.
+the rollover. Step 7 goes in two stages
+(see Batches): stage 1 adds 46 members to the seed; stage 2 waits for lighter pages.
 
 ## Order of work
 
@@ -46,7 +47,9 @@ Steps 4, 5 and 6 do not depend on step 2 and can be reviewed in parallel with it
 | Batch | When | Gate before it | Measure after it |
 |---|---|---|---|
 | 20 (now) | | | Baseline recorded in ADR 0023 |
-| About 100 | By mid-December, so two weeks of nightlies precede the archive | Steps 2 to 6 merged; 119th backlog drained; re-sweep count zero; five clean incremental nights | Ingest minutes and requests; queue depth after the run; Neon MB (raw, mart); deployment MB unpacked and tgz; pages; build minutes; Vercel retained storage; members on the official-website fallback |
+| 66: stage 1 of batch 1 (2026-11-15) | With steps 4 to 6 merged | Counted on Neon first: the 40 House members and 6 senators add 4,081 bill pages to 4,831, an upload of about 75 MB of 100 | The same list as the next row; the upload first |
+| About 100: stage 2 | After the pages are made lighter (an ADR first): the rest of the draft list is 4 House members and 30 senators, and all 80 together add 10,655 bill pages, about 115 to 130 MB at today's page weight | | |
+| About 100 (as first planned) | By mid-December, so two weeks of nightlies precede the archive | Steps 2 to 6 merged; 119th backlog drained; re-sweep count zero; five clean incremental nights | Ingest minutes and requests; queue depth after the run; Neon MB (raw, mart); deployment MB unpacked and tgz; pages; build minutes; Vercel retained storage; members on the official-website fallback |
 | 535 | Not decided. Earliest with the 120th, once `assert_tracked_members_seated` passes for every member | The owner's decision after batch 1's figures: lighter pages or a paid Vercel tier; `track_all_members` rehearsed on a database copy | The same list, weekly through March, then monthly: the deployment and the database both grow with the 120th's bills |
 
 Stop and reassess if, after batch 1, the tgz is over 80 MB, Neon is over 80 percent of its
@@ -67,8 +70,11 @@ allowance, or the re-sweep keeps finding bills the filter missed.
 2. **Rehearse on the 119th.** Spend about 16 hours of requests over a few nights loading the
    rest of a Congress that is archived in seven weeks? Recommended: yes, it is the only
    full-volume test before 535.
-3. **Who is batch 1.** Recommended: the whole Senate, a complete chamber of exactly 100. It
-   needs all 50 states' dates (step 6) first. The alternative is full delegations of chosen states.
+3. **Who is batch 1.** Decided 2026-11-15: members of both chambers, spread across the states,
+   with the leaders and the chairs and ranking members of the main committees, and variety
+   otherwise. Not the whole Senate: senators cosponsor widely and bring Senate amendments, so 36
+   of them alone add 6,729 bill pages where 44 House members add 3,926. Stage 1 is 40 House
+   members and Thune, Schumer, Collins, Murray, Crapo and Fetterman.
 4. **Batch 1 before or after the rollover.** Before puts about 100 members into the frozen
    119th archive; after keeps the archive at twenty and gives up the full-volume page test.
    Recommended: before.
