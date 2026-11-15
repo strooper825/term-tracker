@@ -225,3 +225,35 @@ def test_journey_simple_resolution_has_only_its_chamber(
 ) -> None:
     assert list(_stages(_get(client, "sres", "837"))) == ["introduced", "senate_vote"]
     assert list(_stages(_get(client, "hres", "150"))) == ["introduced", "house_vote"]
+
+
+def test_the_browse_index_lists_every_bill_and_marks_the_ones_with_a_page(
+    built_mart: None, client: TestClient
+) -> None:
+    """GET /bills/index is the /bills browse page's list (ADR 0025)."""
+    first = client.get("/api/v1/bills/index", params={"limit": 5000})
+    assert first.status_code == 200, first.text[:200]
+    body = first.json()
+    items = body["items"]
+    assert body["total"] >= len(FIXTURE_BILLS)
+    assert len(items) == min(body["total"], 5000)
+    by_key = {(i["bill_type"], i["bill_number"]): i for i in items}
+    for bill_type, number in FIXTURE_BILLS:
+        item = by_key[(bill_type, number)]
+        # every fixture bill is one a tracked member touched, so it has a page
+        assert item["has_page"] is True, (bill_type, number)
+        assert item["title"] and item["label"], (bill_type, number)
+        assert item["congress_gov_url"].startswith("https://www.congress.gov/")
+    for item in items:
+        assert item["stage"] in (1, 2, 3, 4, 5)
+        assert item["origin_chamber"] in ("House", "Senate")
+        if item["kind"] == "amendment" or item["bill_type"] in (
+            "hres",
+            "sres",
+            "hconres",
+            "sconres",
+        ):
+            assert item["is_minor"] is True, item["label"]
+    # paging returns the rest, and nothing twice
+    page = client.get("/api/v1/bills/index", params={"limit": 2, "offset": 1}).json()
+    assert [i["label"] for i in page["items"]] == [i["label"] for i in items[1:3]]

@@ -398,6 +398,38 @@ export interface BillListItem {
   congress_gov_url: string;
 }
 
+/** GET /bills/index: every bill of the Congress, with or without a page (ADR 0025). */
+export interface BillIndexItem {
+  congress: number;
+  bill_type: string;
+  bill_number: string;
+  label: string;
+  kind: string;
+  title: string;
+  policy_area: string | null;
+  origin_chamber: string;
+  introduced_date: string | null;
+  latest_action_date: string | null;
+  latest_action_text: string | null;
+  sponsor_name: string | null;
+  sponsor_party: string | null;
+  sponsor_state: string | null;
+  cosponsor_count: number;
+  cosponsors_democratic: number;
+  cosponsors_republican: number;
+  /** 1 introduced, 2 reported, 3 passed one chamber, 4 passed both, 5 became law */
+  stage: number;
+  has_floor_vote: boolean;
+  is_minor: boolean;
+  has_page: boolean;
+  congress_gov_url: string;
+}
+
+export interface BillIndexResponse {
+  items: BillIndexItem[];
+  total: number;
+}
+
 export interface BillsResponse {
   items: BillListItem[];
   total: number;

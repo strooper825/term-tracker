@@ -3,6 +3,8 @@
  *  managed database). */
 import type {
   BillDetail,
+  BillIndexItem,
+  BillIndexResponse,
   BillListItem,
   BillsResponse,
   CommitteesResponse,
@@ -89,6 +91,16 @@ export const api = {
     const items: BillListItem[] = [];
     for (let offset = 0; ; offset += page) {
       const body = await getJson<BillsResponse>(`/api/v1/bills?limit=${page}&offset=${offset}`);
+      items.push(...body.items);
+      if (items.length >= body.total || body.items.length === 0) return items;
+    }
+  },
+  /** Every bill of the Congress for the browse page, paging until the API has returned `total`. */
+  billIndexAll: async (): Promise<BillIndexItem[]> => {
+    const page = 5000;
+    const items: BillIndexItem[] = [];
+    for (let offset = 0; ; offset += page) {
+      const body = await getJson<BillIndexResponse>(`/api/v1/bills/index?limit=${page}&offset=${offset}`);
       items.push(...body.items);
       if (items.length >= body.total || body.items.length === 0) return items;
     }

@@ -78,3 +78,57 @@ unit_tests:
         - {bill_number: "6", passed_a_chamber: false, passed_both_chambers: false, became_law: false, vetoed: false, veto_overridden: false, outcome: null, public_law_number: null}
         - {bill_number: "7", passed_a_chamber: true, passed_both_chambers: true, became_law: false, vetoed: false, veto_overridden: false, outcome: adopted, public_law_number: null}
         - {bill_number: "8", passed_a_chamber: true, passed_both_chambers: true, became_law: false, vetoed: false, veto_overridden: false, outcome: pending, public_law_number: null}
+
+  # How far a bill got, read from its own action codes (ADR 0025), and what the browse page
+  # hides until asked. Voice votes leave no roll call, so the stage must not depend on one.
+  - name: bill_index_stage_and_minor
+    model: bill_index
+    overrides:
+      vars:
+        current_congress: 119
+    given:
+      - input: source('raw', 'bill')
+        format: sql
+        rows: |
+          select 119 as congress, 'hr' as bill_type, '1' as bill_number, 'bill' as kind, '{"title": "Introduced only", "introducedDate": "2025-01-03"}'::jsonb as payload, 'u' as source_url, now() as fetched_at
+          union all select 119, 'hr', '2', 'bill', '{"title": "Reported"}'::jsonb, 'u', now()
+          union all select 119, 's', '3', 'bill', '{"title": "Passed the Senate"}'::jsonb, 'u', now()
+          union all select 119, 'hr', '4', 'bill', '{"title": "Passed both"}'::jsonb, 'u', now()
+          union all select 119, 'hr', '5', 'bill', '{"title": "A law"}'::jsonb, 'u', now()
+          union all select 119, 'hr', '6', 'bill', '{"title": "To designate the facility of the United States Postal Service located at 1 Main Street as the Example Post Office"}'::jsonb, 'u', now()
+          union all select 119, 'hres', '7', 'bill', '{"title": "A simple resolution"}'::jsonb, 'u', now()
+          union all select 119, 'samdt', '8', 'amendment', '{"purpose": "To amend"}'::jsonb, 'u', now()
+          union all select 118, 'hr', '9', 'bill', '{"title": "Another Congress"}'::jsonb, 'u', now()
+      - input: source('raw', 'bill_actions')
+        format: sql
+        rows: |
+          select 119 as congress, 'hr' as bill_type, '1' as bill_number, '[{"actionCode": "1000"}]'::jsonb as payload
+          union all select 119, 'hr', '2', '[{"actionCode": "1000"}, {"actionCode": "5000"}]'::jsonb
+          union all select 119, 's', '3', '[{"actionCode": "14000"}, {"actionCode": "17000"}]'::jsonb
+          union all select 119, 'hr', '4', '[{"actionCode": "8000"}, {"actionCode": "17000"}]'::jsonb
+          union all select 119, 'hr', '5', '[{"actionCode": "8000"}, {"actionCode": "E20000"}, {"actionCode": "36000"}]'::jsonb
+          union all select 119, 'hr', '6', '[{"actionCode": "8000"}]'::jsonb
+          union all select 119, 'hres', '7', '[]'::jsonb
+      - input: ref('stg_bill_cosponsors')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "1", party: D, withdrawn_date: null}
+          - {congress: 119, bill_type: hr, bill_number: "1", party: R, withdrawn_date: null}
+          - {congress: 119, bill_type: hr, bill_number: "1", party: R, withdrawn_date: "2025-02-01"}
+      - input: ref('roll_call')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "5"}
+          - {congress: 119, bill_type: null, bill_number: null}
+      - input: ref('stg_bill_scope')
+        rows:
+          - {congress: 119, bill_type: hr, bill_number: "1"}
+    expect:
+      rows:
+        - {bill_type: hr, bill_number: "1", stage: 1, has_floor_vote: false, is_minor: false, has_page: true, cosponsor_count: 2, cosponsors_republican: 1}
+        - {bill_type: hr, bill_number: "2", stage: 2, has_floor_vote: false, is_minor: false, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+        - {bill_type: s, bill_number: "3", stage: 3, has_floor_vote: false, is_minor: false, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+        - {bill_type: hr, bill_number: "4", stage: 4, has_floor_vote: false, is_minor: false, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+        - {bill_type: hr, bill_number: "5", stage: 5, has_floor_vote: true, is_minor: false, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+        - {bill_type: hr, bill_number: "6", stage: 3, has_floor_vote: false, is_minor: true, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+        - {bill_type: hres, bill_number: "7", stage: 1, has_floor_vote: false, is_minor: true, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+        - {bill_type: samdt, bill_number: "8", stage: 1, has_floor_vote: false, is_minor: true, has_page: false, cosponsor_count: 0, cosponsors_republican: 0}
+

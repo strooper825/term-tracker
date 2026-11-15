@@ -506,6 +506,23 @@ action text). 773 of the 1,874 bills loaded on 2026-09-13 have at least one repe
 collapsing them removes 1,213 of 12,896 action rows. `assert_bill_summary_one_latest` checks the counts against the rows in
 `mart.bill_summary` and `mart.bill_cosponsor`.
 
+### `mart.bill_index`
+
+Every bill and amendment of the Congress that raw holds, with or without a detail page: the list
+the `/bills` browse page filters (ADR 0025). `mart.bill` is the detail pages and is limited to the
+tracked members' bills; this is everything, kept narrow. Served by `GET /api/v1/bills/index`.
+
+| Column | Meaning |
+|---|---|
+| `stage` | How far it got, from the Library of Congress action codes on its own action list: 1 introduced; 2 reported by a committee (`5000`, `14000`); 3 passed one chamber (`8000` House, `17000` Senate); 4 passed both, or presented to the President (`28000`, `E20000`); 5 became law (`36000`, `E40000`, or an action typed `BecameLaw`). It does not need a roll call, because most measures pass by voice vote or unanimous consent. |
+| `has_floor_vote` | A recorded roll call on it in either chamber (`mart.roll_call`). |
+| `is_minor` | What the browse page hides until asked: an amendment, a simple or concurrent resolution, or a bill whose title begins "To designate the facility of the United States Postal Service". |
+| `has_page` | Whether the bill is in `stg_bill_scope` and so has a page at `/bills/{congress}/{type}/{number}`. |
+| `cosponsor_count` and the party counts | Current cosponsors; withdrawn ones are left out. |
+
+This is a different thing from `mart.bill_journey_stage`, which is the vote journey on a bill's own
+page and reads passage roll calls (ADR 0009).
+
 ### `mart.bill_passage_vote`
 
 One row per passage-type roll call on a bill with a page (`mart.bill`, kind `bill`); ADR 0009.

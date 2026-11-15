@@ -20,6 +20,8 @@ from api.schemas.bill import (
     BillAction,
     BillCosponsor,
     BillDetail,
+    BillIndexItem,
+    BillIndexResponse,
     BillListItem,
     BillListResponse,
     BillRollCall,
@@ -53,6 +55,20 @@ LIST_SQL = text(
 )
 
 COUNT_SQL = text("SELECT count(*) FROM mart.bill")
+
+INDEX_SQL = text(
+    """
+    SELECT congress, bill_type, bill_number, label, kind, title, policy_area, origin_chamber,
+           introduced_date, latest_action_date, latest_action_text, sponsor_name, sponsor_party,
+           sponsor_state, cosponsor_count, cosponsors_democratic, cosponsors_republican, stage,
+           has_floor_vote, is_minor, has_page, congress_gov_url, source, source_url, fetched_at
+    FROM mart.bill_index
+    ORDER BY bill_type, length(bill_number), bill_number
+    LIMIT :limit OFFSET :offset
+    """
+)
+
+INDEX_COUNT_SQL = text("SELECT count(*) FROM mart.bill_index")
 
 DETAIL_SQL = text(
     f"""
@@ -245,6 +261,27 @@ def list_bills(
     return BillListResponse(
         items=[BillListItem(**_list_fields(row)) for row in rows],
         total=total,
+        limit=limit,
+        offset=offset,
+        sources=distinct_sources(rows),
+    )
+
+
+@router.get(
+    "/index",
+    response_model=BillIndexResponse,
+    summary="Every bill and amendment of the Congress, for the browse page",
+)
+def bill_index(
+    session: Annotated[Session, Depends(get_session)],
+    limit: Annotated[int, Query(ge=1, le=5000)] = 5000,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> BillIndexResponse:
+    rows = session.execute(INDEX_SQL, {"limit": limit, "offset": offset}).mappings().all()
+    keep = BillIndexItem.model_fields.keys()
+    return BillIndexResponse(
+        items=[BillIndexItem(**{k: row[k] for k in keep}) for row in rows],
+        total=session.execute(INDEX_COUNT_SQL).scalar_one(),
         limit=limit,
         offset=offset,
         sources=distinct_sources(rows),

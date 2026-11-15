@@ -437,6 +437,26 @@ models:
       - name: source_url
         tests: [not_null]
 
+  - name: bill_index
+    description: >
+      Every bill and amendment of the Congress that raw holds, with or without a detail page:
+      the list the /bills browse page filters (ADR 0025). stage is how far it got, from its own
+      action codes; is_minor marks what the page hides until asked.
+    columns:
+      - name: label
+        tests: [not_null]
+      - name: title
+        tests: [not_null]
+      - name: stage
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: [1, 2, 3, 4, 5], quote: false } }
+      - name: origin_chamber
+        tests:
+          - accepted_values: { arguments: { values: ["House", "Senate"] } }
+      - name: congress_gov_url
+        tests: [not_null]
+
   - name: bill_journey_stage
     description: >
       One row per stage of a bill's vote journey: Introduced, the chamber votes (origin first),
