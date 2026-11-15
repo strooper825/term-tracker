@@ -20,6 +20,13 @@ models:
     mart:
       +schema: mart
       +materialized: table
+      # A table dbt has just rebuilt has no statistics until autovacuum reaches it, and the
+      # next model plans its joins blind. On 2026-11-15, with 66 members tracked, the deploy
+      # job's rebuild of mart.member_feed ran 29 minutes on such a plan and was cut off by the
+      # job's time limit; the same statement had taken seconds in the ingest job minutes
+      # before. stg_bill_scope met the same thing on 2026-11-13. Every mart table is analysed
+      # as soon as it is built.
+      +post-hook: "analyze {{ this }}"
 
 seeds:
   term_tracker:
