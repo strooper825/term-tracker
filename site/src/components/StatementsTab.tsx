@@ -207,8 +207,8 @@ function PressPageLink({ model, name }: { model: StatementsModel; name: string }
         Press releases
       </h2>
       <p className="text-body text-ink2 leading-relaxed m-0 max-w-[62ch]">
-        {name}&rsquo;s office does not publish a press-release feed this site can read, so its
-        statements are not reproduced here. They are on the office&rsquo;s own website.
+        This site does not reproduce {name}&rsquo;s press releases. They are on the
+        office&rsquo;s own website.
       </p>
       <a
         href={model.pressUrl}
@@ -216,7 +216,7 @@ function PressPageLink({ model, name }: { model: StatementsModel; name: string }
         rel="noopener noreferrer"
         className="self-start text-base font-semibold text-white bg-navy rounded-ctl px-3.5 py-2"
       >
-        Press releases on {model.label} ↗
+        {model.isPressPage ? `Press releases on ${model.label}` : `Official website: ${model.label}`} ↗
       </a>
     </section>
   );
@@ -232,7 +232,10 @@ export function StatementsTab({ model, name }: { model: StatementsModel; name: s
             ? `Press releases as published on ${model.label}, refreshed nightly. Search covers each release’s title, topics and opening text. These are the office’s words, not this site’s; its own page is the record.`
             : 'The office’s own page is the record; this site links to it and does not copy it.'}
         </p>
-        <SourceLink href={model.pressUrl} title="Open the office’s press page" />
+        <SourceLink
+          href={model.pressUrl}
+          title={model.isPressPage ? 'Open the office’s press page' : 'Open the office’s website'}
+        />
       </div>
     </div>
   );

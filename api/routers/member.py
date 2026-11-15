@@ -164,7 +164,7 @@ CONSTITUENCY_SQL = text(
 
 STATEMENT_SOURCE_SQL = text(
     """
-    SELECT mode, label, press_url, feed_url, statements, newest_published_at,
+    SELECT mode, link_kind, label, press_url, feed_url, statements, newest_published_at,
            source, source_url, fetched_at
     FROM mart.statement_source
     WHERE bioguide_id = :bioguide
@@ -567,6 +567,7 @@ def member_statements(
         return StatementsResponse(
             bioguide_id=bioguide,
             mode="none",
+            link_kind=None,
             label=None,
             press_url=None,
             feed_url=None,
@@ -583,6 +584,7 @@ def member_statements(
     return StatementsResponse(
         bioguide_id=bioguide,
         mode=source["mode"],
+        link_kind=source["link_kind"],
         label=source["label"],
         press_url=source["press_url"],
         feed_url=source["feed_url"],

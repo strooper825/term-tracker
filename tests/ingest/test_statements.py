@@ -141,8 +141,8 @@ def test_congress_start() -> None:
     assert congress_start(118) == date(2023, 1, 3)
 
 
-def test_statements_run_last_so_they_cannot_block_other_sources() -> None:
-    assert list(run.SOURCES)[-1] == statements.SOURCE
+def test_office_sites_are_read_last_so_they_cannot_block_other_sources() -> None:
+    assert list(run.SOURCES)[-2:] == [statements.SOURCE, "press_pages"]
 
 
 def test_a_missing_later_page_ends_the_feed_but_a_missing_first_page_does_not() -> None:

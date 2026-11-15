@@ -297,6 +297,8 @@ export interface StatementItem {
 export interface StatementsResponse {
   bioguide_id: string;
   mode: 'feed' | 'link' | 'none';
+  /** What press_url is: the office's press listing, or only its official website. */
+  link_kind: 'press_page' | 'official_website' | null;
   label: string | null;
   press_url: string | null;
   feed_url: string | null;

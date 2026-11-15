@@ -94,6 +94,17 @@ models:
         tests: [not_null]
       - name: full_name
         tests: [not_null]
+  - name: stg_press_pages
+    columns:
+      - name: bioguide_id
+        tests: [unique, not_null]
+      - name: outcome
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: { values: ["found", "not_found", "disallowed", "unreachable"] }
+      - name: site_url
+        tests: [not_null]
   - name: stg_statements
     columns:
       - name: title

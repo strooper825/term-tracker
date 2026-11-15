@@ -17,8 +17,11 @@ repository variable `BILL_INGEST_MODE` is set to `incremental`. Set it after fiv
 "Bill change filter" section reports every changed record. Not built yet: the nightly member-list
 spot check. Step 3 is done: the 119th is loaded and the queue is empty (2026-11-15). Step 4's
 loader is built: FEC is read in batches and identity records weekly; the panel's "last checked"
-and "next report due" dates and the per-source freshness thresholds are not. Steps 5 to 7 are
-not started.
+and "next report due" dates and the per-source freshness thresholds are not. Step 5 is built:
+a tracked member with no row in `seed.statement_sources` links out, to the press page a monthly
+probe finds on the office's site, else to the official website. The probe runs inside the
+nightly and does its own monthly timing, so no source needed its own freshness threshold and
+none was added. Steps 6 and 7 are not started.
 
 ## Order of work
 

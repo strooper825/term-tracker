@@ -41,3 +41,5 @@ sources:
         description: ACS 5-year estimates and margins of error for one state or House district per release, verbatim from the Census Data API.
       - name: statement
         description: One press-release feed item of a tracked member (seed.statement_sources, ADR 0015); payload is the parsed item.
+      - name: press_page
+        description: Result of the latest press-page probe of a tracked member's official website (ADR 0023); payload holds outcome, press_url and detail.
