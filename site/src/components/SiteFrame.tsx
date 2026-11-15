@@ -6,6 +6,8 @@ import { loadSite } from '@/lib/content';
 import { ELECTION_LINKS } from '@/lib/sections';
 import { Logo } from './Logo';
 import { NavMenu } from './NavMenu';
+import { bannerExpired } from '@/lib/banner';
+import { SiteBanner } from './SiteBanner';
 import { ArchiveNotice, newTab } from './SiteChrome';
 
 /** Which top-level section a page belongs to; the header underlines it. */
@@ -191,8 +193,11 @@ export function PageShell({
   wide?: boolean;
   children: ReactNode;
 }) {
+  // the owner's notice; one that is already past its end date at build time is left out
+  const { banner } = loadSite();
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
+      {banner && !bannerExpired(banner.until) ? <SiteBanner banner={banner} /> : null}
       <SiteHeader active={active} />
       <div className="flex-1 flex justify-center">
         {wide ? (

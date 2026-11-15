@@ -4,5 +4,13 @@
   "mission": "Term follows members of Congress through their terms using public records from Congress.gov, Senate.gov and the FEC. Everything is refreshed nightly, and every number links to its source.",
   "kofiUrl": "",
   "contactEmail": "",
-  "socials": []
+  "socials": [],
+  "banner": {
+    "show": false,
+    "message": "",
+    "linkText": "",
+    "linkUrl": "",
+    "until": "",
+    "style": "Announcement"
+  }
 }
