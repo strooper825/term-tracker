@@ -15,40 +15,10 @@ set default_transaction_read_only = on;
 insert into cand values
     ('T000250', 'John Thune', 'S'),
     ('S000148', 'Charles E. Schumer', 'S'),
-    ('B001261', 'John Barrasso', 'S'),
-    ('D000563', 'Richard J. Durbin', 'S'),
     ('C001035', 'Susan M. Collins', 'S'),
     ('M001111', 'Patty Murray', 'S'),
     ('C000880', 'Mike Crapo', 'S'),
-    ('W000779', 'Ron Wyden', 'S'),
-    ('G000386', 'Chuck Grassley', 'S'),
-    ('W000437', 'Roger F. Wicker', 'S'),
-    ('R000122', 'Jack Reed', 'S'),
-    ('S001181', 'Jeanne Shaheen', 'S'),
-    ('C001098', 'Ted Cruz', 'S'),
-    ('S001184', 'Tim Scott', 'S'),
-    ('W000817', 'Elizabeth Warren', 'S'),
-    ('C001075', 'Bill Cassidy', 'S'),
-    ('C001047', 'Shelley Moore Capito', 'S'),
-    ('L000577', 'Mike Lee', 'S'),
-    ('H001046', 'Martin Heinrich', 'S'),
-    ('M000934', 'Jerry Moran', 'S'),
-    ('M001153', 'Lisa Murkowski', 'S'),
-    ('K000367', 'Amy Klobuchar', 'S'),
-    ('W000805', 'Mark R. Warner', 'S'),
-    ('L000575', 'James Lankford', 'S'),
-    ('S001217', 'Rick Scott', 'S'),
-    ('B001288', 'Cory A. Booker', 'S'),
-    ('C001113', 'Catherine Cortez Masto', 'S'),
-    ('S001194', 'Brian Schatz', 'S'),
-    ('C001088', 'Christopher A. Coons', 'S'),
-    ('B001319', 'Katie Boyd Britt', 'S'),
-    ('K000377', 'Mark Kelly', 'S'),
-    ('B001267', 'Michael F. Bennet', 'S'),
-    ('H001089', 'Josh Hawley', 'S'),
     ('F000479', 'John Fetterman', 'S'),
-    ('A000382', 'Angela D. Alsobrooks', 'S'),
-    ('M001242', 'Bernie Moreno', 'S'),
     ('S001176', 'Steve Scalise', 'H'),
     ('E000294', 'Tom Emmer', 'H'),
     ('C001101', 'Katherine M. Clark', 'H'),
@@ -120,21 +90,23 @@ where not exists (
 select
     (select count(*) from raw.bill where congress = 119) as bills_in_congress,
     (select count(*) from cur) as pages_today,
-    (select count(*) from (select distinct bill_type, bill_number from added) as a) as added_by_all_80,
+    (select count(*) from (select distinct bill_type, bill_number from added) as a) as added_by_all,
     (select count(*) from (select distinct bill_type, bill_number from added where chamber = 'S') as a) as added_by_senators_alone,
-    (select count(*) from (select distinct bill_type, bill_number from added where chamber = 'H') as a) as added_by_house_alone;
+    (select count(*) from (select distinct bill_type, bill_number from added where chamber = 'H') as a) as added_by_house_alone,
+    (select count(*) from (select distinct bill_type, bill_number from added
+        where bioguide_id not in ('B001298', 'N000191', 'T000487', 'M001238')) as a) as added_without_bacon_neguse_tokuda_mcbride;
 
-\echo '### Pages by type, today and with all 80'
+\echo '### Pages by type, today and with all candidates'
 select bill_type,
     count(*) filter (where today) as today,
-    count(*) as with_all_80
+    count(*) as with_all
 from (
     select bill_type, bill_number, true as today from cur
     union all
     select distinct bill_type, bill_number, false from added
 ) as u
 group by bill_type
-order by with_all_80 desc;
+order by with_all desc;
 
 \echo '### Per candidate: bills touched, pages not on the site today, pages only this candidate brings'
 with only_one as (
