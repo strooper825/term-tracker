@@ -10,7 +10,7 @@ or changes a table (docs/PLAN.md, section 11).
 | `raw` | `ingest/` | Source payloads as JSONB plus extracted natural-key columns. One table per source entity. |
 | `staging` | dbt | Typed, renamed views over `raw` (`stg_*`). |
 | `mart` | dbt | Tables the API reads. Every mart table carries `source`, `source_url`, `fetched_at`. |
-| `seed` | dbt seeds | Hand-maintained inputs: `fips`, `tracked_members`, `key_dates`, `composition_seats`. |
+| `seed` | dbt seeds | Hand-maintained inputs: `fips`, `tracked_members`, `key_dates`, `election_dates`, `composition_seats`. |
 | `meta` | `ingest/` and Alembic | Operational metadata about the pipeline itself. |
 
 Alembic's own `alembic_version` table lives in `public`.
@@ -228,6 +228,7 @@ every state and district. The Data API needs `CENSUS_API_KEY`.
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
 | `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
+| `seed.election_dates` | `cycle`, `state`, `office`, `districts`, `event`, `date` | The states' congressional election calendars (ADR 0023). `office` is blank when the date is the same for the House and the Senate, else `house` or `senate`; `districts` (space-separated) only when a House date applies to some districts; `event` is `filing_deadline`, `primary`, `primary_runoff` or `general_runoff`; `qualifier` is a short tag for the label (noon, incumbents, if needed); `basis` is `official`, `statutory` or `projected`; `rule` is the statute or the reason where a person wrote one down; `checked_on`. Holds 2026 for all 50 states (119 rows), from the FEC's "2026 Congressional Primary Dates and Candidate Filing Deadlines for Ballot Access" (data as of 2026-05-18); its primary and runoff dates agree with NCSL's table of 2026-05-27. Arkansas's filing deadline (2025-11-12) is the state's; the FEC lists November 11. Changes after May 2026 were not checked. |
 | `seed.statement_sources` | `bioguide_id` | How the Public statements tab treats each tracked member (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
 | `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
@@ -713,8 +714,14 @@ member's attendance figure.
 
 ### `mart.key_date`
 
-The `key_dates` seed with `source`, `source_url`, `fetched_at`. `/members/{id}/key-dates`
-returns rows scoped to `congress`, the member's chamber, the member's state, or the member.
+The `key_dates` seed, and the current cycle's rows of the `election_dates` seed as `state`
+rows, with `source` (`key_dates_seed` or `election_dates_seed`), `source_url`, `fetched_at`.
+An election-calendar row's `label` is built from the state, the office when the date is for
+one chamber, the event, the districts when it is for some, and the qualifier: "Wisconsin
+primary", "Louisiana Senate primary", "Alabama House primary, districts 1, 2, 6, 7", "Georgia
+primary runoff (if needed)". `office` and `districts` are null unless the row is narrowed.
+`/members/{id}/key-dates` returns rows scoped to `congress`, the member's chamber, the member,
+or the member's state where `office` and `districts` are null or match the member's seat.
 
 ### `mart.member_vote_stats`
 

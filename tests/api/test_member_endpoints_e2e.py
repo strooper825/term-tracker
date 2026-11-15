@@ -124,12 +124,12 @@ def test_independents_are_scored_against_their_caucus(built_mart: None, client: 
 
 def test_key_dates_cover_every_tracked_state(built_mart: None, client: TestClient) -> None:
     for path, label in [
-        (SANDERS, "Vermont primary election"),
-        (SLOTKIN, "Michigan August primary"),
-        (KILEY, "California statewide direct primary"),
-        (JEFFRIES, "New York federal and state primary"),
-        (STEIL, "Wisconsin partisan primary"),
-        (COTTON, "Arkansas preferential primary"),
+        (SANDERS, "Vermont primary"),
+        (SLOTKIN, "Michigan primary"),
+        (KILEY, "California primary"),
+        (JEFFRIES, "New York primary"),
+        (STEIL, "Wisconsin primary"),
+        (COTTON, "Arkansas primary"),
     ]:
         items = client.get(f"{path}/key-dates").json()["items"]
         assert label in {i["label"] for i in items}, path
@@ -285,12 +285,14 @@ def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
 
     steil_dates = client.get(f"{STEIL}/key-dates").json()
     labels = {d["label"] for d in steil_dates["items"]}
-    assert "General election day" in labels and "Wisconsin partisan primary" in labels
+    assert "General election day" in labels and "Wisconsin primary" in labels
+    assert "Wisconsin candidate filing deadline (5 p.m.)" in labels
     assert not any("Arkansas" in label for label in labels)
     assert steil_dates["items"] == sorted(steil_dates["items"], key=lambda d: d["date"])
 
     cotton_dates = client.get(f"{COTTON}/key-dates").json()
-    assert any("Arkansas" in d["label"] for d in cotton_dates["items"])
+    cotton_labels = {d["label"] for d in cotton_dates["items"]}
+    assert "Arkansas primary runoff (if needed)" in cotton_labels
     assert all(d["source_url"] for d in cotton_dates["items"])
 
 
@@ -425,3 +427,57 @@ def test_constituency(built_mart: None, client: TestClient) -> None:
         body = client.get(f"{path}/constituency").json()
         assert body["label"] == label and body["map"] is not None
         assert body["demographics"]["population"]["value"] == population
+
+
+def _state_dates(engine, chamber: str, state: str, district: int | None) -> set[str]:
+    """Labels of the state rows the key-dates query gives a member of that seat."""
+    from api.routers.member import KEY_DATES_SQL
+
+    params = {"bioguide": "none", "chamber": chamber, "state": state, "district": district}
+    with engine.connect() as conn:
+        rows = conn.execute(KEY_DATES_SQL, params).mappings().all()
+    return {r["label"] for r in rows if r["scope"] == "state"}
+
+
+def test_key_dates_follow_the_office_and_the_district(built_mart: None, migrated_engine) -> None:
+    """No fixture member sits in a state whose 2026 dates differ by office or district."""
+    senate = _state_dates(migrated_engine, "senate", "LA", None)
+    house = _state_dates(migrated_engine, "house", "LA", 4)
+    assert "Louisiana Senate primary" in senate and "Louisiana House primary" not in senate
+    assert "Louisiana House primary" in house and "Louisiana Senate primary" not in house
+    assert "Louisiana House candidate filing deadline (4:30 p.m.)" in house
+
+    moved = _state_dates(migrated_engine, "house", "AL", 2)
+    kept = _state_dates(migrated_engine, "house", "AL", 3)
+    assert "Alabama House primary, districts 1, 2, 6, 7" in moved
+    assert "Alabama House primary, districts 3, 4, 5" not in moved
+    assert "Alabama House primary runoff, districts 3, 4, 5 (if needed)" in kept
+    assert "Alabama candidate filing deadline" in moved & kept
+    # a senator sees the statewide rows and the Senate's, never a district's
+    senator = _state_dates(migrated_engine, "senate", "AL", None)
+    assert senator == {
+        "Alabama candidate filing deadline",
+        "Alabama Senate primary",
+        "Alabama Senate primary runoff (if needed)",
+    }
+
+    assert _state_dates(migrated_engine, "house", "NE", 2) == {
+        "Nebraska candidate filing deadline (incumbents)",
+        "Nebraska candidate filing deadline (all others)",
+        "Nebraska primary",
+    }
+
+
+def test_every_state_has_a_filing_deadline_and_a_primary(built_mart: None, migrated_engine) -> None:
+    from sqlalchemy import text
+
+    with migrated_engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT scope_value, count(*) FILTER (WHERE label LIKE '%filing deadline%'), "
+                "count(*) FILTER (WHERE label LIKE '%primary%' AND label NOT LIKE '%runoff%') "
+                "FROM mart.key_date WHERE scope = 'state' GROUP BY 1"
+            )
+        ).all()
+    assert len(rows) == 50
+    assert all(filing >= 1 and primary >= 1 for _, filing, primary in rows)

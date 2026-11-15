@@ -45,8 +45,14 @@ so the archive should be built from the last nightly that ran before that happen
      party counts. Until this is edited `/congress` shows the old Congress's seats under the
      new Congress's name.
    - `senate_vp_party` in `dbt_project.yml` only if the Vice President changed.
-   - `dbt/seeds/key_dates.csv`: the new Congress's convening and end, the next general election,
-     and each tracked state's filing deadline and primary.
+   - `dbt/seeds/key_dates.csv`: the new Congress's convening and end, and the next general
+     election.
+   - `dbt/seeds/election_dates.csv`: the 2028 rows for all 50 states (filing deadline, primary,
+     runoff). The mart shows only the current cycle's rows, so until they are added the member
+     pages list no state dates. The FEC and most states had published no 2028 calendar by
+     November 2026: fill each state from its statutory rule with `basis` `projected`, and move
+     a row to `official` when the state or the FEC publishes it (ADR 0023; the owner decided on
+     2026-11-15 to add 2028 here, not before).
    - `ingest/census.py` and `api/config.py`: add the 120th to `GEOGRAPHY_CONGRESS` and move
      `census_geography_year` only when Census has published the `cd120` boundary file, and the
      same for ACS. Until then the Constituency tab says the data is not published, by design
