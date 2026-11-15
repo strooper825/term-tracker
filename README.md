@@ -88,9 +88,9 @@ python -m ingest.run --source census_acs
 
 The last command needs `FEC_API_KEY` in `.env`, the `tracked_members` seed, and the
 `legislators` source loaded first (it reads each member's FEC candidate ids from
-`raw.legislator`). It makes about four requests per member (68 for the twenty, in a few
-seconds) against OpenFEC's limit of 1,000 per hour and 60 per minute, and re-fetches
-everything each run. The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the
+`raw.legislator`). It asks for many ids at a time: about three requests for the twenty
+members, against OpenFEC's limit of 1,000 per hour and 60 per minute. Totals are read every
+run; candidates and committees once a week. The second command needs `CONGRESS_GOV_API_KEY` in `.env` and the
 `tracked_members` seed in the database (run the dbt command below once first). For the
 twenty tracked members it makes about 9,385 requests on a first load (4,581 distinct bills
 and amendments: member legislation plus the bills every roll call references; about 2 hours

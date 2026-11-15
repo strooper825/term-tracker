@@ -3,29 +3,37 @@
 Per tracked member (``seed.tracked_members`` joined to ``raw.legislator`` for the FEC
 candidate ids and the chamber of the latest term):
 
-1. Every candidate id in congress-legislators ``id.fec`` is fetched from ``/candidate/{id}/``
-   and stored in ``raw.fec_candidate``. The member's **current-office candidate** is the one
+1. Every candidate id in congress-legislators ``id.fec`` is read from ``/candidates/`` and
+   stored in ``raw.fec_candidate``. The member's **current-office candidate** is the one
    whose ``office`` letter matches the chamber (``H`` for the House, ``S`` for the Senate; the
    letter is also the first character of the id). Two matches is a shape the plan does not
    anticipate and stops the run; none means the member has no FEC record for this office.
-2. ``/candidate/{id}/committees/?cycle=`` lists the committees linked to that candidate in the
-   cycle; all of them are stored in ``raw.fec_committee``. The **principal campaign committee**
-   is the one with ``designation = 'P'``. Leadership PACs (``D``), joint fundraising
-   committees (``J``) and committees of prior offices are stored but never summed (ADR 0006).
-3. ``/committee/{id}/totals/?cycle=`` gives the committee's two-year totals, stored in
-   ``raw.fec_committee_totals``; an empty result means no report covers the cycle yet.
+2. ``/committees/?candidate_id=&cycle=`` lists the committees linked to those candidates in
+   the cycle; each is stored in ``raw.fec_committee`` once per tracked candidate it names.
+   The **principal campaign committee** is the one with ``designation = 'P'``. Leadership PACs
+   (``D``), joint fundraising committees (``J``) and committees of prior offices are stored
+   but never summed (ADR 0006).
+3. ``/totals/house-senate/?committee_id=&cycle=`` gives the principal committees' two-year
+   totals, stored in ``raw.fec_committee_totals``; a committee missing from the answer has no
+   report covering the cycle yet.
 
-Every record is re-fetched each run (four requests per member plus one per extra candidate
-id, about 35 a night for six members): the identity records are what decide which committee
-counts, and totals change whenever a report or amendment is processed, so nothing is worth
-skipping. ``--full-refresh`` therefore changes nothing for this source.
+All three are asked for many ids at a time (ADR 0023): about three requests a run for twenty
+members and about twenty for 535, where one request per record was 68 and about 1,820. The
+batched answers were compared with the per-record endpoints for all twenty tracked members on
+2026-11-15 and every field the pipeline declares was equal. ``source_url`` stays the
+per-record address, which returns exactly the stored record.
+
+Totals are read every run: they change whenever a report or amendment is processed. The
+identity records of steps 1 and 2 decide which committee counts and change rarely, so they are
+read again only when the stored ones are a week old, when a tracked member has none, or with
+``--full-refresh``; in between, the stored records choose the committees.
 """
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from datetime import UTC, datetime
+from collections.abc import Iterator, Sequence
+from datetime import UTC, datetime, timedelta
 from typing import Any, NamedTuple
 
 from psycopg import Connection
@@ -45,6 +53,16 @@ log = logging.getLogger("ingest.fec")
 SOURCE = "fec"
 OFFICE_FOR_CHAMBER = {"house": "H", "senate": "S"}
 PRINCIPAL = "P"
+# Ids to a request. A page holds 100 results: one per candidate or committee asked for, so 100
+# of those fit a page. A candidate can have several committees, so fewer candidates go into a
+# committees request; the client follows the pages when there are more than 100 all the same.
+CANDIDATES_PER_REQUEST = 100
+COMMITTEES_PER_REQUEST = 100
+COMMITTEE_CANDIDATES_PER_REQUEST = 50
+# Stored candidate and committee records older than this are read again (see the module text).
+# Half a day short of a week, so a weekly refresh is not pushed to the next day by a run that
+# starts a little earlier than the one a week before.
+IDENTITY_MAX_AGE = timedelta(days=6, hours=12)
 
 
 class TrackedCandidate(NamedTuple):
@@ -53,44 +71,58 @@ class TrackedCandidate(NamedTuple):
     fec_ids: list[str]
 
 
-def fetch_candidate(client: FecClient, candidate_id: str) -> dict[str, Any] | None:
-    """The candidate record, or None when the API knows no such id."""
-    path = f"candidate/{candidate_id}"
-    results = client.get(path)["results"]
-    if not results:
-        return None
-    if len(results) != 1:
-        raise SourceShapeError(f"{path}: expected one result, got {len(results)}")
-    validate(Candidate, results[0], path)
-    if results[0]["candidate_id"] != candidate_id:
-        raise SourceShapeError(f"{path}: result is for {results[0]['candidate_id']}")
-    return results[0]
+def _batches(ids: Sequence[str], size: int) -> Iterator[list[str]]:
+    for start in range(0, len(ids), size):
+        yield list(ids[start : start + size])
 
 
-def fetch_candidate_committees(
-    client: FecClient, candidate_id: str, cycle: int
+def fetch_candidates(client: FecClient, candidate_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
+    """The candidate records by id. An id the API does not know is absent from the result."""
+    path = "candidates"
+    found: dict[str, dict[str, Any]] = {}
+    for batch in _batches(sorted(set(candidate_ids)), CANDIDATES_PER_REQUEST):
+        for index, item in enumerate(client.results(path, candidate_id=batch)):
+            validate(Candidate, item, f"{path}[{index}]")
+            candidate_id = item["candidate_id"]
+            if candidate_id not in batch or candidate_id in found:
+                raise SourceShapeError(f"{path}: {candidate_id} was not asked for, or came twice")
+            found[candidate_id] = item
+    return found
+
+
+def fetch_committees(
+    client: FecClient, candidate_ids: Sequence[str], cycle: int
 ) -> list[dict[str, Any]]:
-    path = f"candidate/{candidate_id}/committees"
-    items = client.results(path, cycle=cycle)
-    for index, item in enumerate(items):
-        validate(CandidateCommittee, item, f"{path}[{index}]")
-    return items
+    """Every committee linked in ``cycle`` to any of ``candidate_ids``, each once."""
+    path = "committees"
+    found: dict[str, dict[str, Any]] = {}
+    for batch in _batches(sorted(set(candidate_ids)), COMMITTEE_CANDIDATES_PER_REQUEST):
+        for index, item in enumerate(client.results(path, candidate_id=batch, cycle=cycle)):
+            validate(CandidateCommittee, item, f"{path}[{index}]")
+            if not set(item["candidate_ids"]) & set(batch):
+                raise SourceShapeError(
+                    f"{path}: {item['committee_id']} names none of the candidates asked for"
+                )
+            found[item["committee_id"]] = item
+    return list(found.values())
 
 
-def fetch_committee_totals(
-    client: FecClient, committee_id: str, cycle: int
-) -> dict[str, Any] | None:
-    """The committee's totals for ``cycle``, or None when no report covers the cycle."""
-    path = f"committee/{committee_id}/totals"
-    items = client.results(path, cycle=cycle)
-    if not items:
-        return None
-    if len(items) != 1:
-        raise SourceShapeError(f"{path}?cycle={cycle}: expected one result, got {len(items)}")
-    validate(CommitteeTotals, items[0], path)
-    if items[0]["cycle"] != cycle or items[0]["committee_id"] != committee_id:
-        raise SourceShapeError(f"{path}: result is for another committee or cycle")
-    return items[0]
+def fetch_totals(
+    client: FecClient, committee_ids: Sequence[str], cycle: int
+) -> dict[str, dict[str, Any]]:
+    """Totals for ``cycle`` by committee id. A committee with no report yet is absent."""
+    path = "totals/house-senate"
+    found: dict[str, dict[str, Any]] = {}
+    for batch in _batches(sorted(set(committee_ids)), COMMITTEES_PER_REQUEST):
+        for index, item in enumerate(client.results(path, committee_id=batch, cycle=cycle)):
+            validate(CommitteeTotals, item, f"{path}[{index}]")
+            committee_id = item["committee_id"]
+            if item["cycle"] != cycle or committee_id not in batch:
+                raise SourceShapeError(f"{path}: result is for another committee or cycle")
+            if committee_id in found:
+                raise SourceShapeError(f"{path}: two totals records for {committee_id}")
+            found[committee_id] = item
+    return found
 
 
 def select_candidate(chamber: str, candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -141,122 +173,205 @@ def tracked_candidates(conn: Connection, bioguide_ids: Sequence[str]) -> list[Tr
     return found
 
 
+def identity_is_fresh(conn: Connection, members: Sequence[TrackedCandidate], now: datetime) -> bool:
+    """True when every member with FEC ids has a stored candidate and none is a week old."""
+    with_ids = [m.bioguide_id for m in members if m.fec_ids]
+    if not with_ids:
+        return True
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(DISTINCT bioguide_id), min(fetched_at) FROM raw.fec_candidate "
+            "WHERE bioguide_id = ANY(%s)",
+            (with_ids,),
+        )
+        row = cur.fetchone()
+    assert row is not None
+    members_stored, oldest = row
+    return members_stored == len(with_ids) and now - oldest < IDENTITY_MAX_AGE
+
+
+def stored_identity(
+    conn: Connection, members: Sequence[TrackedCandidate], cycle: int
+) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    """Candidates by id, and committees by candidate id, as the last identity read left them."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT candidate_id, payload FROM raw.fec_candidate WHERE bioguide_id = ANY(%s)",
+            ([m.bioguide_id for m in members],),
+        )
+        candidates = {row[0]: row[1] for row in cur.fetchall()}
+        cur.execute(
+            "SELECT candidate_id, payload FROM raw.fec_committee "
+            "WHERE cycle = %s AND candidate_id = ANY(%s)",
+            (cycle, list(candidates)),
+        )
+        committees: dict[str, list[dict[str, Any]]] = {}
+        for candidate_id, payload in cur.fetchall():
+            committees.setdefault(candidate_id, []).append(payload)
+    return candidates, committees
+
+
+def refresh_identity(
+    conn: Connection,
+    client: FecClient,
+    members: Sequence[TrackedCandidate],
+    cycle: int,
+    fetched_at: datetime,
+) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]], int]:
+    """Read and store candidates and committees. Returns them and the rows stored."""
+    candidates = fetch_candidates(client, [i for m in members for i in m.fec_ids])
+    owner = {i: m.bioguide_id for m in members for i in m.fec_ids}
+    for candidate_id in sorted(set(owner) - set(candidates)):
+        log.warning("%s: FEC knows no candidate %s", owner[candidate_id], candidate_id)
+    rows = upsert(
+        conn,
+        "raw",
+        "fec_candidate",
+        ["candidate_id"],
+        [
+            {
+                "candidate_id": candidate_id,
+                "bioguide_id": owner[candidate_id],
+                "payload": Jsonb(record),
+                "source_url": client.url(f"candidate/{candidate_id}"),
+                "fetched_at": fetched_at,
+            }
+            for candidate_id, record in candidates.items()
+        ],
+    )
+    current = current_office_candidates(members, candidates)
+    wanted = set(current.values())
+    committees: dict[str, list[dict[str, Any]]] = {}
+    for item in fetch_committees(client, sorted(wanted), cycle):
+        # A joint fundraising committee can name two tracked members: one row for each.
+        for candidate_id in sorted(wanted & set(item["candidate_ids"])):
+            committees.setdefault(candidate_id, []).append(item)
+    # The stored links choose the committee between identity reads and the mart lists them
+    # all, so a link the FEC no longer reports must not outlive this read.
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM raw.fec_committee WHERE cycle = %s AND fetched_at < %s",
+            (cycle, fetched_at),
+        )
+    rows += upsert(
+        conn,
+        "raw",
+        "fec_committee",
+        ["committee_id", "cycle", "candidate_id"],
+        [
+            {
+                "committee_id": item["committee_id"],
+                "cycle": cycle,
+                "candidate_id": candidate_id,
+                "payload": Jsonb(item),
+                "source_url": client.url(f"candidate/{candidate_id}/committees", cycle=cycle),
+                "fetched_at": fetched_at,
+            }
+            for candidate_id, items in committees.items()
+            for item in items
+        ],
+    )
+    return candidates, committees, rows
+
+
+def current_office_candidates(
+    members: Sequence[TrackedCandidate], candidates: dict[str, dict[str, Any]]
+) -> dict[str, str]:
+    """bioguide id -> the candidate id for the member's current office, where there is one."""
+    current = {}
+    for member in members:
+        known = [candidates[i] for i in member.fec_ids if i in candidates]
+        candidate = select_candidate(member.chamber, known)
+        if candidate is None:
+            log.warning(
+                "%s: no FEC candidate id for the %s among %s",
+                member.bioguide_id,
+                member.chamber,
+                member.fec_ids or "no ids",
+            )
+            continue
+        current[member.bioguide_id] = candidate["candidate_id"]
+    return current
+
+
 def load(
     conn: Connection,
     client: FecClient,
     bioguide_ids: Sequence[str],
     cycle: int,
     *,
-    full_refresh: bool = False,  # noqa: ARG001 - every record is re-fetched each run
+    full_refresh: bool = False,
+    now: datetime | None = None,
 ) -> int:
     """Load candidates, committees, and totals for ``bioguide_ids``. Returns rows loaded."""
     with record_run(conn, SOURCE, BASE_URL) as run:
-        fetched_at = datetime.now(UTC)
+        fetched_at = now or datetime.now(UTC)
         total = 0
         members = tracked_candidates(conn, bioguide_ids)
-        filed = 0
-        for member in members:
-            candidates = []
-            for candidate_id in member.fec_ids:
-                record = fetch_candidate(client, candidate_id)
-                if record is None:
-                    log.warning("%s: FEC knows no candidate %s", member.bioguide_id, candidate_id)
-                    continue
-                candidates.append(record)
-                total += upsert(
-                    conn,
-                    "raw",
-                    "fec_candidate",
-                    ["candidate_id"],
-                    [
-                        {
-                            "candidate_id": candidate_id,
-                            "bioguide_id": member.bioguide_id,
-                            "payload": Jsonb(record),
-                            "source_url": client.url(f"candidate/{candidate_id}"),
-                            "fetched_at": fetched_at,
-                        }
-                    ],
-                )
-            candidate = select_candidate(member.chamber, candidates)
-            if candidate is None:
-                log.warning(
-                    "%s: no FEC candidate id for the %s among %s",
-                    member.bioguide_id,
-                    member.chamber,
-                    member.fec_ids or "no ids",
-                )
-                continue
-            candidate_id = candidate["candidate_id"]
-
-            committees = fetch_candidate_committees(client, candidate_id, cycle)
-            total += upsert(
-                conn,
-                "raw",
-                "fec_committee",
-                ["committee_id", "cycle"],
-                [
-                    {
-                        "committee_id": item["committee_id"],
-                        "cycle": cycle,
-                        "candidate_id": candidate_id,
-                        "payload": Jsonb(item),
-                        "source_url": client.url(
-                            f"candidate/{candidate_id}/committees", cycle=cycle
-                        ),
-                        "fetched_at": fetched_at,
-                    }
-                    for item in committees
-                ],
+        if full_refresh or not identity_is_fresh(conn, members, fetched_at):
+            candidates, committees, total = refresh_identity(
+                conn, client, members, cycle, fetched_at
             )
-            principal = select_principal_committee(committees)
-            if principal is None:
+            current = current_office_candidates(members, candidates)
+        else:
+            log.info("candidates and committees are under a week old: reading totals only")
+            candidates, committees = stored_identity(conn, members, cycle)
+            current = current_office_candidates(members, candidates)
+
+        principal: dict[str, dict[str, Any]] = {}
+        for bioguide_id, candidate_id in current.items():
+            linked = committees.get(candidate_id, [])
+            committee = select_principal_committee(linked)
+            if committee is None:
                 log.warning(
                     "%s: %s has no principal campaign committee in cycle %d (%d committees)",
-                    member.bioguide_id,
+                    bioguide_id,
                     candidate_id,
                     cycle,
-                    len(committees),
+                    len(linked),
                 )
                 continue
-            committee_id = principal["committee_id"]
+            principal[bioguide_id] = committee
 
-            totals = fetch_committee_totals(client, committee_id, cycle)
-            if totals is None:
+        totals = fetch_totals(client, [c["committee_id"] for c in principal.values()], cycle)
+        total += upsert(
+            conn,
+            "raw",
+            "fec_committee_totals",
+            ["committee_id", "cycle"],
+            [
+                {
+                    "committee_id": committee_id,
+                    "cycle": cycle,
+                    "payload": Jsonb(record),
+                    "source_url": client.url(f"committee/{committee_id}/totals", cycle=cycle),
+                    "fetched_at": fetched_at,
+                }
+                for committee_id, record in totals.items()
+            ],
+        )
+        for bioguide_id, committee in principal.items():
+            committee_id = committee["committee_id"]
+            record = totals.get(committee_id)
+            if record is None:
                 log.warning(
-                    "%s: %s has no totals for cycle %d yet", member.bioguide_id, committee_id, cycle
+                    "%s: %s has no totals for cycle %d yet", bioguide_id, committee_id, cycle
                 )
                 continue
-            total += upsert(
-                conn,
-                "raw",
-                "fec_committee_totals",
-                ["committee_id", "cycle"],
-                [
-                    {
-                        "committee_id": committee_id,
-                        "cycle": cycle,
-                        "payload": Jsonb(totals),
-                        "source_url": client.url(f"committee/{committee_id}/totals", cycle=cycle),
-                        "fetched_at": fetched_at,
-                    }
-                ],
-            )
-            filed += 1
             log.info(
                 "%s: %s -> %s (%s), receipts %.2f through %s",
-                member.bioguide_id,
-                candidate_id,
+                bioguide_id,
+                current[bioguide_id],
                 committee_id,
-                principal["name"],
-                totals.get("receipts") or 0.0,
-                totals.get("coverage_end_date"),
+                committee["name"],
+                record.get("receipts") or 0.0,
+                record.get("coverage_end_date"),
             )
 
         log.info(
             "%d tracked members, %d with cycle %d totals, %d API requests",
             len(members),
-            filed,
+            sum(1 for c in principal.values() if c["committee_id"] in totals),
             cycle,
             client.requests_made,
         )

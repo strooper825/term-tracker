@@ -59,7 +59,8 @@ class FecClient:
 
     @staticmethod
     def url(path: str, **params: Any) -> str:
-        query = urlencode({k: v for k, v in params.items() if v is not None})
+        # doseq: a list value (many ids to one request) becomes one repeated parameter
+        query = urlencode({k: v for k, v in params.items() if v is not None}, doseq=True)
         return f"{BASE_URL}/{path.strip('/')}/" + (f"?{query}" if query else "")
 
     def get(self, path: str, **params: Any) -> dict[str, Any]:
