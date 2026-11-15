@@ -1,10 +1,9 @@
 -- One row: every aggregate figure on /congress (ADR 0013), plus the Congress's own dates. The
 -- site renders these columns and computes nothing; percentages are here, rounded to one decimal.
 --
--- Every legislative figure covers every bill in mart.bill (kind bill), whoever sponsored it: the
--- bills a tracked member sponsored or cosponsored plus any bill a loaded roll call names. That
--- is not every bill in Congress, so the first figure is named bills_in_dataset rather than
--- "introduced". tracked_members is only there so the page can say whose bills seeded the dataset.
+-- Every legislative figure covers every bill of the Congress that raw holds (kind bill),
+-- whoever sponsored it: since ADR 0023 that is the whole Congress. The first figure keeps the
+-- name bills_in_dataset from when it was a subset; it is now the bills introduced.
 with bills as (
     select
         count(*) as bills_in_dataset,

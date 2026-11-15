@@ -69,12 +69,15 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
               {row.label} <span aria-hidden>↗</span>
               <span className="sr-only"> (opens Congress.gov)</span>
             </a>
-            <a
-              href={row.billPath}
-              className="text-body text-ink leading-snug underline decoration-rule underline-offset-2"
-            >
-              {row.title}
-            </a>
+            {row.billPath ? (
+              <a href={row.billPath} className="text-body text-ink leading-snug underline decoration-rule underline-offset-2">
+                {row.title}
+              </a>
+            ) : (
+              // no page here for a bill none of the tracked members touched: the label beside it
+              // already opens Congress.gov
+              <span className="text-body text-ink leading-snug">{row.title}</span>
+            )}
             <span className="text-meta text-ink2 tnum">
               <span className="md:hidden text-label uppercase text-ink2">House </span>
               {row.houseVote}

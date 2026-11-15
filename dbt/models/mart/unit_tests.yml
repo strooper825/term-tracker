@@ -6,7 +6,7 @@ unit_tests:
   - name: congress_bill_outcome_outcomes
     model: congress_bill_outcome
     given:
-      - input: ref('bill')
+      - input: ref('bill_index')
         rows:
           - {congress: 119, bill_type: hr, bill_number: "1", kind: bill, label: "H.R. 1", origin_chamber: House}
           - {congress: 119, bill_type: hr, bill_number: "2", kind: bill, label: "H.R. 2", origin_chamber: House}
@@ -44,7 +44,7 @@ unit_tests:
           - {congress: 119, bill_type: hr, bill_number: "8", stage_key: senate_vote, status: passed}
           - {congress: 119, bill_type: hr, bill_number: "8", stage_key: to_president, status: pending}
           - {congress: 119, bill_type: hr, bill_number: "8", stage_key: became_law, status: pending}
-      - input: ref('bill_action')
+      - input: ref('stg_bill_action_codes')
         format: sql
         rows: |
           select 119 as congress, 'hr' as bill_type, '1' as bill_number, 'E30000' as action_code, 'President' as action_type, 'Vetoed by President.' as action_text, '2025-12-29'::date as action_date

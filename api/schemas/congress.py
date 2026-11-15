@@ -51,11 +51,11 @@ class Composition(BaseModel):
 
 
 class Activity(BaseModel):
-    """Every bill in the dataset, whoever sponsored it (ADR 0013)."""
+    """Every bill of the Congress, whoever sponsored it (ADR 0013, ADR 0023)."""
 
     tracked_members: int
     bills_in_dataset: int = Field(
-        description="Bills the counts are drawn from: not every bill in Congress"
+        description="Bills introduced in the Congress; the counts are drawn from all of them"
     )
     bills_house: int = Field(description="By chamber of origin")
     bills_senate: int
@@ -85,6 +85,7 @@ class PassedBothItem(BaseModel):
     senate_yea: int | None = Field(description="Null when the Senate left no passage roll call")
     senate_nay: int | None
     congress_gov_url: str
+    has_page: bool = Field(description="Whether /bills/{congress}/{type}/{number} exists")
 
 
 class PassedBoth(BaseModel):

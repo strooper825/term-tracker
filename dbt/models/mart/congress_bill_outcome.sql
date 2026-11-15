@@ -1,8 +1,11 @@
--- One row per bill (kind bill) in mart.bill, with the outcome facts the Congress overview
--- counts (ADR 0013). mart.bill holds every bill a tracked member sponsored or cosponsored plus
--- every bill a loaded roll call names, so this is not every bill in Congress. The "Passed both
--- chambers" table and every stat on the page read all of it, so the page and a manual query
--- read the same rows.
+-- One row per bill (kind bill) of the Congress, with the outcome facts the Congress overview
+-- counts (ADR 0013). Since raw holds the whole Congress (ADR 0023) this is every bill in it,
+-- from mart.bill_index, and not only the ones with a page; has_page says which is which. The
+-- "Passed both chambers" table and every stat on the page read all of it, so the page and a
+-- manual query read the same rows.
+--
+-- A bill without a page has no journey stages and no passage roll call in the mart; its
+-- outcome is read from its action codes alone, which is also how a voice vote is counted.
 --
 -- passed_house / passed_senate: the chamber's stage in mart.bill_journey_stage is passed (a
 -- passage roll call), or the Library of Congress recorded "Passed/agreed to in House" (action
@@ -21,10 +24,11 @@ with bills as (
         title,
         origin_chamber,
         congress_gov_url,
+        has_page,
         source,
         source_url,
         fetched_at
-    from {{ ref('bill') }}
+    from {{ ref('bill_index') }}
     where kind = 'bill'
 ),
 
@@ -60,7 +64,7 @@ late as (
         min(action_date) filter (where action_code = '17000') as senate_passed_date,
         max(substring(action_text from 'Public Law No: ([0-9]+-[0-9]+)'))
             filter (where action_code = 'E40000') as public_law_number
-    from {{ ref('bill_action') }}
+    from {{ ref('stg_bill_action_codes') }}
     group by 1, 2, 3
 ),
 
@@ -87,7 +91,7 @@ joined as (
             or coalesce(l.senate_passed_action, false) as passed_senate,
         l.house_passed_date,
         l.senate_passed_date,
-        coalesce(s.law_status = 'complete', false) as became_law,
+        coalesce(s.law_status = 'complete', false) or l.law_date is not null as became_law,
         coalesce(l.vetoed, false) as vetoed,
         l.veto_date,
         l.law_date,
@@ -141,6 +145,7 @@ select
     senate_yea,
     senate_nay,
     congress_gov_url,
+    has_page,
     source,
     source_url,
     fetched_at

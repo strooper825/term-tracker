@@ -17,6 +17,7 @@ export const HR1: PassedBothItem = {
   senate_yea: 50,
   senate_nay: 50,
   congress_gov_url: `${CG}/house-bill/1`,
+  has_page: true,
 };
 
 export const PASSED_ITEMS: PassedBothItem[] = [
@@ -35,6 +36,7 @@ export const PASSED_ITEMS: PassedBothItem[] = [
     senate_yea: null,
     senate_nay: null,
     congress_gov_url: `${CG}/senate-bill/4530`,
+    has_page: true,
   },
   {
     congress: 119,
@@ -50,6 +52,7 @@ export const PASSED_ITEMS: PassedBothItem[] = [
     senate_yea: null,
     senate_nay: null,
     congress_gov_url: `${CG}/senate-bill/4465`,
+    has_page: true,
   },
   {
     congress: 119,
@@ -65,6 +68,7 @@ export const PASSED_ITEMS: PassedBothItem[] = [
     senate_yea: null,
     senate_nay: null,
     congress_gov_url: `${CG}/house-bill/4405`,
+    has_page: true,
   },
 ];
 
@@ -87,6 +91,7 @@ const ADOPTED: PassedBothItem[] = [
   senate_yea: null,
   senate_nay: null,
   congress_gov_url: `${CG}/${type === 'hconres' ? 'house' : 'senate'}-concurrent-resolution/${number}`,
+  has_page: true,
 }));
 
 const BOTH: PassedBothItem[] = [
