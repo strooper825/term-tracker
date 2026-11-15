@@ -49,7 +49,7 @@ function ChamberBarBlock({ bar }: { bar: ChamberBar }) {
     <div className="flex flex-col gap-2.5">
       <div className="flex items-baseline gap-2.5 flex-wrap">
         <h3 className="text-heading font-semibold text-ink m-0">{bar.name}</h3>
-        <span className="text-label uppercase text-ink3 tnum">{bar.seatsLine}</span>
+        <span className="text-meta text-ink2 tnum">{bar.seatsLine}</span>
       </div>
       <div className="flex flex-col gap-1.5 items-start">
         <ControlPill bar={bar} />
@@ -61,7 +61,7 @@ function ChamberBarBlock({ bar }: { bar: ChamberBar }) {
           className="absolute top-0 bottom-0 flex flex-col items-center pointer-events-none"
           style={{ left: `${bar.majorityPct}%`, transform: 'translateX(-50%)' }}
         >
-          <span className="text-label uppercase text-ink2 whitespace-nowrap tnum">
+          <span className="text-meta text-ink2 whitespace-nowrap tnum">
             {bar.majorityLabel}
           </span>
           <span aria-hidden className="flex-1 w-0.5 bg-ink" />
@@ -88,7 +88,7 @@ function ChamberBarBlock({ bar }: { bar: ChamberBar }) {
       </div>
       <ul className="m-0 p-0 list-none flex flex-wrap gap-x-5 gap-y-1.5">
         {bar.segments.map((seg) => (
-          <li key={seg.key} className="flex items-center gap-1.5 text-label uppercase text-ink2 tnum">
+          <li key={seg.key} className="flex items-center gap-1.5 text-meta text-ink2 tnum">
             <LegendSwatch style={fillOf(seg)} />
             {seg.legend}
           </li>
@@ -111,7 +111,7 @@ function CompositionCard({ model }: { model: CongressModel }) {
             All 535 seats
           </span>
         </div>
-        <span className="text-meta text-ink3">
+        <span className="text-meta text-ink2">
           Source:{' '}
           {composition.sources.map((s, i) => (
             <span key={s.href}>
@@ -149,7 +149,7 @@ function PassedBothCard({ model }: { model: CongressModel }) {
           <h2 id="passed-title" className="text-heading font-semibold text-ink m-0">
             Passed both chambers
           </h2>
-          <span className="text-label uppercase text-ink3 tnum">{passedBoth.meta}</span>
+          <span className="text-meta text-ink2 tnum">{passedBoth.meta}</span>
         </div>
       </div>
       <div className="px-[18px] py-4">
@@ -166,10 +166,10 @@ function StatGrid({ stats }: { stats: StatCell[] }) {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule rounded-card overflow-hidden">
       {stats.map((s) => (
         <div key={s.label} className="bg-card p-4 flex flex-col gap-1.5">
-          <span className="text-label uppercase text-ink3">{s.label}</span>
+          <span className="text-label uppercase text-ink2">{s.label}</span>
           <span className="text-stat font-semibold text-ink tnum">{s.value}</span>
           <span className="text-meta text-ink2 tnum">{s.sub}</span>
-          {s.note && <span className="text-meta text-ink3">{s.note}</span>}
+          {s.note && <span className="text-meta text-ink2">{s.note}</span>}
         </div>
       ))}
     </div>
@@ -185,7 +185,7 @@ function ActivityCard({ model }: { model: CongressModel }) {
           <h2 id="activity-title" className="text-heading font-semibold text-ink m-0">
             {activity.heading}
           </h2>
-          <span className="text-meta text-ink3 tnum">{activity.meta}</span>
+          <span className="text-meta text-ink2 tnum">{activity.meta}</span>
         </div>
       </div>
       <div className="px-[18px] py-4">
@@ -207,10 +207,10 @@ export function CongressOverview({
 
         <section className="px-7 pt-6 pb-6 border-b border-rule flex items-end justify-between gap-x-6 gap-y-2 flex-wrap">
           <div className="flex flex-col gap-1">
-            <p className="text-label uppercase text-ink3 m-0">Overview</p>
+            <p className="text-label uppercase text-ink2 m-0">Overview</p>
             <h1 className="text-title font-semibold text-ink m-0">{model.title}</h1>
           </div>
-          <div className="flex flex-col gap-0.5 sm:items-end text-meta text-ink3 tnum">
+          <div className="flex flex-col gap-0.5 sm:items-end text-meta text-ink2 tnum">
             <span>{model.dateRange}</span>
             <span>{model.seatedLine}</span>
           </div>
@@ -222,7 +222,7 @@ export function CongressOverview({
             <ActivityCard model={model} />
             <PassedBothCard model={model} />
           </div>
-          <p className="px-7 pb-6 text-label uppercase text-ink3 m-0 leading-relaxed">
+          <p className="px-7 pb-6 text-label uppercase text-ink2 m-0 leading-relaxed">
             {model.footnote}
           </p>
         </main>

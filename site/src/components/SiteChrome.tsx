@@ -39,7 +39,7 @@ const MEMBERS_ROOT: Crumb[] = [{ label: 'Members', href: '/members' }];
 
 export function Breadcrumb({ name, trail = MEMBERS_ROOT }: { name: string; trail?: Crumb[] }) {
   return (
-    <nav className="flex items-center gap-[7px] text-meta text-ink3 flex-wrap">
+    <nav className="flex items-center gap-[7px] text-meta text-ink2 flex-wrap">
       {trail.map((crumb) => (
         <span key={crumb.href} className="flex items-center gap-[7px]">
           <a href={crumb.href} className="text-ink2">
@@ -91,9 +91,13 @@ export function SourceLink({
       title={title}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex-none text-label uppercase text-ink2 border border-rule rounded-chip px-2 py-1"
+      className="flex-none inline-flex items-center gap-1 min-h-[32px] text-meta text-ink2 border border-rule rounded-ctl px-2.5 hover:border-ink3 hover:text-ink"
     >
-      source ↗
+      Source
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M7 17 17 7M9 7h8v8" />
+      </svg>
+      <span className="sr-only"> (opens in a new tab)</span>
     </a>
   );
 }
@@ -111,9 +115,9 @@ export function DetailsLink({
     <a
       href={href}
       title={title}
-      className="flex-none text-label uppercase text-ink2 border border-rule rounded-chip px-2 py-1 hover:border-lockInk hover:bg-canvas"
+      className="flex-none inline-flex items-center min-h-[32px] text-meta text-ink2 border border-rule rounded-ctl px-2.5 hover:border-ink3 hover:text-ink"
     >
-      Details →
+      Details
     </a>
   );
 }

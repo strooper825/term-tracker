@@ -233,9 +233,9 @@ export function BillBrowser() {
             </div>
           </div>
 
-          <ol className="m-0 p-0 list-none flex flex-col gap-2.5">
+          <ol className="m-0 p-0 list-none bg-card border border-rule rounded-card empty:hidden">
             {results.slice(0, shown).map((b) => (
-              <li key={b.key} className="bg-card border border-rule rounded-card px-[18px] py-3.5 flex flex-wrap items-start gap-x-5 gap-y-2.5">
+              <li key={b.key} className="px-[18px] py-3.5 flex flex-wrap items-start gap-x-5 gap-y-2.5 border-b border-ruleSoft last:border-b-0">
                 <div className="flex-[999_1_320px] min-w-0 flex flex-col gap-1">
                   <a
                     href={b.href}

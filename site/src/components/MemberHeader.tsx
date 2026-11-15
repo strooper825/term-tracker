@@ -43,7 +43,7 @@ export function MemberFacts({ facts }: { facts: HeaderFact[] }) {
       {facts.map((f, i) => (
         // the term dates are the longest value: a full row on a phone so they do not wrap
         <div key={f.label} className={`flex flex-col gap-1 min-w-0 ${i === 0 ? 'col-span-2 md:col-span-1' : ''}`}>
-          <dt className="text-label uppercase text-ink3">{f.label}</dt>
+          <dt className="text-label uppercase text-ink2">{f.label}</dt>
           <dd className="m-0 flex items-baseline gap-x-2 flex-wrap tnum">
             <span className="text-heading font-semibold text-ink">{f.value}</span>
             {f.note && <span className="text-meta text-ink2">{f.note}</span>}
@@ -63,7 +63,7 @@ export function StatStrip({ stats }: { stats: Stat[] }) {
         <div key={s.label} className="px-4 py-4 border-r border-b lg:border-b-0 border-rule flex flex-col gap-1.5">
           <div className="text-label uppercase text-ink2 leading-tight min-h-[16px]">{s.label}</div>
           <div className="text-stat font-semibold text-ink tnum leading-none">{s.value}</div>
-          <div className="text-meta text-ink3 tnum leading-snug">{s.note}</div>
+          <div className="text-meta text-ink2 tnum leading-snug">{s.note}</div>
         </div>
       ))}
     </div>
@@ -74,16 +74,16 @@ export function TermProgress({ term }: { term: TermModel }) {
   const pct = term.total > 0 ? Math.min(100, (term.elapsed / term.total) * 100) : 0;
   return (
     <div className="flex flex-col gap-[7px]">
-      <div className="flex justify-between items-baseline text-meta text-ink3 tnum">
+      <div className="flex justify-between items-baseline text-meta text-ink2 tnum">
         <span>
           Term progress · {formatNumber(term.elapsed)} of {formatNumber(term.total)} days elapsed
         </span>
         <span className="text-body font-semibold text-ink">{pct.toFixed(1)}%</span>
       </div>
-      <div className="h-2 bg-[#ECEEF3] rounded-[3px] overflow-hidden">
+      <div className="h-2 bg-lockBg rounded-[3px] overflow-hidden">
         <div className="h-full bg-navy" style={{ width: `${pct}%` }} />
       </div>
-      <div className="flex justify-between text-micro text-ink3 tnum">
+      <div className="flex justify-between text-micro text-ink2 tnum">
         <span>{term.start}</span>
         <span>{term.end}</span>
       </div>

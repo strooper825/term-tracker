@@ -61,13 +61,13 @@ function StatementCard({ s, terms }: { s: StatementRow; terms: string[] }) {
   return (
     <article className="flex flex-col gap-1.5 px-[18px] py-4 border-t border-rule">
       <div className="flex items-baseline gap-2 flex-wrap">
-        <time dateTime={s.isoDate} className="text-label uppercase text-ink3 tnum">
+        <time dateTime={s.isoDate} className="text-meta text-ink2 tnum">
           {s.dateLabel}
         </time>
         {s.categories.slice(0, 3).map((c) => (
           <span
             key={c}
-            className="text-micro uppercase text-ink3 border border-rule rounded-chip px-1.5 py-0.5"
+            className="text-micro uppercase text-ink2 border border-rule rounded-chip px-1.5 py-0.5"
           >
             {c}
           </span>
@@ -81,7 +81,7 @@ function StatementCard({ s, terms }: { s: StatementRow; terms: string[] }) {
           className="text-ink underline decoration-rule underline-offset-2 hover:decoration-ink3"
         >
           <Marked text={s.title} terms={terms} />
-          <span aria-hidden="true" className="text-ink3 no-underline">
+          <span aria-hidden="true" className="text-ink2 no-underline">
             {' '}
             ↗
           </span>
@@ -140,7 +140,7 @@ function StatementFeed({ model }: { model: StatementsModel }) {
           <h2 id="statements-title" className="text-heading font-semibold text-ink m-0">
             Press releases
           </h2>
-          <span className="text-label uppercase text-ink3 tnum">
+          <span className="text-meta text-ink2 tnum">
             {model.total.toLocaleString('en-US')} from {model.label}
             {model.newest ? ` · newest ${model.newest}` : ''}
           </span>
@@ -154,10 +154,10 @@ function StatementFeed({ model }: { model: StatementsModel }) {
           }}
           placeholder="Search press releases by title, topic or text…"
           aria-label="Search public statements"
-          className="text-body bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
+          className="min-h-[44px] text-base text-ink bg-card border border-lockRule rounded-ctl px-3 placeholder:text-ink2 focus:border-navy focus:outline-none"
         />
         {terms.length > 0 && (
-          <p role="status" className="text-meta text-ink3 m-0 tnum">
+          <p role="status" className="text-meta text-ink2 m-0 tnum">
             {list.length === 0 ? 'No press releases match.' : `${count} matching`}
             {list.length === 0 && (
               <>
@@ -184,11 +184,11 @@ function StatementFeed({ model }: { model: StatementsModel }) {
           <button
             type="button"
             onClick={() => setShown((n) => n + PAGE)}
-            className="text-label uppercase font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
+            className="min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
           >
             Show {Math.min(PAGE, more)} more
           </button>
-          <span className="text-meta text-ink3 tnum">
+          <span className="text-meta text-ink2 tnum">
             Showing {visible.length.toLocaleString('en-US')} of {count}
           </span>
         </div>
@@ -227,7 +227,7 @@ export function StatementsTab({ model, name }: { model: StatementsModel; name: s
     <div className="flex flex-col gap-5 max-w-[860px]">
       {model.mode === 'feed' ? <StatementFeed model={model} /> : <PressPageLink model={model} name={name} />}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-meta text-ink3 m-0 max-w-[62ch]">
+        <p className="text-meta text-ink2 m-0 max-w-[62ch]">
           {model.mode === 'feed'
             ? `Press releases as published on ${model.label}, refreshed nightly. Search covers each release’s title, topics and opening text. These are the office’s words, not this site’s; its own page is the record.`
             : 'The office’s own page is the record; this site links to it and does not copy it.'}

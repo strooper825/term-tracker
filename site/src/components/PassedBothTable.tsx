@@ -17,7 +17,7 @@ function OutcomeChip({ row }: { row: PassedRow }) {
           ? 'bg-card text-ink border-ink'
           : row.outcome === 'adopted'
             ? 'bg-card text-ink2 border-rule'
-            : 'bg-card text-ink3 border-rule';
+            : 'bg-card text-ink2 border-rule';
   return (
     <span
       className={`inline-block text-label uppercase font-semibold border rounded-chip px-2 py-1 whitespace-nowrap ${cls}`}
@@ -36,7 +36,7 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <p className="text-body text-ink3 px-[18px] py-4 m-0">
+      <p className="text-body text-ink2 px-[18px] py-4 m-0">
         No bill has passed both chambers.
       </p>
     );
@@ -46,7 +46,7 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
     <div>
       <div className="border border-rule rounded-card overflow-hidden">
         <div
-          className={`hidden ${GRID} px-[18px] py-2.5 bg-[#FAF9F6] border-b border-ruleSoft text-label uppercase text-ink3`}
+          className={`hidden ${GRID} px-[18px] py-2.5 bg-canvas border-b border-ruleSoft text-label uppercase text-ink2`}
         >
           <span>Measure</span>
           <span>Title</span>
@@ -76,11 +76,11 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
               {row.title}
             </a>
             <span className="text-meta text-ink2 tnum">
-              <span className="md:hidden text-label uppercase text-ink3">House </span>
+              <span className="md:hidden text-label uppercase text-ink2">House </span>
               {row.houseVote}
             </span>
             <span className="text-meta text-ink2 tnum">
-              <span className="md:hidden text-label uppercase text-ink3">Senate </span>
+              <span className="md:hidden text-label uppercase text-ink2">Senate </span>
               {row.senateVote}
             </span>
             <span>
@@ -90,16 +90,16 @@ export function PassedBothTable({ rows }: { rows: PassedRow[] }) {
         ))}
       </div>
       <div className="pt-3 flex items-center justify-between gap-3 flex-wrap">
-        <span className="text-label uppercase text-ink3 tnum">
+        <span className="text-meta text-ink2 tnum">
           Showing {shown.length} of {rows.length} · Newest first · ↗ Opens Congress.gov in a new tab
         </span>
         {hidden > 0 && (
           <button
             type="button"
             onClick={() => setAll(true)}
-            className="text-label uppercase text-navy border border-navy rounded-ctl px-3 py-[7px] hover:bg-canvas"
+            className="min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
           >
-            Show all {rows.length} →
+            Show all {rows.length}
           </button>
         )}
       </div>

@@ -56,13 +56,15 @@ export function PolicyAreaSelect({
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => onOpenChange(!open)}
-        className={`flex items-center gap-1.5 text-body border rounded-ctl px-2.5 py-[7px] max-w-[220px] ${
-          selected.size > 0 ? 'border-ink3 bg-[#F2F0EA]' : 'border-[#D9D6CF] bg-card'
+        className={`flex items-center gap-1.5 min-h-[44px] text-base text-ink border rounded-ctl px-3 max-w-[240px] ${
+          selected.size > 0 ? 'border-navy bg-lockBg' : 'border-lockRule bg-card'
         }`}
       >
         <span className="truncate">{label}</span>
-        <span aria-hidden="true" className="text-ink4 flex-none">
-          ▾
+        <span className="text-ink2 flex-none inline-flex">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={undefined}>
+              <path d="m6 9 6 6 6-6" />
+          </svg>
         </span>
       </button>
 
@@ -97,12 +99,12 @@ export function PolicyAreaSelect({
                   <span
                     aria-hidden="true"
                     className={`flex-none w-3 h-3 rounded-[2px] border translate-y-px ${
-                      on ? 'bg-ink2 border-ink2' : 'border-[#D9D6CF]'
+                      on ? 'bg-ink2 border-ink2' : 'border-lockRule'
                     }`}
                   />
                   <span className="leading-snug">{area.name}</span>
                 </span>
-                <span className="flex-none text-meta text-ink3 tnum">{area.count}</span>
+                <span className="flex-none text-meta text-ink2 tnum">{area.count}</span>
               </button>
             );
           })}

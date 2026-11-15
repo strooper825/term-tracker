@@ -99,7 +99,7 @@ describe('public statements: a member with a feed', () => {
   it('says whose words they are and links the office page as the source', () => {
     feedTab();
     expect(screen.getByText(/These are the office’s words, not this site’s/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^source/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Source/ })).toHaveAttribute(
       'href',
       'https://www.sanders.senate.gov/press-releases/',
     );

@@ -15,7 +15,7 @@ function ContactCard({ title, rows }: { title: string; rows: ContactRow[] }) {
             key={r.label}
             className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-6 px-[18px] py-3 border-t border-rule"
           >
-            <dt className="text-label uppercase text-ink3 md:w-40 flex-none">{r.label}</dt>
+            <dt className="text-label uppercase text-ink2 md:w-40 flex-none">{r.label}</dt>
             <dd className="m-0 min-w-0 text-base text-ink break-words tnum">
               {r.href ? (
                 <a
@@ -44,7 +44,7 @@ export function ContactTab({ contact }: { contact: ContactModel }) {
       {contact.reach.length > 0 && <ContactCard title="Reach the office" rows={contact.reach} />}
       {contact.visit.length > 0 && <ContactCard title="Visit or write" rows={contact.visit} />}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-meta text-ink3 m-0">
+        <p className="text-meta text-ink2 m-0">
           Official office information as recorded by congress-legislators. Offices move, so check
           the member&rsquo;s website before you write or visit.
         </p>

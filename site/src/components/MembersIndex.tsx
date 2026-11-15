@@ -38,13 +38,13 @@ function MemberCard({ member }: { member: IndexRow }) {
           <span className="self-start">
             <PartyBadge party={member.party} size="lg" />
           </span>
-          <span className="text-meta text-ink3">{member.seatShort}</span>
+          <span className="text-meta text-ink2">{member.seatShort}</span>
         </div>
       </div>
       <div className="grid grid-cols-3 border-t border-rule pt-[11px]">
         {stats.map((s) => (
           <div key={s.label} className="flex flex-col gap-1">
-            <span className="text-label uppercase text-ink3 leading-tight">
+            <span className="text-label uppercase text-ink2 leading-tight">
               {s.label}
             </span>
             <span className="text-stat font-semibold text-ink tnum leading-none">{s.value}</span>
@@ -95,7 +95,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
 
   const group = (label: string, children: React.ReactNode) => (
     <div className="flex items-center gap-[7px]">
-      <span className="text-label uppercase text-ink3">{label}</span>
+      <span className="text-label uppercase text-ink2">{label}</span>
       <div className="flex gap-1.5 flex-wrap">{children}</div>
     </div>
   );
@@ -113,14 +113,14 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
           <h1 className="text-title font-semibold text-ink m-0">
             Members of the {congressLabel}
           </h1>
-          <p className="text-label uppercase text-ink3 tnum m-0">
+          <p className="text-meta text-ink2 tnum m-0">
             {members.length} tracked members
           </p>
         </div>
         <div className="flex gap-9">
           {headerStats.map((s) => (
             <div key={s.label} className="flex flex-col gap-0.5">
-              <span className="text-label uppercase text-ink3">{s.label}</span>
+              <span className="text-label uppercase text-ink2">{s.label}</span>
               <span className="text-stat font-semibold text-ink tnum leading-none">{s.value}</span>
             </div>
           ))}
@@ -137,9 +137,9 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search by name or state…"
                 aria-label="Search members"
-                className="flex-1 basis-64 min-w-[200px] text-body bg-[#ECEEF3] border border-rule rounded-ctl px-[10px] py-[8px] focus:border-ink3 focus:outline-none"
+                className="flex-1 basis-64 min-w-[200px] min-h-[44px] text-base text-ink bg-card border border-lockRule rounded-ctl px-3 placeholder:text-ink2 focus:border-navy focus:outline-none"
               />
-              <label className="flex items-center gap-[7px] text-label uppercase text-ink3 flex-none border border-rule rounded-ctl pl-[10px] pr-2 py-[8px]">
+              <label className="flex items-center gap-[7px] text-label uppercase text-ink2 flex-none border border-rule rounded-ctl pl-[10px] pr-2 py-[8px]">
                 Sort
                 <select
                   value={sort}
@@ -184,7 +184,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
             </div>
           </div>
           <div className="px-[18px] py-3 flex items-baseline gap-2.5">
-            <span className="text-label uppercase text-ink3 tnum">
+            <span className="text-meta text-ink2 tnum">
               {list.length} of {members.length} members
             </span>
             {isFiltered && (
@@ -214,7 +214,7 @@ export function MembersIndex({ members, congressLabel }: { members: IndexRow[]; 
               <button
                 type="button"
                 onClick={clear}
-                className="text-body border border-[#D9D6CF] rounded-ctl px-3 py-[7px] hover:bg-canvas"
+                className="text-body border border-lockRule rounded-ctl px-3 py-[7px] hover:bg-canvas"
               >
                 Clear filters
               </button>

@@ -15,7 +15,7 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
     <section className="border border-rule rounded-card bg-card">
       <div className="flex items-baseline justify-between px-[18px] pt-4 pb-[11px]">
         <h2 className="text-heading font-semibold text-ink m-0">Committees</h2>
-        <span className="text-label uppercase text-ink3 tnum">
+        <span className="text-meta text-ink2 tnum">
           {committees.length} assignments
         </span>
       </div>
@@ -31,7 +31,7 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
                 site's own emphasis color, never a hue with party meaning. */}
             <span
               className={`flex-none text-label uppercase rounded-chip px-1.5 py-0.5 mt-px border ${
-                chair ? 'text-white bg-navy border-navy' : 'text-ink3 bg-card border-rule'
+                chair ? 'text-white bg-navy border-navy' : 'text-ink2 bg-card border-rule'
               }`}
             >
               {c.role}
@@ -40,14 +40,14 @@ export function CommitteesCard({ committees }: { committees: CommitteeRow[] }) {
         );
       })}
       {committees.length === 0 && (
-        <p className="text-body text-ink4 px-[18px] pb-4 m-0">No assignments recorded.</p>
+        <p className="text-body text-ink2 px-[18px] pb-4 m-0">No assignments recorded.</p>
       )}
       {hidden > 0 && (
         <div className="px-[18px] py-3 border-t border-rule">
           <button
             type="button"
             onClick={() => setAll(true)}
-            className="text-label uppercase font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
+            className="min-h-[44px] px-5 bg-card border border-rule rounded-ctl text-[14px] font-semibold text-ink cursor-pointer hover:border-ink3"
           >
             All {committees.length} assignments →
           </button>
@@ -69,14 +69,14 @@ export function KeyDatesCard({ dates }: { dates: KeyDateRow[] }) {
               <span className="w-px flex-1 bg-rule" />
             </div>
             <div className="pb-4 flex flex-col gap-0.5">
-              <div className="text-label uppercase text-ink3 tnum">
+              <div className="text-meta text-ink2 tnum">
                 {d.date}
               </div>
               <div className="text-base text-ink leading-snug">{d.label}</div>
             </div>
           </div>
         ))}
-        {dates.length === 0 && <p className="text-body text-ink4 m-0">No dates recorded.</p>}
+        {dates.length === 0 && <p className="text-body text-ink2 m-0">No dates recorded.</p>}
       </div>
     </section>
   );
@@ -86,7 +86,7 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
   const row = (label: string, value: string | null) => (
     <div className="flex justify-between gap-3 text-meta border-t border-rule pt-2.5">
       <span className="text-ink2">{label}</span>
-      <span className={value ? 'text-ink3' : 'text-ink4'}>{value || 'Not yet available'}</span>
+      <span className={value ? 'text-ink2' : 'text-ink2'}>{value || 'Not yet available'}</span>
     </div>
   );
   return (
@@ -94,7 +94,7 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
       <div className="flex items-baseline justify-between gap-3 mb-3">
         <h2 className="text-heading font-semibold text-ink m-0">Next election</h2>
         {election && election.daysAway >= 0 && (
-          <span className="text-label uppercase text-ink3 tnum">
+          <span className="text-meta text-ink2 tnum">
             {election.daysAway} days away
           </span>
         )}
@@ -115,7 +115,7 @@ export function NextElectionCard({ election }: { election: ElectionModel | null 
           )}
         </>
       ) : (
-        <div className="text-body text-ink4">Not yet available</div>
+        <div className="text-body text-ink2">Not yet available</div>
       )}
       <div className="mt-4 flex flex-col gap-2.5">
         {row('Opponent', election?.opponent ?? null)}
@@ -142,9 +142,9 @@ export function LockedTabPanel({ title, desc }: { title: string; desc: string })
           <LockGlyph />
           <h2 className="text-heading font-semibold text-ink2 m-0">{title}</h2>
         </div>
-        <p className="text-body text-ink3 m-0">{desc}</p>
+        <p className="text-body text-ink2 m-0">{desc}</p>
       </div>
-      <div className="text-label uppercase text-ink3">Coming in a future release</div>
+      <div className="text-label uppercase text-ink2">Coming in a future release</div>
     </section>
   );
 }
