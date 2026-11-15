@@ -1,0 +1,27 @@
+name: Count bill pages for a candidate batch
+
+# A one-off, read-only question to the database, for planning the first expansion batch: how
+# many bill pages would the candidates in scripts/count_bill_scope.sql add? Neon is reachable
+# only from Actions, so the query runs here. It lives on the count-bill-scope branch only and
+# runs when that branch is pushed; it is not meant to be merged.
+on:
+  push:
+    branches: [count-bill-scope]
+
+permissions:
+  contents: read
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Count
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # psql wants postgresql://, whatever driver suffix the secret carries
+          url=$(printf '%s' "$DATABASE_URL" | sed -E 's#^postgres(ql)?(\+[a-z0-9]+)?://#postgresql://#')
+          psql "$url" --no-psqlrc -f scripts/count_bill_scope.sql | tee count.txt
+          { echo '```'; cat count.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

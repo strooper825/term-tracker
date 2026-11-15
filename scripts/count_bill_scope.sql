@@ -1,0 +1,151 @@
+-- Read-only count for batch planning (2026-11-15): how many bill and amendment pages the mart
+-- would keep if the candidates below were added to seed.tracked_members. Mirrors the rule in
+-- dbt/models/staging/stg_bill_scope.sql. Changes nothing. Not part of the nightly.
+\set ON_ERROR_STOP on
+\pset footer off
+-- Postgres refuses CREATE in a read-only session, so the temporary tables come first; from
+-- the SET on, the session can write to nothing else.
+create temp table cand (bioguide_id text primary key, name text, chamber text);
+create temp table touch (bill_type text, bill_number int, bioguide_id text);
+create index on touch (bioguide_id);
+create temp table cur (bill_type text, bill_number int);
+create temp table added (bill_type text, bill_number int, bioguide_id text, chamber text);
+set default_transaction_read_only = on;
+
+insert into cand values
+    ('T000250', 'John Thune', 'S'),
+    ('S000148', 'Charles E. Schumer', 'S'),
+    ('B001261', 'John Barrasso', 'S'),
+    ('D000563', 'Richard J. Durbin', 'S'),
+    ('C001035', 'Susan M. Collins', 'S'),
+    ('M001111', 'Patty Murray', 'S'),
+    ('C000880', 'Mike Crapo', 'S'),
+    ('W000779', 'Ron Wyden', 'S'),
+    ('G000386', 'Chuck Grassley', 'S'),
+    ('W000437', 'Roger F. Wicker', 'S'),
+    ('R000122', 'Jack Reed', 'S'),
+    ('S001181', 'Jeanne Shaheen', 'S'),
+    ('C001098', 'Ted Cruz', 'S'),
+    ('S001184', 'Tim Scott', 'S'),
+    ('W000817', 'Elizabeth Warren', 'S'),
+    ('C001075', 'Bill Cassidy', 'S'),
+    ('C001047', 'Shelley Moore Capito', 'S'),
+    ('L000577', 'Mike Lee', 'S'),
+    ('H001046', 'Martin Heinrich', 'S'),
+    ('M000934', 'Jerry Moran', 'S'),
+    ('M001153', 'Lisa Murkowski', 'S'),
+    ('K000367', 'Amy Klobuchar', 'S'),
+    ('W000805', 'Mark R. Warner', 'S'),
+    ('L000575', 'James Lankford', 'S'),
+    ('S001217', 'Rick Scott', 'S'),
+    ('B001288', 'Cory A. Booker', 'S'),
+    ('C001113', 'Catherine Cortez Masto', 'S'),
+    ('S001194', 'Brian Schatz', 'S'),
+    ('C001088', 'Christopher A. Coons', 'S'),
+    ('B001319', 'Katie Boyd Britt', 'S'),
+    ('K000377', 'Mark Kelly', 'S'),
+    ('B001267', 'Michael F. Bennet', 'S'),
+    ('H001089', 'Josh Hawley', 'S'),
+    ('F000479', 'John Fetterman', 'S'),
+    ('A000382', 'Angela D. Alsobrooks', 'S'),
+    ('M001242', 'Bernie Moreno', 'S'),
+    ('S001176', 'Steve Scalise', 'H'),
+    ('E000294', 'Tom Emmer', 'H'),
+    ('C001101', 'Katherine M. Clark', 'H'),
+    ('A000371', 'Pete Aguilar', 'H'),
+    ('C001053', 'Tom Cole', 'H'),
+    ('D000216', 'Rosa L. DeLauro', 'H'),
+    ('S001195', 'Jason Smith', 'H'),
+    ('J000289', 'Jim Jordan', 'H'),
+    ('R000606', 'Jamie Raskin', 'H'),
+    ('R000575', 'Mike Rogers', 'H'),
+    ('S000510', 'Adam Smith', 'H'),
+    ('P000034', 'Frank Pallone, Jr.', 'H'),
+    ('W000187', 'Maxine Waters', 'H'),
+    ('M001199', 'Brian J. Mast', 'H'),
+    ('F000450', 'Virginia Foxx', 'H'),
+    ('A000375', 'Jodey C. Arrington', 'H'),
+    ('T000467', 'Glenn Thompson', 'H'),
+    ('T000193', 'Bennie G. Thompson', 'H'),
+    ('S000185', 'Robert C. "Bobby" Scott', 'H'),
+    ('N000191', 'Joe Neguse', 'H'),
+    ('B001323', 'Nicholas J. Begich III', 'H'),
+    ('S001183', 'David Schweikert', 'H'),
+    ('M001238', 'Sarah McBride', 'H'),
+    ('T000487', 'Jill N. Tokuda', 'H'),
+    ('S001148', 'Michael K. Simpson', 'H'),
+    ('S000929', 'Victoria Spartz', 'H'),
+    ('H001091', 'Ashley Hinson', 'H'),
+    ('D000629', 'Sharice Davids', 'H'),
+    ('G000592', 'Jared F. Golden', 'H'),
+    ('Z000018', 'Ryan K. Zinke', 'H'),
+    ('B001298', 'Don Bacon', 'H'),
+    ('H001066', 'Steven Horsford', 'H'),
+    ('P000614', 'Chris Pappas', 'H'),
+    ('L000273', 'Teresa Leger Fernandez', 'H'),
+    ('F000482', 'Julie Fedorchak', 'H'),
+    ('B001326', 'Janelle S. Bynum', 'H'),
+    ('M001223', 'Seth Magaziner', 'H'),
+    ('C000537', 'James E. Clyburn', 'H'),
+    ('J000301', 'Dusty Johnson', 'H'),
+    ('B001309', 'Tim Burchett', 'H'),
+    ('M001213', 'Blake D. Moore', 'H'),
+    ('B001318', 'Becca Balint', 'H'),
+    ('M001205', 'Carol D. Miller', 'H'),
+    ('H001096', 'Harriet M. Hageman', 'H');
+
+-- every (bill, member) pair of the Congress: the sponsor on the bill, and each cosponsor
+insert into touch
+select b.bill_type, b.bill_number::int, b.payload -> 'sponsors' -> 0 ->> 'bioguideId' as bioguide_id
+from raw.bill as b
+where b.congress = 119
+union
+select c.bill_type, c.bill_number::int, x.value ->> 'bioguideId'
+from raw.bill_cosponsors as c
+cross join lateral jsonb_array_elements(c.payload) as x (value)
+where c.congress = 119;
+
+insert into cur
+select bill_type, bill_number::int from staging.stg_bill_scope where congress = 119;
+
+insert into added
+select distinct t.bill_type, t.bill_number, c.bioguide_id, c.chamber
+from touch as t
+inner join cand as c using (bioguide_id)
+where not exists (
+    select 1 from cur where cur.bill_type = t.bill_type and cur.bill_number = t.bill_number
+);
+
+\echo '### Totals'
+select
+    (select count(*) from raw.bill where congress = 119) as bills_in_congress,
+    (select count(*) from cur) as pages_today,
+    (select count(*) from (select distinct bill_type, bill_number from added) as a) as added_by_all_80,
+    (select count(*) from (select distinct bill_type, bill_number from added where chamber = 'S') as a) as added_by_senators_alone,
+    (select count(*) from (select distinct bill_type, bill_number from added where chamber = 'H') as a) as added_by_house_alone;
+
+\echo '### Pages by type, today and with all 80'
+select bill_type,
+    count(*) filter (where today) as today,
+    count(*) as with_all_80
+from (
+    select bill_type, bill_number, true as today from cur
+    union all
+    select distinct bill_type, bill_number, false from added
+) as u
+group by bill_type
+order by with_all_80 desc;
+
+\echo '### Per candidate: bills touched, pages not on the site today, pages only this candidate brings'
+with only_one as (
+    select bill_type, bill_number, min(bioguide_id) as bioguide_id
+    from added
+    group by bill_type, bill_number
+    having count(*) = 1
+)
+select c.chamber, c.name, c.bioguide_id,
+    (select count(*) from touch as t where t.bioguide_id = c.bioguide_id) as touched,
+    (select count(*) from added as a where a.bioguide_id = c.bioguide_id) as new_pages,
+    (select count(*) from only_one as o where o.bioguide_id = c.bioguide_id) as only_this_member
+from cand as c
+order by only_this_member desc;
