@@ -24,6 +24,7 @@ describe('press release text', () => {
 describe('buildStatements', () => {
   const base: Omit<StatementsResponse, 'mode' | 'items'> = {
     bioguide_id: 'S000033',
+    link_kind: 'press_page',
     label: 'sanders.senate.gov',
     press_url: 'https://www.sanders.senate.gov/press-releases/',
     feed_url: 'https://www.sanders.senate.gov/press-releases/feed/',
@@ -57,6 +58,12 @@ describe('buildStatements', () => {
   it('a link member has no statements and keeps the press page', () => {
     const m = buildStatements({ ...base, mode: 'link', items: [], total: 0 })!;
     expect(m).toMatchObject({ mode: 'link', statements: [], pressUrl: base.press_url, label: base.label });
+  });
+
+  it('knows when the link is only the official website', () => {
+    const link = { ...base, mode: 'link' as const, items: [], total: 0 };
+    expect(buildStatements(link)!.isPressPage).toBe(true);
+    expect(buildStatements({ ...link, link_kind: 'official_website' })!.isPressPage).toBe(false);
   });
 
   it('a feed member with nothing loaded yet falls back to the link', () => {

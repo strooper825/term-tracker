@@ -1378,6 +1378,7 @@ const STATEMENT_SOURCE = {
 export const SANDERS_STATEMENTS: StatementsResponse = {
   bioguide_id: 'S000033',
   mode: 'feed',
+  link_kind: 'press_page',
   label: 'sanders.senate.gov',
   press_url: 'https://www.sanders.senate.gov/press-releases/',
   feed_url: 'https://www.sanders.senate.gov/press-releases/feed/',
@@ -1391,6 +1392,7 @@ export const SANDERS_STATEMENTS: StatementsResponse = {
 export const STEIL_STATEMENTS: StatementsResponse = {
   bioguide_id: 'S001213',
   mode: 'link',
+  link_kind: 'press_page',
   label: 'steil.house.gov',
   press_url: 'https://steil.house.gov/media/press-releases',
   feed_url: null,
@@ -1405,6 +1407,7 @@ export const STEIL_STATEMENTS: StatementsResponse = {
 export const NO_STATEMENTS: StatementsResponse = {
   bioguide_id: 'S001213',
   mode: 'none',
+  link_kind: null,
   label: null,
   press_url: null,
   feed_url: null,

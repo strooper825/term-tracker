@@ -238,6 +238,7 @@ class ContactResponse(BaseModel):
 
 
 StatementsMode = Literal["feed", "link", "none"]
+StatementsLinkKind = Literal["press_page", "official_website"]
 
 
 class StatementItem(BaseModel):
@@ -257,11 +258,15 @@ class StatementItem(BaseModel):
 class StatementsResponse(BaseModel):
     bioguide_id: str
     mode: StatementsMode = Field(
-        description="feed: the office's own feed is ingested; link: only the press page is "
-        "linked; none: the member is not in seed.statement_sources (ADR 0015)"
+        description="feed: the office's own feed is ingested; link: the tab only links out; "
+        "none: there is nowhere to link (no checked source, no website) (ADR 0015, ADR 0023)"
+    )
+    link_kind: StatementsLinkKind | None = Field(
+        description="What press_url is: the office's press-release listing, or only its "
+        "official website when no press listing was found"
     )
     label: str | None = Field(description="Host the statements come from, e.g. sanders.senate.gov")
-    press_url: str | None = Field(description="The office's press-release listing")
+    press_url: str | None = Field(description="Where the tab links to; see link_kind")
     feed_url: str | None
     total: int = Field(description="Statements held for the member; items may be fewer")
     newest_published_at: dt.datetime | None

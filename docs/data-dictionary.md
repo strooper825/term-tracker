@@ -167,6 +167,26 @@ equal the committee totals for all six tracked members (no second authorized com
 The key reports a 60-requests-per-minute limit in `X-RateLimit-Limit` on top of the
 documented 1,000 per hour; the client throttles on both.
 
+## Raw table: press pages (Alembic migration `0011`)
+
+Loaded by `python -m ingest.run --source press_pages` for every tracked member with no row in
+`seed.statement_sources` and a website in `raw.legislator` (ADR 0023). The probe asks the
+office's own site for a short list of known paths, robots.txt honoured, one request a second,
+and stores the first that answers with a press listing. Nothing is copied from the site.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.press_page` | `bioguide_id` | latest probe of the member's official website (`source_url`) |
+
+`payload.outcome` is `found` (`payload.press_url` answered with a press listing), `not_found`,
+`disallowed` (robots.txt forbids every path) or `unreachable` (the site refused or did not
+answer; `press_url` is then the one found before, if any). A settled outcome is asked again
+after 30 days; `unreachable` and a member with no row on the next run. Tried on 70 office sites
+from a home connection on 2026-11-15, the rule found a page on 66, found none on 3 and was
+disallowed by 1 (McConnell). Of the twenty sites a person had checked it found the same page on
+14 and another news or press page of the same office on 4. Two of the 66 are a general media
+page that mentions press releases, not a listing of them.
+
 ## Raw tables: press-release feeds (Alembic migration `0007`)
 
 Loaded by `python -m ingest.run --source statements` for every `seed.statement_sources` row with
@@ -231,7 +251,7 @@ every state and district. The Data API needs `CENSUS_API_KEY`.
 | `seed.fips` | `fips_state` | Census state FIPS reference: `fips_state` (2-char, zero-padded), `state_abbr`, `state_name`, `statens`. Source and retrieval date are dbt vars `fips_source_url` / `fips_fetched_at`. |
 | `seed.tracked_members` | `bioguide_id` | Members in scope (the plan calls this `tracked_member`). Columns `bioguide_id`, `note`. Twenty members: Steil, Cotton, Sanders, Slotkin, Kiley, Jeffries, Crawford, R. Johnson, Baldwin, McConnell, Pocan, Ossoff, Boozman, Murphy, Schiff, Massie, Khanna, Ocasio-Cortez, M. Johnson, Perry. |
 | `seed.key_dates` | `date`, `label` | Hand-maintained calendar (plan `key_date`): `date`, `label`, `kind` (election, session, deadline, recess), `scope` (congress, chamber, state, member), `scope_value`, `note`, `source_url`. Retrieval date is the dbt var `key_dates_fetched_at`. State rows exist for WI, AR, VT, MI, CA, NY, KY, GA, CT, LA, PA (2026 primaries and filing deadlines, each with a statute or election-authority URL); a member whose state has no rows still gets the congress-scoped rows. Recesses not seeded yet. |
-| `seed.statement_sources` | `bioguide_id` | How the Public statements tab treats each tracked member (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
+| `seed.statement_sources` | `bioguide_id` | The members whose statements source a person checked; a tracked member with no row links out by default (ADR 0023). How the Public statements tab treats each of them (ADR 0015): `mode` (`feed` or `link`), `label` (the host shown, e.g. `sanders.senate.gov`), `press_url` (the office's own press-release listing, checked to load), `feed_url` (set for `feed` rows only), `note` (what was checked and when). A member is `feed` only when a person verified that the feed is press-scoped, carries full text in `content:encoded`, and has as its newest item the listing's newest. Seeded 2026-09-19: `feed` for Sanders, Slotkin, Jeffries, R. Johnson, Ossoff and the Speaker (via speaker.gov); `link` for the other fourteen. Retrieval date is the dbt var `statement_sources_checked_at`. |
 | `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
 ## Staging views (`staging` schema, dbt)
@@ -431,13 +451,18 @@ value and is not used for statements: it was stale or wrong for most tracked mem
 
 ### `mart.statement_source`
 
-One row per tracked member: how the Public statements tab treats them (ADR 0015). Key
-`bioguide_id`. Columns `mode` (`feed` or `link`), `label`, `press_url`, `feed_url` (null for
+One row per tracked member with somewhere to send a reader: how the Public statements tab
+treats them (ADR 0015, ADR 0023). A member in `seed.statement_sources` is as the seed says. Any
+other tracked member is `link`: to the press page the probe found (`raw.press_page`), else to
+the official website; a member with neither has no row. Key `bioguide_id`. Columns `mode`
+(`feed` or `link`), `link_kind` (`press_page`, or `official_website` when `press_url` is only
+the office's home page), `label` (the host), `press_url`, `feed_url` (null for
 `link`), `statements` (rows in `mart.statement`, 0 for `link`), `oldest_published_at`,
 `newest_published_at`, `fetched_at` (latest fetch of the feed; for a `link` member the dbt var
-`statement_sources_checked_at`, the day a person checked the press URL), `source` (`press_feed` or
-`press_page`) and `source_url` (the press listing a reader can open to check the tab against).
-`GET /members/{id}/statements` returns `mode` `feed`, `link`, or `none` (not in the seed), the
+`statement_sources_checked_at`, the day a person checked the press URL, or the day of the
+probe), `source` (`press_feed`, `press_page` or `official_website`) and `source_url` (the page a
+reader can open to check the tab against).
+`GET /members/{id}/statements` returns `mode` `feed`, `link`, or `none` (nowhere to link), the
 statements newest first when `feed`, and `total`. A feed member with nothing loaded yet is shown as
 a link by the site. The warning test `assert_statement_feeds_fresh` names any `feed` member whose
 newest statement is over 45 days old or that has none, which is how a feed that has gone stale or

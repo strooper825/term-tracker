@@ -400,6 +400,7 @@ def test_fundraising_missing_data_keeps_the_status_and_no_zeros(
 def _source_row(mode: str, **overrides: object) -> dict:
     return {
         "mode": mode,
+        "link_kind": "press_page",
         "label": "sanders.senate.gov",
         "press_url": "https://www.sanders.senate.gov/press-releases/",
         "feed_url": "https://www.sanders.senate.gov/press-releases/feed/"
@@ -457,10 +458,29 @@ def test_statements_for_a_link_member_carry_no_items(client: TestClient) -> None
     body = client.get("/api/v1/members/S001213/statements").json()
     assert body["mode"] == "link" and body["items"] == [] and body["total"] == 0
     assert body["press_url"] == "https://www.sanders.senate.gov/press-releases/"
+    assert body["link_kind"] == "press_page"
     assert body["feed_url"] is None
+
+
+def test_statements_for_an_unchecked_member_link_to_the_official_website(
+    client: TestClient,
+) -> None:
+    """No hand-checked row and no press listing found: the link is the office's home page."""
+    row = _source_row(
+        "link",
+        link_kind="official_website",
+        press_url="https://www.sanders.senate.gov",
+        source="official_website",
+        source_url="https://www.sanders.senate.gov",
+    )
+    _use_rows([_summary_row()], {"mart.statement_source": [row]})
+    body = client.get("/api/v1/members/S001213/statements").json()
+    assert body["mode"] == "link" and body["link_kind"] == "official_website"
+    assert body["sources"][0]["source"] == "official_website"
 
 
 def test_statements_for_a_member_not_in_the_seed_are_none(client: TestClient) -> None:
     _use_rows([_summary_row()], {"mart.statement_source": []})
     body = client.get("/api/v1/members/S001213/statements").json()
     assert body["mode"] == "none" and body["items"] == [] and body["sources"] == []
+    assert body["link_kind"] is None

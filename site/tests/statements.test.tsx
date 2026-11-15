@@ -112,9 +112,21 @@ describe('public statements: a member whose office has no feed', () => {
     const link = screen.getByRole('link', { name: /Press releases on steil\.house\.gov/ });
     expect(link).toHaveAttribute('href', 'https://steil.house.gov/media/press-releases');
     expect(link).toHaveAttribute('target', '_blank');
-    expect(screen.getByText(/Rep\. Bryan Steil.s office does not publish a press-release feed/)).toBeInTheDocument();
+    expect(screen.getByText(/does not reproduce Rep\. Bryan Steil.s press releases/)).toBeInTheDocument();
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     expect(cards()).toHaveLength(0);
+  });
+
+  it('calls the link the official website when no press page was found', () => {
+    const model = buildStatements({
+      ...STEIL_STATEMENTS,
+      link_kind: 'official_website',
+      press_url: 'https://steil.house.gov',
+    })!;
+    render(<StatementsTab model={model} name="Rep. Bryan Steil" />);
+    const link = screen.getByRole('link', { name: /Official website: steil\.house\.gov/ });
+    expect(link).toHaveAttribute('href', 'https://steil.house.gov');
+    expect(screen.queryByRole('link', { name: /Press releases on/ })).not.toBeInTheDocument();
   });
 });
 
