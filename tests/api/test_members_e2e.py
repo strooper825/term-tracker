@@ -21,6 +21,9 @@ TRACKED_IN_FIXTURES = {
     "K000401",
     "J000294",
     "B001230",  # Baldwin: in raw and, since the twelve-member expansion, also tracked
+    # Tracked since 2026-11-15 and present in the vote and bill fixtures, so in raw too:
+    "A000371",  # Aguilar votes in the five House fixture roll calls
+    "P000614",  # Pappas is on a fixture bill
 }
 
 

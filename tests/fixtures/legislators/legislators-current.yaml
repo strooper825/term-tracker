@@ -1,5 +1,7 @@
 # Trimmed from https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml
-# retrieved 2026-09-13. Seven members: the original six tracked ones plus Tammy Baldwin, added
+# retrieved 2026-09-13, and the records of Pete Aguilar and Chris Pappas retrieved
+# 2026-11-15, trimmed the same way: both are in the vote and bill fixtures and became tracked members that day, so
+# the mart needs their legislator rows. The first seven members: the original six tracked ones plus Tammy Baldwin, added
 # here to prove the mart filters raw.legislator down to seed.tracked_members even when raw has
 # an extra row -- since the twelve-member expansion (docs/PLAN.md), Baldwin is also tracked, so
 # all seven in this file are now tracked; per-term contact details (address, office, phone, fax,
@@ -531,3 +533,131 @@
     district: 1
     party: Republican
     url: https://steil.house.gov
+- id:
+    bioguide: A000371
+    fec:
+    - H2CA31125
+    govtrack: 412615
+    opensecrets: N00033997
+    thomas: '02229'
+    maplight: 2071
+    wikidata: Q7171821
+    wikipedia: Pete Aguilar
+    google_entity_id: kg:/m/0jwv0xf
+    votesmart: 70114
+    cspan: 79994
+    icpsr: 21506
+    ballotpedia: Pete Aguilar
+    pictorial: 12947
+  name:
+    first: Pete
+    last: Aguilar
+    official_full: Pete Aguilar
+  bio:
+    gender: M
+    birthday: '1979-06-19'
+  leadership_roles:
+  - title: House Democratic Caucus Vice Chair
+    chamber: house
+    start: '2021-01-03'
+    end: '2023-01-03'
+  - title: House Democratic Caucus Chair
+    chamber: house
+    start: '2023-01-03'
+    end: '2025-01-03'
+  - title: House Democratic Caucus Chair
+    chamber: house
+    start: '2025-01-03'
+  terms:
+  - type: rep
+    start: '2015-01-06'
+    end: '2017-01-03'
+    state: CA
+    district: 31
+    party: Democrat
+    url: https://aguilar.house.gov
+  - type: rep
+    start: '2017-01-03'
+    end: '2019-01-03'
+    state: CA
+    district: 31
+    party: Democrat
+    url: https://aguilar.house.gov
+  - type: rep
+    start: '2019-01-03'
+    end: '2021-01-03'
+    state: CA
+    district: 31
+    party: Democrat
+    url: https://aguilar.house.gov
+  - type: rep
+    start: '2021-01-03'
+    end: '2023-01-03'
+    state: CA
+    district: 31
+    party: Democrat
+    url: https://aguilar.house.gov
+  - type: rep
+    start: '2023-01-03'
+    end: '2025-01-03'
+    state: CA
+    district: 33
+    party: Democrat
+    url: https://aguilar.house.gov
+  - type: rep
+    start: '2025-01-03'
+    end: '2027-01-03'
+    state: CA
+    district: 33
+    party: Democrat
+    url: https://aguilar.house.gov
+- id:
+    bioguide: P000614
+    fec:
+    - H8NH01210
+    - S6NH00141
+    govtrack: 412795
+    wikipedia: Chris Pappas (American politician)
+    wikidata: Q5107684
+    opensecrets: N00042161
+    google_entity_id: kg:/m/0nd3t8z
+    icpsr: 21951
+    votesmart: 42635
+    ballotpedia: Chris Pappas
+    pictorial: 13148
+  name:
+    first: Chris
+    last: Pappas
+    official_full: Chris Pappas
+  bio:
+    gender: M
+    birthday: '1980-06-04'
+  terms:
+  - type: rep
+    start: '2019-01-03'
+    end: '2021-01-03'
+    state: NH
+    district: 1
+    party: Democrat
+    url: https://pappas.house.gov
+  - type: rep
+    start: '2021-01-03'
+    end: '2023-01-03'
+    state: NH
+    district: 1
+    party: Democrat
+    url: https://pappas.house.gov
+  - type: rep
+    start: '2023-01-03'
+    end: '2025-01-03'
+    state: NH
+    district: 1
+    party: Democrat
+    url: https://pappas.house.gov
+  - type: rep
+    start: '2025-01-03'
+    end: '2027-01-03'
+    state: NH
+    district: 1
+    party: Democrat
+    url: https://pappas.house.gov

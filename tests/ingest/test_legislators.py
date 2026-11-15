@@ -9,13 +9,25 @@ from ingest.shape import SourceShapeError
 from ingest.sources import legislators as src
 from tests.fixtures.legislators import fixture_fetch
 
-SEVEN = {"S001213", "C001095", "B001230", "S000033", "S001208", "K000401", "J000294"}
+# The seven the fixtures were built around, and two who vote in or sponsor the fixture roll
+# calls and bills and became tracked members on 2026-11-15 (Aguilar, Pappas).
+IN_FIXTURE = {
+    "S001213",
+    "C001095",
+    "B001230",
+    "S000033",
+    "S001208",
+    "K000401",
+    "J000294",
+    "A000371",
+    "P000614",
+}
 
 
 def test_parse_legislators_fixture() -> None:
     data = src.parse_legislators(fixture_fetch(src.BASE_URL + src.LEGISLATORS_FILE))
     by_id = {item["id"]["bioguide"]: item for item in data}
-    assert set(by_id) == SEVEN
+    assert set(by_id) == IN_FIXTURE
 
     steil = by_id["S001213"]["terms"][-1]
     assert (steil["type"], steil["state"], steil["district"]) == ("rep", "WI", 1)
