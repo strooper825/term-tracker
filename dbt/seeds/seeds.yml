@@ -29,8 +29,9 @@ seeds:
 
   - name: key_dates
     description: >
-      Hand-maintained calendar (plan section 4, key_date): elections, session boundaries,
-      filing deadlines. scope is congress, chamber, state, or member; scope_value is the chamber
+      Hand-maintained calendar (plan section 4, key_date): session boundaries and the general
+      election day. The states' primaries and filing deadlines are in election_dates. scope is
+      congress, chamber, state, or member; scope_value is the chamber
       name, state abbreviation, or bioguide id. Provenance per row in source_url; retrieval date
       is the dbt var key_dates_fetched_at. Recesses are not seeded yet.
     config:
@@ -51,6 +52,59 @@ seeds:
         tests:
           - accepted_values: { arguments: { values: ["congress", "chamber", "state", "member"] } }
       - name: source_url
+        tests: [not_null]
+
+  - name: election_dates
+    description: >
+      The states' congressional election calendars (ADR 0023): one row per cycle, state, office,
+      districts, event and date. office is blank when the date is the same for the House and
+      the Senate, else house or senate; districts (space-separated numbers) is set only when a
+      House date applies to some districts of the state. event is filing_deadline, primary,
+      primary_runoff or general_runoff; the general election day itself is one national row in
+      key_dates. qualifier is a short tag shown in the label (noon, incumbents, if needed).
+      basis is official (published by the state or the FEC), statutory (worked out from the
+      rule) or projected. rule is the statute or the reason, where a person wrote one down.
+      2026 is from the FEC's "2026 Congressional Primary Dates and Candidate Filing Deadlines
+      for Ballot Access" (data as of 2026-05-18), whose primary and runoff dates agree with
+      NCSL's table of 2026-05-27; Arkansas's filing deadline is the state's.
+    config:
+      column_types:
+        cycle: integer
+        state: text
+        office: text
+        districts: text
+        event: text
+        date: date
+        qualifier: text
+        basis: text
+        rule: text
+        source_url: text
+        checked_on: date
+    columns:
+      - name: cycle
+        tests: [not_null]
+      - name: state
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('fips'), field: state_abbr } }
+      - name: office
+        tests:
+          - accepted_values: { arguments: { values: ["house", "senate"] } }
+      - name: event
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["filing_deadline", "primary", "primary_runoff", "general_runoff"]
+      - name: date
+        tests: [not_null]
+      - name: basis
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["official", "statutory", "projected"] } }
+      - name: source_url
+        tests: [not_null]
+      - name: checked_on
         tests: [not_null]
 
   - name: statement_sources

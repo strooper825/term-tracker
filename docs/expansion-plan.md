@@ -21,7 +21,9 @@ and "next report due" dates and the per-source freshness thresholds are not. Ste
 a tracked member with no row in `seed.statement_sources` links out, to the press page a monthly
 probe finds on the office's site, else to the official website. The probe runs inside the
 nightly and does its own monthly timing, so no source needed its own freshness threshold and
-none was added. Steps 6 and 7 are not started.
+none was added. Step 6 is built for 2026:
+`seed.election_dates` holds every state's filing deadline, primary and runoff; 2028 is added at
+the rollover. Step 7 is not started.
 
 ## Order of work
 
@@ -78,7 +80,8 @@ allowance, or the re-sweep keeps finding bills the filter missed.
    api.data.gov whether the 20,000 the key reports is real, for the one-off backlog?
 8. **Statements default.** The monthly automated press-page probe (recommended), or link every
    unchecked member to the official website only and fetch nothing?
-9. **Key dates.** Fill 2026 for all 50 states as history and 2028 as "expected" (recommended),
-   or 2028 only? And is showing a projected date, labelled as such, acceptable?
+9. **Key dates.** Decided 2026-11-15: 2026 only, for all 50 states. The 2028 dates are added
+   at the rollover (`docs/rollover-runbook.md`, step 6). Whether a projected date, labelled as
+   such, is acceptable is still open and is decided then.
 10. **Fundraising gap.** From January 3 to mid-April 2027 the 2028 cycle has no reports. Show
     the final 2026-cycle totals labelled as the previous cycle, or "no report yet"?

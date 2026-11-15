@@ -199,7 +199,9 @@ KEY_DATES_SQL = text(
     FROM mart.key_date
     WHERE scope = 'congress'
        OR (scope = 'chamber' AND scope_value = :chamber)
-       OR (scope = 'state' AND scope_value = :state)
+       OR (scope = 'state' AND scope_value = :state
+           AND (office IS NULL OR office = :chamber)
+           AND (districts IS NULL OR CAST(:district AS int) = ANY(districts)))
        OR (scope = 'member' AND scope_value = :bioguide)
     ORDER BY date
     """
@@ -603,7 +605,12 @@ def member_key_dates(
     rows = (
         session.execute(
             KEY_DATES_SQL,
-            {"bioguide": bioguide, "chamber": summary["chamber"], "state": summary["state_abbr"]},
+            {
+                "bioguide": bioguide,
+                "chamber": summary["chamber"],
+                "state": summary["state_abbr"],
+                "district": summary["district"],
+            },
         )
         .mappings()
         .all()

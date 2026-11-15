@@ -1,0 +1,120 @@
+cycle,state,office,districts,event,date,qualifier,basis,rule,source_url,checked_on
+2026,AK,,,filing_deadline,2026-06-01,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AK,,,primary,2026-08-18,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AL,,,filing_deadline,2026-01-23,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AL,house,3 4 5,primary,2026-05-19,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AL,senate,,primary,2026-05-19,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AL,house,3 4 5,primary_runoff,2026-06-16,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AL,senate,,primary_runoff,2026-06-16,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AL,house,1 2 6 7,primary,2026-08-11,,official,Postponed from May 19 by order of the governor; the FEC lists no runoff date for these districts,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AR,,,filing_deadline,2025-11-12,noon,official,Party filing period opens noon the first Monday in November and closes noon the eighth day thereafter (Ark. Code Ann. 7-7-203); shifted a day for Veterans Day. The FEC table lists November 11,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AR,,,primary,2026-03-03,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AR,,,primary_runoff,2026-03-31,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AZ,,,filing_deadline,2026-03-23,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,AZ,,,primary,2026-07-21,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,CA,,,filing_deadline,2026-03-06,5 p.m.,official,"Declaration of candidacy and nomination papers due, E-88 for voter-nominated offices",https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,CA,,,primary,2026-06-02,,official,First Tuesday after the first Monday in June (Elec. Code 1000),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,CO,,,filing_deadline,2026-03-18,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,CO,,,primary,2026-06-30,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,CT,,,filing_deadline,2026-06-09,4 p.m.,official,"Primary petitions of candidates not party-endorsed, 63 days before the primary (Conn. Gen. Stat. 9-400)",https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,CT,,,primary,2026-08-11,,official,Second Tuesday in August (Conn. Gen. Stat. 9-423),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,DE,,,filing_deadline,2026-07-14,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,DE,,,primary,2026-09-15,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,FL,,,filing_deadline,2026-04-24,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,FL,,,primary,2026-08-18,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,GA,,,filing_deadline,2026-03-06,noon,official,Qualifying runs from the Monday of the eleventh week before the primary through noon the following Friday (O.C.G.A. 21-2-153); opened 2026-03-02,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,GA,,,primary,2026-05-19,,official,Tuesday of the twenty-fourth week before the November general election (O.C.G.A. 21-2-150),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,GA,,,primary_runoff,2026-06-16,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,HI,,,filing_deadline,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,HI,,,primary,2026-08-08,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,IA,,,filing_deadline,2026-03-13,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,IA,,,primary,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,ID,,,filing_deadline,2026-02-27,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,ID,,,primary,2026-05-19,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,IL,,,filing_deadline,2025-11-03,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,IL,,,primary,2026-03-17,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,IN,,,filing_deadline,2026-02-06,noon,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,IN,,,primary,2026-05-05,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,KS,,,filing_deadline,2026-06-01,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,KS,,,primary,2026-08-04,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,KY,,,filing_deadline,2026-01-09,4 p.m.,official,First Friday following the first Monday in January (KRS 118.165),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,KY,,,primary,2026-05-19,,official,First Tuesday after the third Monday in May (KRS 118.025(3)),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,LA,senate,,filing_deadline,2026-01-14,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,LA,senate,,primary,2026-05-16,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,LA,senate,,primary_runoff,2026-06-27,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,LA,house,,filing_deadline,2026-08-07,4:30 p.m.,official,Qualifying period for U.S. House candidates (La. R.S. 18:1273); opened 2026-08-05,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,LA,house,,primary,2026-11-03,,official,House elections were postponed to the general election day after Louisiana v. Callais (Executive Order JML 26-038),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,LA,house,,primary_runoff,2026-12-12,if needed,official,Fifth Saturday after the first Tuesday after the first Monday in November (La. R.S. 18:402),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MA,,,filing_deadline,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MA,,,primary,2026-09-01,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MD,,,filing_deadline,2026-02-24,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MD,,,primary,2026-06-23,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,ME,,,filing_deadline,2026-03-16,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,ME,,,primary,2026-06-09,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MI,,,filing_deadline,2026-04-21,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MI,,,primary,2026-08-04,,official,Tuesday after the first Monday in August (MCL 168.534),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MN,,,filing_deadline,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MN,,,primary,2026-08-11,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MO,,,filing_deadline,2026-03-31,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MO,,,primary,2026-08-04,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MS,,,filing_deadline,2025-12-26,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MS,,,primary,2026-03-10,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MS,,,primary_runoff,2026-04-07,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MT,,,filing_deadline,2026-03-04,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,MT,,,primary,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NC,,,filing_deadline,2025-12-19,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NC,,,primary,2026-03-03,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NC,,,primary_runoff,2026-05-12,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,ND,,,filing_deadline,2026-04-06,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,ND,,,primary,2026-06-09,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NE,,,filing_deadline,2026-02-17,incumbents,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NE,,,filing_deadline,2026-03-02,all others,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NE,,,primary,2026-05-12,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NH,,,filing_deadline,2026-06-12,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NH,,,primary,2026-09-08,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NJ,,,filing_deadline,2026-03-23,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NJ,,,primary,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NM,,,filing_deadline,2026-02-03,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NM,,,primary,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NV,,,filing_deadline,2026-03-13,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NV,,,primary,2026-06-09,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NY,,,filing_deadline,2026-04-06,,official,Designating petitions; extended four days for 2026 only for Passover (Election Law 6-158 as amended by 2025 S6996 / A1223),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,NY,,,primary,2026-06-23,,official,Fourth Tuesday in June (Election Law 8-100),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OH,,,filing_deadline,2026-02-04,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OH,,,primary,2026-05-05,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OK,,,filing_deadline,2026-04-03,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OK,,,primary,2026-06-16,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OK,,,primary_runoff,2026-08-25,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OR,,,filing_deadline,2026-03-03,incumbents,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OR,,,filing_deadline,2026-03-10,all others,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,OR,,,primary,2026-05-19,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,PA,,,filing_deadline,2026-03-10,,official,Tenth Tuesday before the primary (25 P.S. 2873),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,PA,,,primary,2026-05-19,,official,Third Tuesday in May in even years (25 P.S. 2753),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,RI,,,filing_deadline,2026-06-24,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,RI,,,primary,2026-09-09,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,SC,,,filing_deadline,2026-03-30,noon,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,SC,,,primary,2026-06-09,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,SC,,,primary_runoff,2026-06-23,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,SD,,,filing_deadline,2026-03-31,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,SD,,,primary,2026-06-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,SD,,,primary_runoff,2026-07-28,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,TN,,,filing_deadline,2026-03-10,noon,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,TN,,,primary,2026-08-06,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,TX,,,filing_deadline,2025-12-08,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,TX,,,primary,2026-03-03,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,TX,,,primary_runoff,2026-05-26,if needed,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,UT,,,filing_deadline,2026-03-13,5 p.m.,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,UT,,,primary,2026-06-23,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,VA,senate,,filing_deadline,2026-04-02,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,VA,house,,filing_deadline,2026-05-26,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,VA,,,primary,2026-08-04,,official,Moved from June 16,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,VT,,,filing_deadline,2026-05-28,5 p.m.,official,Primary petitions and consent forms due the fourth Thursday after the first Monday in May (17 V.S.A. 2356),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,VT,,,primary,2026-08-11,,official,Second Tuesday in August (17 V.S.A. 2351),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WA,,,filing_deadline,2026-05-08,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WA,,,primary,2026-08-04,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WI,,,filing_deadline,2026-06-01,5 p.m.,official,Nomination papers due (Wis. Stat. 8.15(1)),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WI,,,primary,2026-08-11,,official,Second Tuesday in August (Wis. Stat. 5.02(12s)),https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WV,,,filing_deadline,2026-01-31,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WV,,,primary,2026-05-12,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WY,,,filing_deadline,2026-05-29,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15
+2026,WY,,,primary,2026-08-18,,official,,https://www.fec.gov/resources/cms-content/documents/2026pdates.pdf,2026-11-15

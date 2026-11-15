@@ -369,11 +369,18 @@ models:
         tests: [not_null]
 
   - name: key_date
-    description: Calendar events from the key_dates seed.
+    description: >
+      Calendar events: the key_dates seed, and each state's election calendar for the current
+      cycle from the election_dates seed. office and districts are set only on a state row that
+      does not apply to every member the state elects.
     columns:
       - name: date
         tests: [not_null]
       - name: label
+        tests: [not_null]
+      - name: kind
+        tests: [not_null]
+      - name: source_url
         tests: [not_null]
 
   - name: fec_committee
