@@ -1,18 +1,39 @@
 'use client';
 
-// The Stock trades tab (ADR 0018). Three honest states, kept visibly apart the way "no roll call
-// vote" is kept apart from "pending" elsewhere on the site:
-//   - a senator: the Senate's disclosure system (eFD) is not collected yet, so nothing is ingested;
-//     the tab says that is a gap in this site, not an empty record;
-//   - a House member the Clerk lists no report for: an empty record, stated as what the Clerk holds;
-//   - a House member with reports: the trades read from the PDFs, plus every report, including
-//     scanned paper forms whose trades this site cannot read.
+// The Stock trades tab (ADR 0018, ADR 0026). Three honest states, kept visibly apart the way "no
+// roll call vote" is kept apart from "pending" elsewhere on the site:
+//   - a senator while the Senate's disclosure system (eFD) has never been read: nothing is held,
+//     and the tab says that is a gap in this site, not an empty record;
+//   - a member the Clerk (House) or eFD (Senate) lists no report for: an empty record, stated as
+//     what that office holds;
+//   - a member with reports: the trades read from them, plus every report, including scanned
+//     paper forms whose trades this site cannot read and Senate reports an amendment replaced.
 // Every count and value total is a mart column formatted in src/lib/model.ts.
 import { useState } from 'react';
 import type { StockFilingRow, StockTradeRow, StockTradesModel } from '@/lib/model';
 import { SourceLink } from './SiteChrome';
 
 const PAGE = 25;
+
+/* Who holds the record, in the words each state uses. */
+const OFFICE = {
+  house: {
+    index: 'The House Clerk’s disclosure index',
+    checked: 'Index last checked',
+    search: 'Open the House Clerk disclosure search',
+    none: 'From the House Clerk’s financial disclosure index, refreshed nightly. The Clerk’s search is the record.',
+    filed:
+      'Trades are read from the House Clerk’s periodic transaction report PDFs, refreshed nightly, and each links to the page it came from. Reading a PDF can go wrong: check a trade against its report before relying on it. The reports are the record.',
+  },
+  senate: {
+    index: 'The Senate’s disclosure search (eFD)',
+    checked: 'Search last checked',
+    search: 'Open the Senate disclosure search',
+    none: 'From the Senate’s eFD disclosure search, refreshed nightly. Its search is the record.',
+    filed:
+      'Trades are read from the Senate’s eFD periodic transaction reports, refreshed nightly, and each links to its report. Reading a report can go wrong: check a trade against it before relying on it. The reports are the record.',
+  },
+} as const;
 
 function Chip({ children, tone = 'plain' }: { children: React.ReactNode; tone?: 'filled' | 'outline' | 'plain' }) {
   const look =
@@ -60,7 +81,7 @@ function Footer({ model, text }: { model: StockTradesModel; text: string }) {
       <p className="text-meta text-ink3 m-0 max-w-[68ch]">{text}</p>
       <SourceLink
         href={model.lookupUrl}
-        title={model.status === 'senate_unavailable' ? 'Open the Senate disclosure search' : 'Open the House Clerk disclosure search'}
+        title={OFFICE[model.chamber].search}
       />
     </div>
   );
@@ -97,7 +118,7 @@ function SenateUnavailable({ model, name }: { model: StockTradesModel; name: str
   );
 }
 
-/* A House member the Clerk lists no report for. An empty record, stated as what the Clerk holds. */
+/* A member the Clerk or eFD lists no report for. An empty record, stated as what that office holds. */
 function NoFilings({ model, name }: { model: StockTradesModel; name: string }) {
   return (
     <section
@@ -111,13 +132,15 @@ function NoFilings({ model, name }: { model: StockTradesModel; name: string }) {
         <Chip>No reports on file</Chip>
       </div>
       <p className="text-body text-ink2 leading-relaxed m-0 max-w-[68ch]">
-        The House Clerk&rsquo;s disclosure index lists no periodic transaction reports for {name}{' '}
-        since {model.coversFrom}. A member files one for trades in securities by themselves, a
+        {OFFICE[model.chamber].index} lists no periodic transaction reports for {name} since{' '}
+        {model.coversFrom}. A member files one for trades in securities by themselves, a
         spouse or a dependent child; annual financial disclosures, which list holdings, are a
         separate filing and are not shown here.
       </p>
       {model.checkedAt && (
-        <p className="text-meta text-ink3 m-0 tnum">Index last checked {model.checkedAt}</p>
+        <p className="text-meta text-ink3 m-0 tnum">
+          {OFFICE[model.chamber].checked} {model.checkedAt}
+        </p>
       )}
     </section>
   );
@@ -270,7 +293,7 @@ function TradeCard({ t }: { t: StockTradeRow }) {
           href={t.url}
           target="_blank"
           rel="noopener noreferrer"
-          title="Open the report PDF at this page"
+          title="Open the report this trade is on"
           className="text-label uppercase text-ink2 border border-rule rounded-chip px-2 py-1"
         >
           report ↗
@@ -324,7 +347,8 @@ function FilingRow({ f }: { f: StockFilingRow }) {
         <time dateTime={f.isoDate} className="text-label uppercase text-ink3 tnum">
           Filed {f.dateLabel}
         </time>
-        <Chip tone={tone}>{f.statusLabel}</Chip>
+        {f.amendmentLabel && <Chip>{f.amendmentLabel}</Chip>}
+        <Chip tone={f.replaced ? 'plain' : tone}>{f.statusLabel}</Chip>
         {f.tradesLabel && <span className="text-meta text-ink3 tnum">{f.tradesLabel}</span>}
         {f.pages !== null && (
           <span className="text-meta text-ink3 tnum">
@@ -334,7 +358,7 @@ function FilingRow({ f }: { f: StockFilingRow }) {
       </div>
       <div className="flex items-baseline gap-3 flex-wrap text-meta">
         {f.error && <span className="text-ink3 break-words">{f.error}</span>}
-        <ExternalLink href={f.url}>Report {f.key}</ExternalLink>
+        <ExternalLink href={f.url}>{f.linkLabel}</ExternalLink>
       </div>
     </li>
   );
@@ -351,6 +375,12 @@ function FilingList({ model }: { model: StockTradesModel }) {
           {model.filings} · newest first
         </span>
       </div>
+      {model.filingsReplaced > 0 && (
+        <p className="px-[18px] pb-3 text-meta text-ink3 m-0 max-w-[68ch]">
+          An amendment restates the report it corrects in full. The replaced report stays listed
+          here, but only the amendment&rsquo;s trades are counted and shown.
+        </p>
+      )}
       <ul className="list-none m-0 p-0">
         {model.filingRows.map((f) => (
           <FilingRow key={f.key} f={f} />
@@ -378,12 +408,7 @@ export function StockTradesTab({ model, name }: { model: StockTradesModel; name:
   if (model.status === 'no_filings') {
     return (
       <Shell
-        footer={
-          <Footer
-            model={model}
-            text="From the House Clerk’s financial disclosure index, refreshed nightly. The Clerk’s search is the record."
-          />
-        }
+        footer={<Footer model={model} text={OFFICE[model.chamber].none} />}
       >
         <NoFilings model={model} name={name} />
       </Shell>
@@ -391,12 +416,7 @@ export function StockTradesTab({ model, name }: { model: StockTradesModel; name:
   }
   return (
     <Shell
-      footer={
-        <Footer
-          model={model}
-          text="Trades are read from the House Clerk’s periodic transaction report PDFs, refreshed nightly, and each links to the page it came from. Reading a PDF can go wrong: check a trade against its report before relying on it. The reports are the record."
-        />
-      }
+      footer={<Footer model={model} text={OFFICE[model.chamber].filed} />}
     >
       <Summary model={model} />
       <UnreadNotice model={model} />

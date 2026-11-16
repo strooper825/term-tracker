@@ -312,7 +312,8 @@ export interface StockTradeItem {
   doc_id: string;
   row_number: number;
   trade_date: string;
-  notification_date: string;
+  /** House reports only; eFD has no notification date. */
+  notification_date: string | null;
   filing_date: string;
   days_to_file: number;
   owner_code: string;
@@ -344,7 +345,12 @@ export interface StockTradeFiling {
   status: 'parsed' | 'scanned' | 'failed';
   error: string | null;
   pages: number | null;
+  /** Senate: 0 for an original, else the amendment number. House: null. */
+  amendment: number | null;
+  /** The Senate amendment that replaced this report; its trades are not listed. */
+  superseded_by: string | null;
   trades: number;
+  source: 'house_clerk_ptr' | 'senate_efd';
   source_url: string;
 }
 

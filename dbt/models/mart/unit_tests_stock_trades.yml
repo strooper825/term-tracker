@@ -1,8 +1,8 @@
 version: 2
 
-# Constructed cases for the Stock trades models (ADR 0018). No tracked House member has an
-# electronic PTR to load, so the parsed-trade path (code mapping, amount bands, totals) is
-# exercised here on invented rows rather than on a real member's filing.
+# Constructed cases for the Stock trades models (ADR 0018, ADR 0026). The parsed-trade path
+# (code mapping, amount bands, totals, Senate amendments) is exercised here on invented rows
+# rather than on a real member's filing.
 unit_tests:
   - name: stg_house_ptr_transactions_reads_cells
     model: stg_house_ptr_transactions
@@ -39,6 +39,33 @@ unit_tests:
         # A filer may enter one exact figure instead of a band: low equals high, kind says so.
         - {row_number: 6, owner_code: SELF, asset_type_code: HN, ticker: null, asset_name: "New Water Capital Partners II, LP (GLAS Funds, LP)", transaction_type_code: P, amount_low: 1972.55, amount_high: 1972.55, trade_date: 2025-04-03}
 
+  - name: stg_senate_ptr_transactions_reads_cells
+    model: stg_senate_ptr_transactions
+    given:
+      - input: source('raw', 'senate_ptr_transaction')
+        format: sql
+        rows: |
+          select 'R1' as report_id, 1 as row_number, 'T000002' as bioguide_id, 'https://example.test/r1/' as source_url, now() as fetched_at,
+                 '{"transaction_date": "09/25/2026", "owner": "Joint", "ticker": "APTV", "asset_name": "Aptiv PLC Ordinary Shares", "asset_detail": {}, "asset_type": "Stock", "type": "Sale (Partial)", "amount": "$1,001 - $15,000", "comment": null}'::jsonb as payload
+          union all
+          select 'R1', 2, 'T000002', 'https://example.test/r1/', now(),
+                 '{"transaction_date": "09/15/2026", "owner": "Child", "ticker": null, "asset_name": "DELL INTL LLC/EMC CORP", "asset_detail": {"Rate/Coupon": "5.6%", "Matures": "2033-09-15"}, "asset_type": "Corporate Bond", "type": "Purchase", "amount": "$15,001 - $50,000", "comment": "Bought at issue"}'::jsonb
+          union all
+          select 'R1', 3, 'T000002', 'https://example.test/r1/', now(),
+                 '{"transaction_date": "09/16/2026", "owner": "Spouse", "ticker": "MSFT", "asset_name": "Microsoft Corp", "asset_detail": {}, "asset_type": "Stock", "type": "Sale (Full)", "amount": "Over $50,000,000", "comment": null}'::jsonb
+          union all
+          select 'R1', 4, 'T000002', 'https://example.test/r1/', now(),
+                 '{"transaction_date": "09/17/2026", "owner": "Self", "ticker": null, "asset_name": "Something new", "asset_detail": {}, "asset_type": "Cryptocurrency", "type": "Gift", "amount": "$1,001 - $15,000", "comment": null}'::jsonb
+    expect:
+      rows:
+        # eFD's words become the House codes for the same categories.
+        - {row_number: 1, owner_code: JT, ticker: APTV, asset_type_code: Stock, transaction_type_code: "S (partial)", amount_kind: band, amount_low: 1001, amount_high: 15000, trade_date: 2026-09-25, notification_date: null, description: null, comments: null}
+        # A bond's coupon and maturity become its description.
+        - {row_number: 2, owner_code: DC, ticker: null, asset_type_code: Corporate Bond, transaction_type_code: P, amount_kind: band, amount_low: 15001, amount_high: 50000, trade_date: 2026-09-15, notification_date: null, description: "Matures: 2033-09-15; Rate/Coupon: 5.6%", comments: Bought at issue}
+        - {row_number: 3, owner_code: SP, ticker: MSFT, asset_type_code: Stock, transaction_type_code: S, amount_kind: top_band, amount_low: 50000000, amount_high: null, trade_date: 2026-09-16, notification_date: null, description: null, comments: null}
+        # A value with no House code is kept as printed; the mart flags it.
+        - {row_number: 4, owner_code: SELF, ticker: null, asset_type_code: Cryptocurrency, transaction_type_code: Gift, amount_kind: band, amount_low: 1001, amount_high: 15000, trade_date: 2026-09-17, notification_date: null, description: null, comments: null}
+
   - name: stock_trade_maps_codes_and_keeps_unknown_ones
     model: stock_trade
     given:
@@ -62,11 +89,28 @@ unit_tests:
       - input: ref('ptr_transaction_types')
         rows:
           - {code: S, label: Sale, direction: sale}
+          - {code: P, label: Purchase, direction: purchase}
+      - input: ref('stg_senate_ptr_transactions')
+        rows:
+          # R_OLD was replaced by the amendment R_NEW: only R_NEW's trade is listed.
+          - {report_id: R_OLD, row_number: 1, bioguide_id: T000001, owner_code: JT, asset_name: Old row, asset_type_code: Stock, transaction_type_code: P, trade_date: 2026-03-01, amount_low: 1001, amount_high: 15000, source_url: "https://example.test/old/"}
+          - {report_id: R_NEW, row_number: 1, bioguide_id: T000001, owner_code: JT, asset_name: Aptiv, asset_type_code: Stock, transaction_type_code: P, trade_date: 2026-03-01, amount_low: 1001, amount_high: 15000, source_url: "https://example.test/new/"}
+          # A Senate asset type no seed maps is flagged like a House code.
+          - {report_id: R_NEW, row_number: 2, bioguide_id: T000001, owner_code: JT, asset_name: Coin, asset_type_code: Cryptocurrency, transaction_type_code: P, trade_date: 2026-03-02, amount_low: 1001, amount_high: 15000, source_url: "https://example.test/new/"}
+      - input: ref('stg_senate_ptr_reports')
+        rows:
+          - {report_id: R_OLD, bioguide_id: T000001, filing_date: 2026-03-05, supersedes: null}
+          - {report_id: R_NEW, bioguide_id: T000001, filing_date: 2026-04-01, supersedes: R_OLD}
+      - input: ref('efd_asset_types')
+        rows:
+          - {code: Stock, label: Stock}
     expect:
       rows:
-        - {row_number: 1, owner_label: Spouse, asset_type_label: Stocks (including ADRs), transaction_type_label: Sale, direction: sale, days_to_file: 34, has_unmapped_code: false}
+        - {doc_id: D1, row_number: 1, owner_label: Spouse, asset_type_label: Stocks (including ADRs), transaction_type_label: Sale, direction: sale, days_to_file: 34, has_unmapped_code: false, source: house_clerk_ptr}
         # No seed maps ZZ or X: the row stays, labelled by its raw codes, and is flagged.
-        - {row_number: 2, owner_label: Self, asset_type_label: ZZ, transaction_type_label: X, direction: other, days_to_file: 28, has_unmapped_code: true}
+        - {doc_id: D1, row_number: 2, owner_label: Self, asset_type_label: ZZ, transaction_type_label: X, direction: other, days_to_file: 28, has_unmapped_code: true, source: house_clerk_ptr}
+        - {doc_id: R_NEW, row_number: 1, owner_label: JT, asset_type_label: Stock, transaction_type_label: Purchase, direction: purchase, days_to_file: 31, has_unmapped_code: true, source: senate_efd}
+        - {doc_id: R_NEW, row_number: 2, owner_label: JT, asset_type_label: Cryptocurrency, transaction_type_label: Purchase, direction: purchase, days_to_file: 30, has_unmapped_code: true, source: senate_efd}
 
   - name: member_stock_trades_statuses_and_totals
     model: member_stock_trades
@@ -105,5 +149,34 @@ unit_tests:
       rows:
         - {bioguide_id: H_FILED, chamber: house, status: filed, filings: 3, filings_parsed: 1, filings_scanned: 1, filings_failed: 1, latest_filing_date: 2026-03-09, trades: 4, purchases: 2, sales: 1, exchanges: 1, purchases_low: "50001001.00", purchases_high: "15000.00", purchases_high_is_open: true, sales_low: "15001.00", sales_high: "50000.00", sales_high_is_open: false, first_trade_date: 2026-01-10, last_trade_date: 2026-01-20, covers_from: 2025-01-03, lookup_url: "https://disclosures-clerk.house.gov/FinancialDisclosure", source: house_clerk_ptr, checked_at: "2026-09-20 06:10:00+00"}
         - {bioguide_id: H_NONE, chamber: house, status: no_filings, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://disclosures-clerk.house.gov/FinancialDisclosure", source: house_clerk_ptr, checked_at: "2026-09-20 06:10:00+00"}
-        - {bioguide_id: S_SENATE, chamber: senate, status: senate_unavailable, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-09-20 06:10:00+00"}
-        - {bioguide_id: S_BOTH, chamber: senate, status: senate_unavailable, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-09-20 06:10:00+00"}
+        # eFD has never been read: the Senate has no record to show, and no checked date.
+        - {bioguide_id: S_SENATE, chamber: senate, status: senate_unavailable, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: null}
+        - {bioguide_id: S_BOTH, chamber: senate, status: senate_unavailable, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: null}
+
+  - name: member_stock_trades_senate_once_efd_is_read
+    model: member_stock_trades
+    given:
+      - input: ref('member')
+        rows:
+          - {bioguide_id: S_FILED}
+          - {bioguide_id: S_NONE}
+      - input: ref('term')
+        rows:
+          - {bioguide_id: S_FILED, chamber: senate, start_date: 2025-01-03}
+          - {bioguide_id: S_NONE, chamber: senate, start_date: 2025-01-03}
+      - input: ref('stock_trade_filing')
+        rows:
+          # Two filings, one replaced by the other: both count as filings.
+          - {doc_id: R_OLD, bioguide_id: S_FILED, status: parsed, filing_date: 2026-03-05, fetched_at: 2026-11-16}
+          - {doc_id: R_NEW, bioguide_id: S_FILED, status: parsed, filing_date: 2026-04-01, fetched_at: 2026-11-16}
+      - input: ref('stock_trade')
+        rows:
+          - {bioguide_id: S_FILED, direction: sale, amount_low: 1001, amount_high: 15000, trade_date: 2026-03-01}
+      - input: source('meta', 'ingest_run')
+        rows:
+          - {source: senate_ptr, status: success, finished_at: "2026-11-16 18:10:00+00"}
+          - {source: house_ptr, status: success, finished_at: "2026-11-16 18:05:00+00"}
+    expect:
+      rows:
+        - {bioguide_id: S_FILED, chamber: senate, status: filed, filings: 2, filings_parsed: 2, filings_scanned: 0, filings_failed: 0, latest_filing_date: 2026-04-01, trades: 1, purchases: 0, sales: 1, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: "1001.00", sales_high: "15000.00", sales_high_is_open: false, first_trade_date: 2026-03-01, last_trade_date: 2026-03-01, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-11-16 18:10:00+00"}
+        - {bioguide_id: S_NONE, chamber: senate, status: no_filings, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-11-16 18:10:00+00"}

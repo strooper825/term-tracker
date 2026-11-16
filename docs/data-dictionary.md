@@ -249,6 +249,38 @@ all scanned. The other nine House members filed annual reports and extensions bu
 ingest: 4,599 index rows, 20 filings fetched, 22 requests, 17.5 MB, 21 seconds at one request a second;
 a normal night is 2 requests.
 
+## Raw tables: Senate Periodic Transaction Reports (Alembic migration `0013`, ADR 0026)
+
+Loaded by `python -m ingest.run --source senate_ptr` for every tracked member whose latest term is
+in the Senate. eFD (`efdsearch.senate.gov`) is read after agreeing to its statement on use
+(5 U.S.C. 13107), which the owner approved for every run: one search for report type 11 submitted
+since the tracked Congress began, 100 rows a page, then `/search/view/ptr/{uuid}/` (an HTML table)
+or `/search/view/paper/{uuid}/` (page images) for each report of a tracked senator. A search row
+has a name and an office but no bioguide id; it is matched when the office is a sitting senator's
+and the last name (before any ", Jr.") agrees, with a first, middle or nickname also required when
+two tracked senators share a last name.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.senate_ptr_report` | `report_id` | PTR of a tracked senator; columns `bioguide_id`, `status` (`parsed`, `paper`, `failed`), `error`, `supersedes` (the report an amendment replaces), `supersedes_note` (how that was decided, or why not), `payload` (`search`: `first`, `last`, `office`, `title`, `filed`, `report_for`, `amendment`, `kind`; `report`: `title`, `filer`, `filed_at`, `stated_total`, or `pages` for a paper report), `source_url` (the eFD page), `fetched_at` |
+| `raw.senate_ptr_transaction` | `report_id`, `row_number` | transaction row of a `parsed` report; `payload` holds every cell as printed (`transaction_date`, `owner`, `ticker` (null for `--`), `asset_name`, `asset_detail` (eFD's labelled lines under a bond or option, e.g. `Rate/Coupon`, `Matures`), `asset_type`, `type`, `amount`, `comment` (null for `--`)) |
+
+`status`: `parsed` is an electronic report whose rows read back as the count it states and whose
+heading names the matched senator; `paper` is a report filed as page images; `failed` is anything
+else, with `error`, and stores no rows. `parsed` and `paper` reports are fetched once (eFD reports
+cannot be edited); `failed` ones are retried nightly. An amendment (`amendment` > 0, "(Amendment)"
+with no number counts as 1) is matched to the same filer's earlier report for the same date that
+shares the most rows, if it shares at least half the amendment's rows and strictly more than any
+other; otherwise `supersedes` stays null and `supersedes_note` starts `not resolved`.
+
+Source shape (verified 2026-11-16 on all 308 PTRs submitted since 2025-01-03, every filer): search
+rows are `[first, last, office, link, filed]`; titles are `Periodic Transaction Report for
+mm/dd/yyyy`, with ` (Amendment N)` or ` (Amendment)`; offices end `(Senator)`, `(Former Senator)`,
+or are `Senator` on paper rows; 278 electronic, 30 paper (one filer); 27 amendments. Of tracked
+senators: 84 reports, all electronic, 479 rows. Values seen: types `Purchase` 258,
+`Sale (Partial)` 156, `Sale (Full)` 65; owners `Joint` 411, `Child` 53, `Spouse` 15; asset types
+`Stock` 433, `Corporate Bond` 42, `Municipal Security` 4.
+
 ## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
 
 Loaded by `python -m ingest.run --source census_geography` and `--source census_acs`, for the
@@ -294,6 +326,7 @@ every state and district. The Data API needs `CENSUS_API_KEY`.
 | `seed.ptr_transaction_types` | `code` | Transaction-type codes on a House PTR (ADR 0018): `code` (`P`, `S`, `S (partial)`, `E`), `label` (Purchase, Sale, Partial sale, Exchange), `direction` (`purchase`, `sale`, `exchange`; the mart groups by it). |
 | `seed.ptr_owner_codes` | `code` | Owner codes: `SELF` (a blank owner cell), `SP` spouse, `DC` dependent child, `JT` joint. |
 | `seed.ptr_asset_types` | `code` | All 48 asset-type codes the Clerk lists (https://fd.house.gov/reference/asset-type-codes.aspx, copied 2026-09-20), whether or not a tracked member used one. A code that is not here keeps its row and is flagged (`has_unmapped_code`). |
+| `seed.efd_asset_types` | `code` | Asset types as the Senate's eFD prints them (`Stock`, `Corporate Bond`, `Municipal Security`, the three seen on 2026-11-16), with the label the site shows (ADR 0026). A value not here keeps its row and is flagged (`has_unmapped_code`), and the ingest log lists every value seen. |
 | `seed.composition_seats` | `chamber`, `party_group` | Hand-maintained party split of the 435 House and 100 Senate seats (ADR 0012): `chamber` (`house`/`senate`), `party_group` (`republican`, `democratic`, `independent`, `vacant`), `seats`, `caucus_with` (independents only). Typed from the Clerk of the House and Senate.gov; provenance is the dbt vars `composition_as_of`, `composition_house_source_url`, `composition_senate_source_url`. The warning test `assert_composition_matches_legislators` compares it with `raw.legislator`. Seeded 2026-09-19: House 218 R, 214 D, 1 I (caucus R), 2 vacant; Senate 53 R, 45 D, 2 I (caucus D). |
 
 ## Staging views (`staging` schema, dbt)
@@ -534,25 +567,27 @@ are the members' offices' words, reproduced from their own feeds; the tab links 
 
 ### `mart.member_stock_trades`
 
-One row per tracked member: what the Stock trades tab says (ADR 0018). Key `bioguide_id`.
+One row per tracked member: what the Stock trades tab says (ADR 0018, ADR 0026). Key `bioguide_id`.
 
 | Column | Description |
 |---|---|
 | `chamber` | `house` / `senate`, from the latest term |
-| `status` | `senate_unavailable` (a senator: the Senate eFD system blocks automated access, so nothing is ingested), `no_filings` (a House member the Clerk index lists no PTR for since the Congress began), `filed` (a House member with at least one PTR) |
-| `filings`, `filings_parsed`, `filings_scanned`, `filings_failed` | Reports by what reading the PDF gave; the last three sum to `filings` |
+| `status` | `senate_unavailable` (a senator while eFD has never been read successfully: no Senate record to show), `no_filings` (the Clerk index or the eFD search lists no PTR for the member since the Congress began), `filed` (at least one PTR) |
+| `filings`, `filings_parsed`, `filings_scanned`, `filings_failed` | Reports by what reading them gave (a Senate paper report counts as scanned); the last three sum to `filings`. A Senate report an amendment replaced still counts as a filing |
 | `latest_filing_date` | Newest report's filing date |
 | `trades`, `purchases`, `sales`, `exchanges` | Rows in `mart.stock_trade` by `direction`; a trade with an unmapped type code is `other` and counts only in `trades` |
 | `purchases_low`, `purchases_high`, `sales_low`, `sales_high` | Sums of the low and high ends of the disclosed bands. They bracket the true total; a trade's real value lies inside its band |
 | `purchases_high_is_open`, `sales_high_is_open` | A top-band trade ("Over $50,000,000") has no high end, so the high sum is a floor, not a ceiling, and the site reads "$X or more" |
 | `first_trade_date`, `last_trade_date` | Range of trade dates listed |
-| `covers_from` | The dbt var `current_congress_start`: what "no reports" is measured from |
+| `covers_from` | The first day of the tracked Congress (macro `congress_start_date()`): what "no reports" is measured from |
 | `lookup_url`, `source`, `source_url` | The official search a person can check against: the Clerk's for House members (`house_clerk_ptr`), the Senate's for senators (`senate_efd`) |
-| `checked_at`, `fetched_at` | Last successful `house_ptr` run (`meta.ingest_run`), and the latest fetch of a member's filings (else the same) |
+| `checked_at`, `fetched_at` | Last successful run of the member's chamber's source, `house_ptr` or `senate_ptr` (`meta.ingest_run`), and the latest fetch of a member's filings (else the same) |
 
 Verified against the ingest 2026-09-20: Khanna `filed`, 20 filings all scanned, 0 trades; the other nine
-House members `no_filings`; the ten senators `senate_unavailable`. `assert_stock_trade_counts_consistent`
-checks every count against the rows beside it and that no senator has a PTR row.
+House members `no_filings`; the ten senators `senate_unavailable`. Against the local run of 2026-11-16
+(56 members): 11 House members and 5 senators `filed` (Boozman 345 trades, Fetterman 51, McConnell 10,
+Collins 4, Schiff 1), the rest `no_filings`. `assert_stock_trade_counts_consistent` checks every count
+against the rows beside it and that no `senate_unavailable` senator has a PTR row.
 
 `GET /api/v1/members/{id}/stock-trades` returns the row as `status`, `chamber`, `covers_from`,
 `lookup_url`, `checked_at` and `summary` (the counts and totals above), with `filings` (every
@@ -563,22 +598,31 @@ reports, the trade list and the report list.
 
 ### `mart.stock_trade_filing`
 
-One row per PTR a tracked House member has filed since the tracked Congress began, whatever reading its
-PDF gave. Key `doc_id`. Columns `bioguide_id`, `year`, `filing_date`, `status` (`parsed`, `scanned`,
-`failed`), `error`, `pages`, `trades` (rows in `mart.stock_trade`; 0 unless `parsed`), `source`
-(`house_clerk_ptr`), `source_url` (the PDF), `fetched_at`. The dbt warning `assert_ptr_filings_parsed`
+One row per PTR a tracked member has filed since the tracked Congress began, whatever reading it gave:
+House reports from the Clerk, Senate reports from eFD. Key `doc_id` (the Clerk's DocID or eFD's report
+UUID). Columns `bioguide_id`, `year`, `filing_date`, `status` (`parsed`, `scanned` (a House scan or a
+Senate paper report), `failed`), `error`, `pages`, `amendment` (Senate: 0 for an original, else the
+amendment number; House: null), `superseded_by` (the Senate amendment that replaced the report),
+`trades` (rows in `mart.stock_trade`; 0 unless `parsed` and not replaced), `source` (`house_clerk_ptr`,
+`senate_efd`), `source_url` (the PDF or the eFD page), `fetched_at`. The warning
+`assert_senate_amendments_resolved` names a Senate amendment that could not be matched to the report it
+restates. The dbt warning `assert_ptr_filings_parsed`
 names each `failed` filing with its reason. `scanned` filings are expected and not warned.
 
 ### `mart.stock_trade`
 
-One row per transaction on a tracked House member's PTR, the trade list. Natural key `(doc_id,
+One row per transaction on a tracked member's PTR, the trade list, both chambers; a Senate report an
+amendment replaced contributes no rows. Senate owners and types are written as the House codes for the
+same categories (Joint `JT`, Child `DC`, Sale (Partial) `S (partial)`); Senate asset types are eFD's
+words, labelled by the `efd_asset_types` seed; `notification_date`, `filing_status`, `subholding_of`
+and `location` are null for the Senate, and `description` holds eFD's bond or option details. Natural key `(doc_id,
 row_number)` (`assert_stock_trade_key_unique`). Columns `bioguide_id`, `filing_date`, `trade_date`,
 `notification_date`, `days_to_file` (filing date minus trade date), `owner_code`/`owner_label`,
 `asset_name`, `ticker`, `asset_type_code`/`asset_type_label`, `transaction_type_code`/
 `transaction_type_label`, `direction` (`purchase`, `sale`, `exchange`, `other`), `amount_raw` (as printed),
 `amount_kind`, `amount_low`, `amount_high`, the detail lines `filing_status`, `subholding_of`,
-`description`, `location`, `comments`, `has_unmapped_code`, `source` (`house_clerk_ptr`), `source_url`
-(the PDF with `#page=N`) and `fetched_at`. An unmapped code keeps its row, is labelled by its raw code and
+`description`, `location`, `comments`, `has_unmapped_code`, `source` (`house_clerk_ptr`, `senate_efd`),
+`source_url` (the PDF with `#page=N`, or the eFD page) and `fetched_at`. An unmapped code keeps its row, is labelled by its raw code and
 sets `has_unmapped_code`; the warning `assert_stock_trade_codes_mapped` counts each. The disclosed amount
 is a band, not a figure: a filer may instead enter one exact amount (`amount_kind` `exact`, low equal to
 high).

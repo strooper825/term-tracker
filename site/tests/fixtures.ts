@@ -1489,6 +1489,9 @@ function scanned(doc: string, date: string, pages: number, year: number): StockT
     status: 'scanned',
     error: null,
     pages,
+    amendment: null,
+    superseded_by: null,
+    source: 'house_clerk_ptr',
     trades: 0,
     source_url: `${PTR}/${year}/${doc}.pdf`,
   };
@@ -1550,6 +1553,120 @@ function trade(n: number, over: Partial<StockTradeItem> = {}): StockTradeItem {
   };
 }
 
+const EFD = 'https://efdsearch.senate.gov/search/view/ptr';
+
+/** A senator read from eFD: an amendment that replaced one of two same-day reports. Invented
+ *  member and rows; the report ids are eFD's shape (UUIDs). */
+export const EXAMPLE_SENATE: StockTradesResponse = {
+  bioguide_id: 'X000002',
+  chamber: 'senate',
+  status: 'filed',
+  covers_from: '2025-01-03',
+  lookup_url: 'https://efdsearch.senate.gov/search/',
+  checked_at: '2026-11-16T18:10:00Z',
+  summary: {
+    ...NO_TRADES_SUMMARY,
+    filings: 3,
+    filings_parsed: 3,
+    latest_filing_date: '2026-08-24',
+    trades: 2,
+    purchases: 2,
+    purchases_low: 2002,
+    purchases_high: 30000,
+    first_trade_date: '2025-11-06',
+    last_trade_date: '2025-11-20',
+  },
+  filings: [
+    {
+      doc_id: '51455bcd-4966-4e77-b481-09897ada81ae',
+      year: 2026,
+      filing_date: '2026-08-24',
+      status: 'parsed',
+      error: null,
+      pages: null,
+      amendment: 1,
+      superseded_by: null,
+      source: 'senate_efd',
+      trades: 1,
+      source_url: `${EFD}/51455bcd-4966-4e77-b481-09897ada81ae/`,
+    },
+    {
+      doc_id: '3a779539-8451-49d2-8419-d3eb72c7922a',
+      year: 2025,
+      filing_date: '2025-12-08',
+      status: 'parsed',
+      error: null,
+      pages: null,
+      amendment: 0,
+      superseded_by: '51455bcd-4966-4e77-b481-09897ada81ae',
+      source: 'senate_efd',
+      trades: 0,
+      source_url: `${EFD}/3a779539-8451-49d2-8419-d3eb72c7922a/`,
+    },
+    {
+      doc_id: '2c4705cc-0f3e-4105-9093-f82fcec8bacd',
+      year: 2025,
+      filing_date: '2025-12-08',
+      status: 'parsed',
+      error: null,
+      pages: null,
+      amendment: 0,
+      superseded_by: null,
+      source: 'senate_efd',
+      trades: 1,
+      source_url: `${EFD}/2c4705cc-0f3e-4105-9093-f82fcec8bacd/`,
+    },
+  ],
+  items: [
+    trade(1, {
+      doc_id: '51455bcd-4966-4e77-b481-09897ada81ae',
+      trade_date: '2025-11-20',
+      notification_date: null,
+      filing_date: '2026-08-24',
+      days_to_file: 277,
+      owner_code: 'JT',
+      owner_label: 'Joint',
+      asset_name: 'Example World Fund - Class R-6',
+      ticker: 'EXWF',
+      asset_type_code: 'Stock',
+      asset_type_label: 'Stock',
+      amount_raw: '$1,001 - $15,000',
+      amount_low: 1001,
+      amount_high: 15000,
+      filing_status: null,
+      subholding_of: null,
+      source_url: `${EFD}/51455bcd-4966-4e77-b481-09897ada81ae/`,
+    }),
+    trade(1, {
+      doc_id: '2c4705cc-0f3e-4105-9093-f82fcec8bacd',
+      trade_date: '2025-11-06',
+      notification_date: null,
+      filing_date: '2025-12-08',
+      days_to_file: 32,
+      owner_code: 'JT',
+      owner_label: 'Joint',
+      asset_name: 'Example Developed Markets ETF',
+      ticker: 'EXDM',
+      asset_type_code: 'Stock',
+      asset_type_label: 'Stock',
+      amount_raw: '$1,001 - $15,000',
+      amount_low: 1001,
+      amount_high: 15000,
+      filing_status: null,
+      subholding_of: null,
+      source_url: `${EFD}/2c4705cc-0f3e-4105-9093-f82fcec8bacd/`,
+    }),
+  ],
+  sources: [{ ...STOCK_SOURCE, source: 'senate_efd', source_url: 'https://efdsearch.senate.gov/search/' }],
+};
+
+/** A senator once eFD is read, with no report since the Congress began. */
+export const SENATE_NO_FILINGS: StockTradesResponse = {
+  ...COTTON_SENATE,
+  status: 'no_filings',
+  checked_at: '2026-11-16T18:10:00Z',
+};
+
 /** An invented member with one read report, one scanned paper form and one that did not parse.
  *  Not a real member's filing: the trade rows exist to exercise the list. */
 export const EXAMPLE_MIXED: StockTradesResponse = {
@@ -1584,6 +1701,9 @@ export const EXAMPLE_MIXED: StockTradesResponse = {
       status: 'failed',
       error: 'row 3 (page 1): amount ""',
       pages: 2,
+      amendment: null,
+      superseded_by: null,
+      source: 'house_clerk_ptr',
       trades: 0,
       source_url: `${PTR}/2026/20000002.pdf`,
     },
@@ -1595,6 +1715,9 @@ export const EXAMPLE_MIXED: StockTradesResponse = {
       status: 'parsed',
       error: null,
       pages: 2,
+      amendment: null,
+      superseded_by: null,
+      source: 'house_clerk_ptr',
       trades: 3,
       source_url: `${PTR}/2026/20000001.pdf`,
     },

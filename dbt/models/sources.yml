@@ -47,6 +47,10 @@ sources:
         description: One House Periodic Transaction Report of a tracked member (Clerk filing index, ADR 0018); status parsed, scanned or failed.
       - name: house_ptr_transaction
         description: One transaction row of a parsed House PTR, every cell as the PDF prints it (ADR 0018).
+      - name: senate_ptr_report
+        description: One Senate Periodic Transaction Report of a tracked senator (eFD search, ADR 0026); status parsed, paper or failed; supersedes names the report an amendment replaces.
+      - name: senate_ptr_transaction
+        description: One transaction row of a parsed Senate PTR, every cell as the eFD page prints it (ADR 0026).
 
   - name: meta
     description: Operational metadata about the pipeline itself (Alembic and ingest/).

@@ -279,10 +279,15 @@ PtrFilingStatus = Literal["parsed", "scanned", "failed"]
 
 
 class StockTradeItem(BaseModel):
-    doc_id: str = Field(description="The Clerk's DocID of the report the trade is printed on")
+    doc_id: str = Field(
+        description="The report the trade is printed on: the Clerk's DocID (House) or eFD's "
+        "report UUID (Senate)"
+    )
     row_number: int = Field(description="Position in that report's transaction table, from 1")
     trade_date: dt.date
-    notification_date: dt.date
+    notification_date: dt.date | None = Field(
+        description="When the member was notified of the trade; House reports only"
+    )
     filing_date: dt.date
     days_to_file: int = Field(description="Filing date minus trade date")
     owner_code: str = Field(description="SELF, SP (spouse), DC (dependent child) or JT (joint)")
@@ -307,7 +312,7 @@ class StockTradeItem(BaseModel):
     location: str | None
     comments: str | None
     has_unmapped_code: bool = Field(description="A code no seed maps; shown by its raw code")
-    source_url: str = Field(description="The PDF, with #page=N")
+    source_url: str = Field(description="The House PDF with #page=N, or the eFD report page")
 
 
 class StockTradeFiling(BaseModel):
@@ -320,8 +325,15 @@ class StockTradeFiling(BaseModel):
     )
     error: str | None
     pages: int | None
+    amendment: int | None = Field(
+        description="Senate: 0 for an original report, else its amendment number. House: null"
+    )
+    superseded_by: str | None = Field(
+        description="The Senate amendment that replaced this report; its trades are not listed"
+    )
     trades: int
-    source_url: str = Field(description="The report PDF on the Clerk's site")
+    source: Literal["house_clerk_ptr", "senate_efd"]
+    source_url: str = Field(description="The report PDF on the Clerk's site, or eFD's page")
 
 
 class StockTradesSummary(BaseModel):
@@ -350,9 +362,9 @@ class StockTradesResponse(BaseModel):
     bioguide_id: str
     chamber: Literal["house", "senate"]
     status: StockTradesStatus = Field(
-        description="filed: the member has Periodic Transaction Reports; no_filings: a House "
-        "member the Clerk lists none for; senate_unavailable: the Senate eFD system blocks "
-        "automated access, so no Senate trades are ingested (ADR 0018)"
+        description="filed: the member has Periodic Transaction Reports; no_filings: the "
+        "Clerk (House) or eFD (Senate) lists none for the member; senate_unavailable: eFD has "
+        "never been read successfully, so there is no Senate record to show (ADR 0026)"
     )
     covers_from: dt.date = Field(description="First day of the tracked Congress")
     lookup_url: str = Field(description="The official search, for checking against the source")

@@ -1,14 +1,18 @@
--- One row per tracked member: what the Stock trades tab says (ADR 0018).
---   senate_unavailable  a senator: the Senate eFD system is not collected yet (ADR 0018), so no trades
---                       are ingested and the tab says so
---   no_filings          a House member the Clerk index lists no PTR for since the Congress began
---   filed               a House member with at least one PTR; `filings_scanned` counts paper forms
---                       whose trades cannot be read, `filings_failed` those that did not parse
+-- One row per tracked member: what the Stock trades tab says (ADR 0018, ADR 0026).
+--   senate_unavailable  a senator, while eFD has never been read successfully: there is no
+--                       Senate record to show, and the tab says so instead of "none filed"
+--   no_filings          a member the Clerk index (House) or the eFD search (Senate) lists no
+--                       PTR for since the Congress began
+--   filed               a member with at least one PTR; `filings_scanned` counts paper forms
+--                       whose trades cannot be read, `filings_failed` those that did not parse.
+--                       A Senate report an amendment replaced is counted as a filing, but its
+--                       trades are not: the amendment's are.
 -- Every figure the tab shows is a column here. The value totals add the ends of each trade
 -- disclosed band, so `*_low` is the least the trades could have been worth and `*_high` the most;
 -- `*_high_is_open` says a top-band trade ("Over $50,000,000") has no upper end, which makes the
 -- high total a floor for the high end, not a ceiling. `lookup_url` is the official search for
--- checking the tab against the source. `checked_at` is the last successful ingest.
+-- checking the tab against the source. `checked_at` is the last successful ingest of the
+-- member's chamber's source (house_ptr or senate_ptr).
 with latest_term as (
     select distinct on (bioguide_id) bioguide_id, chamber
     from {{ ref('term') }}
@@ -48,16 +52,19 @@ trades as (
 ),
 
 checked as (
-    select max(finished_at) as at
+    select
+        case source when 'senate_ptr' then 'senate' else 'house' end as chamber,
+        max(finished_at) as at
     from {{ source('meta', 'ingest_run') }}
-    where source = 'house_ptr' and status = 'success'
+    where source in ('house_ptr', 'senate_ptr') and status = 'success'
+    group by 1
 )
 
 select
     m.bioguide_id,
     lt.chamber,
     case
-        when lt.chamber = 'senate' then 'senate_unavailable'
+        when lt.chamber = 'senate' and c.at is null then 'senate_unavailable'
         when coalesce(f.filings, 0) = 0 then 'no_filings'
         else 'filed'
     end as status,
@@ -88,9 +95,10 @@ select
         when 'senate' then 'https://efdsearch.senate.gov/search/'
         else 'https://disclosures-clerk.house.gov/FinancialDisclosure'
     end as source_url,
-    coalesce(f.fetched_at, (select at from checked), now()) as fetched_at,
-    (select at from checked) as checked_at
+    coalesce(f.fetched_at, c.at, now()) as fetched_at,
+    c.at as checked_at
 from {{ ref('member') }} as m
 inner join latest_term as lt on lt.bioguide_id = m.bioguide_id
 left join filings as f on f.bioguide_id = m.bioguide_id
 left join trades as t on t.bioguide_id = m.bioguide_id
+left join checked as c on c.chamber = lt.chamber

@@ -708,6 +708,12 @@ export interface StockFilingRow {
   dateLabel: string;
   status: FilingStatus;
   statusLabel: string;
+  /** "Amendment 1" for a Senate amendment, else null. */
+  amendmentLabel: string | null;
+  /** A Senate report an amendment replaced: listed, but its trades are not. */
+  replaced: boolean;
+  /** "Report 20033945" (House DocID) or "Report on eFD" (Senate). */
+  linkLabel: string;
   pages: number | null;
   trades: number;
   tradesLabel: string;
@@ -717,6 +723,9 @@ export interface StockFilingRow {
 
 export interface StockTradesModel {
   status: StockTradesStatus;
+  chamber: 'house' | 'senate';
+  /** Senate reports an amendment replaced; they stay in filingRows. */
+  filingsReplaced: number;
   lookupUrl: string;
   /** First day of the tracked Congress: what "no reports" is measured from. */
   coversFrom: string;
@@ -779,15 +788,23 @@ export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
     isoDate: f.filing_date,
     dateLabel: formatDate(f.filing_date),
     status: f.status,
-    statusLabel: FILING_STATUS_LABEL[f.status],
+    statusLabel: f.superseded_by ? 'Replaced by amendment' : FILING_STATUS_LABEL[f.status],
+    amendmentLabel: f.amendment ? `Amendment ${f.amendment}` : null,
+    replaced: f.superseded_by !== null,
+    linkLabel: f.source === 'senate_efd' ? 'Report on eFD' : `Report ${f.doc_id}`,
     pages: f.pages,
     trades: f.trades,
-    tradesLabel: f.status === 'parsed' ? `${formatNumber(f.trades)} trade${f.trades === 1 ? '' : 's'}` : '',
+    tradesLabel:
+      f.status === 'parsed' && !f.superseded_by
+        ? `${formatNumber(f.trades)} trade${f.trades === 1 ? '' : 's'}`
+        : '',
     error: f.error,
     url: f.source_url,
   }));
   return {
     status: r.status,
+    chamber: r.chamber,
+    filingsReplaced: r.filings.filter((f) => f.superseded_by !== null).length,
     lookupUrl: r.lookup_url,
     coversFrom: formatDate(r.covers_from),
     checkedAt: r.checked_at ? formatTimestampUtc(r.checked_at) : null,

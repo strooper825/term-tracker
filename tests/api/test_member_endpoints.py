@@ -566,7 +566,10 @@ def _filing_row(doc_id: str, status: str, trades: int) -> dict:
         "status": status,
         "error": "page 1: text before the first transaction" if status == "failed" else None,
         "pages": 2,
+        "amendment": None,
+        "superseded_by": None,
         "trades": trades,
+        "source": "house_clerk_ptr",
         "source_url": f"https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/{doc_id}.pdf",
     }
 
@@ -646,6 +649,84 @@ def test_stock_trades_for_a_senator_are_unavailable_not_empty(client: TestClient
     body = client.get("/api/v1/members/S001213/stock-trades").json()
     assert body["status"] == "senate_unavailable" and body["chamber"] == "senate"
     assert body["items"] == [] and body["lookup_url"] == "https://efdsearch.senate.gov/search/"
+
+
+EFD = "https://efdsearch.senate.gov/search/view/ptr"
+
+
+def test_stock_trades_for_a_senator_read_from_efd(client: TestClient) -> None:
+    replaced, amendment = (
+        "3a779539-8451-49d2-8419-d3eb72c7922a",
+        "51455bcd-4966-4e77-b481-09897ada81ae",
+    )
+    senate_filing = {
+        "year": 2025,
+        "status": "parsed",
+        "error": None,
+        "pages": None,
+        "source": "senate_efd",
+    }
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.member_stock_trades": [
+                _trades_summary(
+                    "filed",
+                    chamber="senate",
+                    source="senate_efd",
+                    lookup_url="https://efdsearch.senate.gov/search/",
+                    filings=2,
+                    filings_parsed=2,
+                    trades=1,
+                    purchases=1,
+                )
+            ],
+            "mart.stock_trade_filing": [
+                {
+                    **senate_filing,
+                    "doc_id": amendment,
+                    "filing_date": date(2026, 8, 24),
+                    "amendment": 1,
+                    "superseded_by": None,
+                    "trades": 1,
+                    "source_url": f"{EFD}/{amendment}/",
+                },
+                {
+                    **senate_filing,
+                    "doc_id": replaced,
+                    "filing_date": date(2025, 12, 8),
+                    "amendment": 0,
+                    "superseded_by": amendment,
+                    "trades": 0,
+                    "source_url": f"{EFD}/{replaced}/",
+                },
+            ],
+            "ORDER BY trade_date DESC, doc_id DESC": [
+                _trade_row(
+                    1,
+                    doc_id=amendment,
+                    notification_date=None,
+                    owner_code="JT",
+                    owner_label="Joint",
+                    asset_type_code="Stock",
+                    asset_type_label="Stock",
+                    transaction_type_code="P",
+                    transaction_type_label="Purchase",
+                    direction="purchase",
+                    filing_status=None,
+                    subholding_of=None,
+                    source_url=f"{EFD}/{amendment}/",
+                )
+            ],
+        },
+    )
+    body = client.get("/api/v1/members/S001213/stock-trades").json()
+    assert body["status"] == "filed" and body["chamber"] == "senate"
+    assert [f["superseded_by"] for f in body["filings"]] == [None, amendment]
+    assert [f["amendment"] for f in body["filings"]] == [1, 0]
+    assert {f["source"] for f in body["filings"]} == {"senate_efd"}
+    assert body["items"][0]["notification_date"] is None
+    assert body["items"][0]["source_url"] == f"{EFD}/{amendment}/"
 
 
 def test_stock_trades_without_a_mart_row_is_404(client: TestClient) -> None:

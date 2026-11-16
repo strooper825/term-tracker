@@ -1,9 +1,12 @@
--- The counts on the Stock trades tab equal the rows beside them (ADR 0018): a parsed filing has
--- at least one trade, a scanned or failed one has none, and each member's trade and filing
--- counts equal what mart.stock_trade and mart.stock_trade_filing hold.
+-- The counts on the Stock trades tab equal the rows beside them (ADR 0018, ADR 0026): a parsed
+-- filing has at least one trade unless a Senate amendment replaced it, a scanned or failed one
+-- has none, and each member's trade and filing counts equal what mart.stock_trade and
+-- mart.stock_trade_filing hold.
 select 'filing status and trades disagree' as problem, doc_id as detail
 from {{ ref('stock_trade_filing') }}
-where (status = 'parsed' and trades = 0) or (status <> 'parsed' and trades > 0)
+where (status = 'parsed' and trades = 0 and superseded_by is null)
+   or (status <> 'parsed' and trades > 0)
+   or (superseded_by is not null and trades > 0)
 
 union all
 
@@ -24,6 +27,6 @@ where s.filings <> (select count(*) from {{ ref('stock_trade_filing') }} as f wh
 
 union all
 
-select 'a senator has PTR rows', s.bioguide_id
+select 'unavailable, but has PTR rows', s.bioguide_id
 from {{ ref('member_stock_trades') }} as s
-where s.chamber = 'senate' and (s.filings > 0 or s.trades > 0)
+where s.status = 'senate_unavailable' and (s.filings > 0 or s.trades > 0)
