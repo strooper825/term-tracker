@@ -395,16 +395,17 @@ class AnnualDisclosureItem(BaseModel):
 
 class AnnualAsset(BaseModel):
     row_label: str = Field(
-        description='The report\'s numbering: "1", or "1.1" for a holding in line 1'
+        description='Senate: "1", or "1.1" for a holding in line 1. House: the line\'s position'
     )
     is_account: bool = Field(description="Holds other lines, which carry the values")
+    held_in: str | None = Field(description="The account or plan the holding sits in")
     asset_name: str
     asset_notes: str | None = Field(description="Notes the report prints under the name")
     asset_category: str | None
     asset_subtype: str | None
     owner_label: str
     value_raw: str = Field(description="As printed, e.g. $15,001 - $50,000")
-    value_kind: Literal["band", "none", "top_band", "not_valued", "unascertainable"]
+    value_kind: Literal["band", "none", "top_band", "exact", "not_valued", "unascertainable"]
     value_low: float | None
     value_high: float | None
     income_type: str | None

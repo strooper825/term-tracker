@@ -1636,6 +1636,7 @@ function asset(row: string, name: string, value: string, low: number | null, hig
   return {
     row_label: row,
     is_account: false,
+    held_in: null,
     asset_name: name,
     asset_notes: null,
     asset_category: 'Mutual Funds',
@@ -1689,8 +1690,8 @@ export const SENATE_READ_ANNUAL: AnnualDisclosuresResponse = {
     source_url: 'https://efdsearch.senate.gov/search/view/annual/aaaaaaaa-0000-4000-8000-000000000001/',
     assets: [
       asset('1', 'Spouse retirement plan', '--', null, null, { is_account: true, value_kind: 'not_valued', asset_category: 'Retirement Plans', asset_subtype: null, income_type: null, income_raw: null }),
-      asset('1.1', 'Example Stock Account', '$15,001 - $50,000', 15001, 50000),
-      asset('1.2', 'Example Growth Account', '$50,001 - $100,000', 50001, 100000),
+      asset('1.1', 'Example Stock Account', '$15,001 - $50,000', 15001, 50000, { held_in: 'Spouse retirement plan' }),
+      asset('1.2', 'Example Growth Account', '$50,001 - $100,000', 50001, 100000, { held_in: 'Spouse retirement plan' }),
       asset('2', 'Example Bank', '$1,001 - $15,000', 1001, 15000, { asset_category: 'Bank Deposit', asset_subtype: null, owner_label: 'Joint', income_type: 'Interest', income_raw: '$201 - $1,000' }),
       asset('3', 'Family farm partnership', 'Unascertainable', null, null, { value_kind: 'unascertainable', asset_category: 'Business Entity', asset_subtype: null, owner_label: 'Self', income_type: null, income_raw: null }),
     ],
@@ -1707,6 +1708,52 @@ export const SENATE_READ_ANNUAL: AnnualDisclosuresResponse = {
         comments: null,
       },
     ],
+  },
+};
+
+/** A House member whose newest report has been read (ADR 0029): holdings name their account,
+ *  a filer's exact figure, a "None" value. Invented rows in the shape of a Clerk PDF. */
+export const HOUSE_READ_ANNUAL: AnnualDisclosuresResponse = {
+  ...KHANNA_ANNUAL,
+  bioguide_id: 'X000005',
+  latest: {
+    covers_year: 2025,
+    doc_id: '10000005',
+    label: 'Annual report for 2025',
+    filing_date: '2026-05-12',
+    holdings: 3,
+    unascertainable: 0,
+    assets_low: 259631.1,
+    assets_high: 309630.1,
+    assets_high_is_open: false,
+    liabilities: 0,
+    liabilities_low: 0,
+    liabilities_high: 0,
+    liabilities_high_is_open: false,
+    net_low: 259631.1,
+    net_high: 309630.1,
+    source_url: 'https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025/10000005.pdf',
+    assets: [
+      asset('1', 'Example Growth Fund', '$50,001 - $100,000', 50001, 100000, {
+        held_in: 'EXAMPLE SECURITIES BROKERAGE ACCOUNT',
+        asset_category: 'Mutual Funds',
+        asset_subtype: null,
+        owner_label: 'Self',
+      }),
+      asset('2', 'Example Family Partnership', '$209,630.10', 209630.1, 209630.1, {
+        value_kind: 'exact',
+        asset_category: 'Other',
+        asset_subtype: null,
+        owner_label: 'Joint',
+      }),
+      asset('3', 'Closed Savings Account', 'None', 0, 0, {
+        value_kind: 'none',
+        asset_category: 'Bank Deposit',
+        asset_subtype: null,
+        owner_label: 'Spouse',
+      }),
+    ],
+    liabilities_list: [],
   },
 };
 

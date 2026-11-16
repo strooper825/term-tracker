@@ -1,4 +1,5 @@
--- One row per line of Part 3 (Assets) of a read annual report (raw.annual_report_row, ADR 0028),
+-- One row per line of Part 3 (Assets) of a read Senate annual report (raw.annual_report_row,
+-- ADR 0028),
 -- typed from the cells eFD prints: #, asset (with nested notes such as a filer's comment), asset
 -- type (with its subtype as a note), owner, value, income type, income.
 -- `row_label` is eFD's numbering: "1" is a line, "1.1" a holding inside line 1 (an account, a
@@ -15,7 +16,7 @@ with rows as (
         r.row_index,
         r.payload -> 'cells' as c
     from {{ source('raw', 'annual_report_row') }} as r
-    where r.part = '3'
+    where r.source = 'senate_efd' and r.part = '3'
 ),
 
 typed as (
@@ -36,7 +37,9 @@ select
     t.row_index,
     t.row_label,
     case when position('.' in t.row_label) > 0 then split_part(t.row_label, '.', 1) end as parent_label,
+    null::text as held_in,  -- the mart fills it from the parent line's name
     t.c -> 1 ->> 'text' as asset_name,
+    null::text as asset_code,  -- eFD prints the type in words
     nullif(array_to_string(array(select jsonb_array_elements_text(t.c -> 1 -> 'notes')), '; '), '') as asset_notes,
     t.c -> 2 ->> 'text' as asset_category,
     t.c -> 2 -> 'notes' ->> 0 as asset_subtype,

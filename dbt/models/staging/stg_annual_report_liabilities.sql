@@ -1,4 +1,4 @@
--- One row per line of Part 7 (Liabilities) of a read annual report (raw.annual_report_row,
+-- One row per line of Part 7 (Liabilities) of a read Senate annual report (raw.annual_report_row,
 -- ADR 0028). eFD's cells: (blank), #, incurred, debtor, type, points, rate (term), amount,
 -- creditor (with its city as a note), comments. The amount is a band, or a top band with no upper
 -- end; anything else is `other` and kept as printed.
@@ -12,7 +12,7 @@ with rows as (
         regexp_match(r.payload -> 'cells' -> 7 ->> 'text', '^\$([0-9,]+) - \$([0-9,]+)$') as band,
         regexp_match(r.payload -> 'cells' -> 7 ->> 'text', '^(?:Spouse/DC )?Over \$([0-9,]+)$') as over
     from {{ source('raw', 'annual_report_row') }} as r
-    where r.part = '7'
+    where r.source = 'senate_efd' and r.part = '7'
 )
 
 select

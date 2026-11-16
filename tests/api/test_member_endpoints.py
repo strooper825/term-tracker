@@ -822,6 +822,7 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
     asset = {
         "row_label": "1.1",
         "is_account": False,
+        "held_in": "Spouse Retirement plan",
         "asset_name": "CREF Stock Account - R1",
         "asset_notes": None,
         "asset_category": "Mutual Funds",

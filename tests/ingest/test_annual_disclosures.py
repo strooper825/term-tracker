@@ -194,6 +194,10 @@ def test_house_reports_since_the_congress_began_are_listed_with_their_pdf(
             ],
         ),
     }
+    # The listed reports are also opened (ADR 0029); these stand-ins are not PDFs, so each is
+    # stored as failed. Reading is tested in test_house_annual_report.py.
+    for year, doc in ((2024, "10066620"), (2025, "10067251"), (2025, "8221318")):
+        files[house_report_url(year, doc)] = b"not a pdf"
     with connect() as conn:
         rows = house_annual.load(
             conn, clerk_client(files), [HOUSE], [2024, 2025, 2026], SINCE, today=date(2026, 11, 16)
@@ -206,7 +210,7 @@ def test_house_reports_since_the_congress_began_are_listed_with_their_pdf(
         ("8221318", "amendment", 2025),
     ]
     assert stored[2][4] == house_report_url(2024, "10066620")
-    assert rows == 4
+    assert rows == 4 + 3  # four listed, three report pages stored
 
 
 @pytest.mark.integration
