@@ -1,0 +1,38 @@
+version: 2
+
+# Constructed cases for the annual-disclosure listing (ADR 0027): extensions become notes on the
+# report they delay, or a "not filed yet" row; a House extension filed in the covered year itself
+# is not an annual report's; labels.
+unit_tests:
+  - name: annual_disclosure_extensions_and_labels
+    model: annual_disclosure
+    given:
+      - input: ref('member')
+        rows:
+          - {bioguide_id: H1}
+          - {bioguide_id: S1}
+      - input: ref('stg_annual_disclosures')
+        rows:
+          # House, 2024: an extension in May 2025, then the report in August.
+          - {source: house_clerk, doc_id: "30022811", bioguide_id: H1, kind: extension, covers_year: 2024, filing_date: 2025-04-23, amendment: null, source_url: "https://example.test/x1.pdf"}
+          - {source: house_clerk, doc_id: "10066620", bioguide_id: H1, kind: annual, covers_year: 2024, filing_date: 2025-08-13, amendment: null, source_url: "https://example.test/o1.pdf"}
+          # House, 2025: an extension filed in 2025 itself (a candidate's) is not the annual report's.
+          - {source: house_clerk, doc_id: "30025258", bioguide_id: H1, kind: extension, covers_year: 2025, filing_date: 2025-07-15, amendment: null, source_url: "https://example.test/x2.pdf"}
+          - {source: house_clerk, doc_id: "10076278", bioguide_id: H1, kind: annual, covers_year: 2025, filing_date: 2026-05-12, amendment: null, source_url: "https://example.test/o2.pdf"}
+          - {source: house_clerk, doc_id: "8221318", bioguide_id: H1, kind: amendment, covers_year: 2024, filing_date: 2026-02-04, amendment: null, source_url: "https://example.test/a1.pdf"}
+          # House, 2026: an extension and no report yet.
+          - {source: house_clerk, doc_id: "30099999", bioguide_id: H1, kind: extension, covers_year: 2026, filing_date: 2027-05-10, amendment: null, source_url: "https://example.test/x3.pdf"}
+          # Senate: eFD names the year; a new member report and an amended annual report.
+          - {source: senate_efd, doc_id: S_X, bioguide_id: S1, kind: extension, covers_year: 2025, filing_date: 2026-03-17, amendment: 0, source_url: "https://example.test/sx/"}
+          - {source: senate_efd, doc_id: S_O, bioguide_id: S1, kind: annual, covers_year: 2025, filing_date: 2026-07-18, amendment: 0, source_url: "https://example.test/so/"}
+          - {source: senate_efd, doc_id: S_A, bioguide_id: S1, kind: amendment, covers_year: 2024, filing_date: 2025-09-01, amendment: 2, source_url: "https://example.test/sa/"}
+          - {source: senate_efd, doc_id: S_N, bioguide_id: S1, kind: new_filer, covers_year: null, filing_date: 2025-02-03, amendment: 0, source_url: "https://example.test/sn/"}
+    expect:
+      rows:
+        - {doc_id: "10066620", kind: annual, label: Annual report for 2024, extended_on: 2025-04-23}
+        - {doc_id: "10076278", kind: annual, label: Annual report for 2025, extended_on: null}
+        - {doc_id: "8221318", kind: amendment, label: Amended report for 2024, extended_on: null}
+        - {doc_id: "30099999", kind: extension, label: "Report for 2026: not filed yet", extended_on: 2027-05-10}
+        - {doc_id: S_O, kind: annual, label: Annual report for 2025, extended_on: 2026-03-17}
+        - {doc_id: S_A, kind: amendment, label: "Amended annual report for 2024 (amendment 2)", extended_on: null}
+        - {doc_id: S_N, kind: new_filer, label: New member report, extended_on: null}

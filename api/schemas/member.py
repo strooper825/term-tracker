@@ -375,6 +375,38 @@ class StockTradesResponse(BaseModel):
     sources: list[SourceRef]
 
 
+AnnualDisclosuresStatus = Literal["filed", "no_filings", "unavailable"]
+
+
+class AnnualDisclosureItem(BaseModel):
+    doc_id: str = Field(description="The Clerk's DocID or eFD's report UUID")
+    kind: Literal["annual", "amendment", "new_filer", "termination", "extension"] = Field(
+        description="extension: a report due after an extension and not filed yet"
+    )
+    label: str = Field(description='As the site shows it, e.g. "Annual report for 2025"')
+    covers_year: int | None = Field(description="Calendar year the report covers, when stated")
+    filing_date: dt.date = Field(description="Filed, or for kind extension, the extension date")
+    extended_on: dt.date | None = Field(
+        description="An annual or new member report filed after an extension requested this day"
+    )
+    source: Literal["house_clerk", "senate_efd"]
+    source_url: str = Field(description="The report (or the extension) at the source")
+
+
+class AnnualDisclosuresResponse(BaseModel):
+    bioguide_id: str
+    chamber: Literal["house", "senate"]
+    status: AnnualDisclosuresStatus = Field(
+        description="filed: reports are listed; no_filings: the office lists none since the "
+        "Congress began; unavailable: the chamber's listing has never been read (ADR 0027)"
+    )
+    covers_from: dt.date = Field(description="First day of the tracked Congress")
+    lookup_url: str = Field(description="The official search, for checking against the source")
+    checked_at: dt.datetime | None = Field(description="Last successful read of the listing")
+    items: list[AnnualDisclosureItem] = Field(description="Newest filing first")
+    sources: list[SourceRef]
+
+
 class KeyDate(BaseModel):
     date: dt.date
     label: str

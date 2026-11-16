@@ -303,6 +303,18 @@ def test_stock_trades_statuses(built_mart: None, client: TestClient) -> None:
     assert client.get(f"{SANDERS}/stock-trades").json()["status"] == "no_filings"
 
 
+def test_annual_disclosures_statuses(built_mart: None, client: TestClient) -> None:
+    # Both listings were read and list nothing for a tracked member (ADR 0027).
+    steil = client.get(f"{STEIL}/annual-disclosures").json()
+    assert steil["status"] == "no_filings" and steil["chamber"] == "house"
+    assert steil["items"] == [] and steil["checked_at"] is not None
+    assert steil["lookup_url"] == "https://disclosures-clerk.house.gov/FinancialDisclosure"
+    cotton = client.get(f"{COTTON}/annual-disclosures").json()
+    assert cotton["status"] == "no_filings" and cotton["chamber"] == "senate"
+    assert cotton["lookup_url"] == "https://efdsearch.senate.gov/search/"
+    assert cotton["sources"][0]["source"] == "senate_efd"
+
+
 def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:
     committees = client.get(f"{STEIL}/committees").json()
     assert {c["thomas_id"] for c in committees["items"]} >= {"HSBA", "HSHA", "HSBA21"}

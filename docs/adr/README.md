@@ -31,6 +31,7 @@ also recorded here once made.
 - [0024. Elections is a set of what-if maps the owner feeds by hand](0024-elections-what-if-maps.md)
 - [0025. A browse page for every bill, filtered in the browser](0025-a-browse-page-for-every-bill.md)
 - [0026. Senate stock trades from eFD, agreeing to its terms each run](0026-senate-ptrs-from-efd.md)
+- [0027. Annual financial disclosures, listed and linked](0027-annual-disclosures-listed.md)
 
 ## Format
 

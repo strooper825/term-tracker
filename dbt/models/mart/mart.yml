@@ -192,6 +192,48 @@ models:
       - name: lookup_url
         tests: [not_null]
 
+  - name: annual_disclosure
+    description: >
+      One annual-disclosure report per row (annual, amendment, new member, termination) a
+      tracked member filed since the tracked Congress began, both chambers, listed and linked
+      (ADR 0027); plus one row per annual report delayed by an extension and not filed yet.
+      Extensions are notes (extended_on), not rows of their own.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: doc_id
+        tests: [not_null]
+      - name: kind
+        tests:
+          - accepted_values:
+              arguments: { values: ["annual", "amendment", "new_filer", "termination", "extension"] }
+      - name: label
+        tests: [not_null]
+      - name: source
+        tests:
+          - accepted_values: { arguments: { values: ["house_clerk", "senate_efd"] } }
+      - name: source_url
+        tests: [not_null]
+
+  - name: member_annual_disclosures
+    description: >
+      One row per tracked member: unavailable, no_filings or filed (ADR 0027), with the counts
+      and the check date the annual-disclosure section shows.
+    columns:
+      - name: bioguide_id
+        tests:
+          - unique
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: status
+        tests:
+          - not_null
+          - accepted_values: { arguments: { values: ["unavailable", "no_filings", "filed"] } }
+      - name: lookup_url
+        tests: [not_null]
+
   - name: term_history
     description: Every term a tracked member has served, in source order.
     columns:

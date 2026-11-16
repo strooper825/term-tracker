@@ -374,6 +374,31 @@ export interface StockTradesSummary {
   last_trade_date: string | null;
 }
 
+export interface AnnualDisclosureItem {
+  doc_id: string;
+  kind: 'annual' | 'amendment' | 'new_filer' | 'termination' | 'extension';
+  /** As the site shows it: "Annual report for 2025", "Report for 2026: not filed yet". */
+  label: string;
+  covers_year: number | null;
+  /** Filed; for kind extension, the day the extension was requested. */
+  filing_date: string;
+  /** An annual or new member report filed after an extension requested this day. */
+  extended_on: string | null;
+  source: 'house_clerk' | 'senate_efd';
+  source_url: string;
+}
+
+export interface AnnualDisclosuresResponse {
+  bioguide_id: string;
+  chamber: 'house' | 'senate';
+  status: 'filed' | 'no_filings' | 'unavailable';
+  covers_from: string;
+  lookup_url: string;
+  checked_at: string | null;
+  items: AnnualDisclosureItem[];
+  sources: SourceRef[];
+}
+
 export interface StockTradesResponse {
   bioguide_id: string;
   chamber: 'house' | 'senate';

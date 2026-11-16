@@ -17,6 +17,7 @@ import type {
   StockTradeFiling,
   StockTradeItem,
   StockTradesResponse,
+  AnnualDisclosuresResponse,
   StockTradesSummary,
   TermHistoryItem,
   WeekBucket,
@@ -1552,6 +1553,82 @@ function trade(n: number, over: Partial<StockTradeItem> = {}): StockTradeItem {
     ...over,
   };
 }
+
+const CLERK_FD = 'https://disclosures-clerk.house.gov/public_disc/financial-pdfs';
+
+/** Khanna's annual reports as the Clerk's index lists them (DocIDs and dates are the Clerk's):
+ *  two annual reports, each after an extension, and an amendment. */
+export const KHANNA_ANNUAL: AnnualDisclosuresResponse = {
+  bioguide_id: 'K000389',
+  chamber: 'house',
+  status: 'filed',
+  covers_from: '2025-01-03',
+  lookup_url: CLERK_SEARCH,
+  checked_at: '2026-11-16T18:38:50Z',
+  items: [
+    {
+      doc_id: '9116272',
+      kind: 'annual',
+      label: 'Annual report for 2025',
+      covers_year: 2025,
+      filing_date: '2026-08-10',
+      extended_on: '2026-04-09',
+      source: 'house_clerk',
+      source_url: `${CLERK_FD}/2025/9116272.pdf`,
+    },
+    {
+      doc_id: '8221318',
+      kind: 'amendment',
+      label: 'Amended report for 2024',
+      covers_year: 2024,
+      filing_date: '2026-02-04',
+      extended_on: null,
+      source: 'house_clerk',
+      source_url: `${CLERK_FD}/2024/8221318.pdf`,
+    },
+    {
+      doc_id: '9115596',
+      kind: 'annual',
+      label: 'Annual report for 2024',
+      covers_year: 2024,
+      filing_date: '2025-08-13',
+      extended_on: '2025-05-09',
+      source: 'house_clerk',
+      source_url: `${CLERK_FD}/2024/9115596.pdf`,
+    },
+  ],
+  sources: [{ ...STOCK_SOURCE, source: 'house_clerk', source_url: CLERK_SEARCH }],
+};
+
+/** An invented member whose report for 2026 is due after an extension and not filed yet. */
+export const ANNUAL_PENDING: AnnualDisclosuresResponse = {
+  ...KHANNA_ANNUAL,
+  bioguide_id: 'X000003',
+  items: [
+    {
+      doc_id: '30099999',
+      kind: 'extension',
+      label: 'Report for 2026: not filed yet',
+      covers_year: 2026,
+      filing_date: '2027-05-10',
+      extended_on: '2027-05-10',
+      source: 'house_clerk',
+      source_url: `${CLERK_FD}/2026/30099999.pdf`,
+    },
+  ],
+};
+
+export const ANNUAL_NONE: AnnualDisclosuresResponse = { ...KHANNA_ANNUAL, status: 'no_filings', items: [] };
+
+export const ANNUAL_SENATE_UNREAD: AnnualDisclosuresResponse = {
+  ...KHANNA_ANNUAL,
+  bioguide_id: 'C001095',
+  chamber: 'senate',
+  status: 'unavailable',
+  lookup_url: 'https://efdsearch.senate.gov/search/',
+  checked_at: null,
+  items: [],
+};
 
 const EFD = 'https://efdsearch.senate.gov/search/view/ptr';
 

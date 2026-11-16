@@ -16,6 +16,7 @@ import type {
   Stat,
   StatementsModel,
   StockTradesModel,
+  AnnualReportsModel,
   TermModel,
   VoteRow,
 } from '@/lib/model';
@@ -52,6 +53,8 @@ export interface DashboardProps {
   statements: StatementsModel | null;
   /** Always present: a House member's reports, or the reason there are none to show. */
   stockTrades: StockTradesModel;
+  /** The annual reports listed above the trades on the same tab (ADR 0027). */
+  annualReports: AnnualReportsModel;
   /** Null when the API has neither a map nor demographics: the tab is then not yet published. */
   constituency: ConstituencyModel | null;
   keyDates: KeyDateRow[];
@@ -129,7 +132,9 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
     {
       id: 'stock-trades',
       label: 'Stock trades',
-      content: <StockTradesTab model={props.stockTrades} name={props.member.name} />,
+      content: (
+        <StockTradesTab model={props.stockTrades} annual={props.annualReports} name={props.member.name} />
+      ),
     },
     props.statements
       ? {

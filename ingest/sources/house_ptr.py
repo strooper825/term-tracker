@@ -2,9 +2,10 @@
 
 1. The Clerk's filing index for each year of the tracked Congress (``{year}FD.zip``) is read whole;
    its rows carry a name and a state-district but no bioguide id.
-2. A ``P`` row belongs to a tracked member when the state, the district and the normalised last
-   name all equal those of a tracked member's current House term (``raw.legislator``). A row that
-   shares state and last name but not the district is logged as a near miss, not matched.
+2. A ``P`` row belongs to a tracked member when it is filed for the seat of a tracked member's
+   current House term (``raw.legislator``) and the member's normalised last name is the row's
+   last name or a word of its name (:class:`SeatIndex`). A row that shares state and last name
+   but not the district is logged as a near miss, not matched.
 3. Each such filing's PDF is fetched once. A filing already stored as ``parsed`` or ``scanned``
    is not fetched again unless ``--full-refresh`` is given: a DocID's PDF does not change.
    Filings that ``failed`` are retried every night, so a parser fix reaches them.
@@ -93,22 +94,48 @@ def tracked_house_members(
         return [TrackedHouseMember(r[0], normalise_name(r[1]), r[2], r[3]) for r in cur.fetchall()]
 
 
+class SeatIndex:
+    """Which tracked member an index row is, by seat and name.
+
+    A House seat has one member, so a row filed for a tracked member's seat is that member's when
+    the member's last name is the row's last name or one of the words of its name. The second
+    case is a filer listed under another surname: Ashley Hinson files as "Arenholz, Ashley
+    Hinson" (seen 2026-11-16), and the last-name rule alone missed every one of her reports.
+    Challengers filing for the same seat have other names and are not matched.
+    """
+
+    def __init__(self, members: Sequence[TrackedHouseMember]) -> None:
+        self._by_seat = {(m.state, m.district): m for m in members}
+        self._by_name = {(m.state, m.last_name) for m in members}
+
+    def member(self, row: IndexRow) -> TrackedHouseMember | None:
+        member = self._by_seat.get((row.state, row.district))
+        if member is None:
+            return None
+        words = {normalise_name(w) for w in f"{row.first} {row.last}".split()}
+        if member.last_name == normalise_name(row.last) or member.last_name in words:
+            return member
+        return None
+
+    def near_miss(self, row: IndexRow) -> bool:
+        """Shares a tracked member's state and last name, but not the seat."""
+        return (row.state, normalise_name(row.last)) in self._by_name
+
+
 def match_filings(
     rows: Sequence[IndexRow], members: Sequence[TrackedHouseMember]
 ) -> tuple[list[Match], list[IndexRow]]:
     """PTR rows of tracked members, and PTR rows that share state and last name but not seat."""
-    by_seat = {(m.state, m.district, m.last_name): m for m in members}
-    by_name = {(m.state, m.last_name): m for m in members}
+    seats = SeatIndex(members)
     matched: list[Match] = []
     near: list[IndexRow] = []
     for row in rows:
         if row.filing_type != PTR_FILING_TYPE:
             continue
-        last = normalise_name(row.last)
-        member = by_seat.get((row.state, row.district, last))
+        member = seats.member(row)
         if member:
             matched.append(Match(row, member.bioguide_id))
-        elif (row.state, last) in by_name:
+        elif seats.near_miss(row):
             near.append(row)
     return matched, near
 

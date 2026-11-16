@@ -732,3 +732,65 @@ def test_stock_trades_for_a_senator_read_from_efd(client: TestClient) -> None:
 def test_stock_trades_without_a_mart_row_is_404(client: TestClient) -> None:
     _use_rows([_summary_row()], {"mart.member_stock_trades": []})
     assert client.get("/api/v1/members/S001213/stock-trades").status_code == 404
+
+
+def _annual_summary(**overrides: object) -> dict:
+    return {
+        "bioguide_id": "S001213",
+        "chamber": "house",
+        "status": "filed",
+        "reports": 2,
+        "pending": 1,
+        "latest_year": 2025,
+        "latest_filing_date": date(2026, 5, 12),
+        "covers_from": date(2025, 1, 3),
+        "lookup_url": CLERK_SEARCH,
+        "source": "house_clerk",
+        "source_url": CLERK_SEARCH,
+        "fetched_at": datetime(2026, 11, 16, 18, 0, tzinfo=UTC),
+        "checked_at": datetime(2026, 11, 16, 18, 0, tzinfo=UTC),
+        **overrides,
+    }
+
+
+def test_annual_disclosures_list_reports_and_extensions(client: TestClient) -> None:
+    pdf = "https://disclosures-clerk.house.gov/public_disc/financial-pdfs"
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.member_annual_disclosures": [_annual_summary()],
+            "mart.annual_disclosure": [
+                {
+                    "doc_id": "30099999",
+                    "kind": "extension",
+                    "label": "Report for 2026: not filed yet",
+                    "covers_year": 2026,
+                    "filing_date": date(2027, 5, 10),
+                    "extended_on": date(2027, 5, 10),
+                    "source": "house_clerk",
+                    "source_url": f"{pdf}/2026/30099999.pdf",
+                },
+                {
+                    "doc_id": "10075925",
+                    "kind": "annual",
+                    "label": "Annual report for 2025",
+                    "covers_year": 2025,
+                    "filing_date": date(2026, 5, 12),
+                    "extended_on": None,
+                    "source": "house_clerk",
+                    "source_url": f"{pdf}/2025/10075925.pdf",
+                },
+            ],
+        },
+    )
+    body = client.get("/api/v1/members/S001213/annual-disclosures").json()
+    assert body["status"] == "filed" and body["chamber"] == "house"
+    assert [i["kind"] for i in body["items"]] == ["extension", "annual"]
+    assert body["items"][1]["label"] == "Annual report for 2025"
+    assert body["items"][1]["source_url"].endswith("/2025/10075925.pdf")
+    assert body["sources"][0]["source"] == "house_clerk"
+
+
+def test_annual_disclosures_without_a_mart_row_is_404(client: TestClient) -> None:
+    _use_rows([_summary_row()], {"mart.member_annual_disclosures": []})
+    assert client.get("/api/v1/members/S001213/annual-disclosures").status_code == 404

@@ -17,6 +17,7 @@ import {
   buildContact,
   buildStatements,
   buildStockTrades,
+  buildAnnualReports,
   type StatementsModel,
   buildDateRanges,
   policyAreaTotals,
@@ -25,6 +26,8 @@ import {
 import { KeyDatesCard } from '@/components/SideCards';
 import type { StockTradesResponse } from '@/lib/types';
 import {
+  ANNUAL_NONE,
+  ANNUAL_SENATE_UNREAD,
   COTTON,
   COTTON_FUNDRAISING,
   COTTON_LIST,
@@ -90,6 +93,7 @@ function dashboard(
       contact={buildContact(contact)}
       statements={statements}
       stockTrades={buildStockTrades(stockTrades)}
+      annualReports={buildAnnualReports(detail === COTTON ? ANNUAL_SENATE_UNREAD : ANNUAL_NONE)}
       constituency={buildConstituency(constituency, detail.seat)}
       keyDates={buildKeyDates(STEIL_KEY_DATES)}
       fundraising={buildFundraising(fundraising, detail.seat.chamber)}

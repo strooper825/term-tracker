@@ -148,6 +148,16 @@ models:
         tests: [not_null]
       - name: transaction_type_code
         tests: [not_null]
+  - name: stg_annual_disclosures
+    columns:
+      - name: doc_id
+        tests: [not_null]
+      - name: kind
+        tests:
+          - accepted_values:
+              arguments: { values: ["annual", "amendment", "new_filer", "termination", "extension"] }
+      - name: filing_date
+        tests: [not_null]
   - name: stg_statements
     columns:
       - name: title
