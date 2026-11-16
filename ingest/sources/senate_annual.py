@@ -33,7 +33,7 @@ from psycopg.types.json import Jsonb
 from api.config import get_settings
 from ingest.annual_disclosures import EfdAnnualRow, parse_efd_annual_rows
 from ingest.db import connect
-from ingest.efd_annual_report import parse_annual_report
+from ingest.efd_annual_report import READER_VERSION, parse_annual_report
 from ingest.house_ptr import normalise_name
 from ingest.load import record_run, upsert
 from ingest.senate_efd import (
@@ -91,12 +91,14 @@ READ_KINDS = ("annual", "amendment", "new_filer", "termination")
 
 
 def stored_pages(conn: Connection) -> set[str]:
-    """Reports that need no second fetch: a filed eFD report is never edited."""
+    """Reports that need no second fetch: a filed eFD report is never edited. A page read by an
+    older reader (``READER_VERSION``) is read again, so a reader fix reaches stored reports."""
     with conn.cursor() as cur:
         cur.execute(
             "SELECT doc_id FROM raw.annual_report_page "
-            "WHERE source = %s AND status IN ('parsed', 'paper')",
-            (RAW_SOURCE,),
+            "WHERE source = %s AND (status = 'paper' OR (status = 'parsed' "
+            "AND coalesce((payload ->> 'reader')::int, 1) >= %s))",
+            (RAW_SOURCE, READER_VERSION),
         )
         return {r[0] for r in cur.fetchall()}
 
@@ -136,6 +138,7 @@ def read_reports(
                         f"the report names {report.filer!r}, the search row {row.last!r}"
                     )
                 header = {
+                    "reader": READER_VERSION,
                     "title": report.title,
                     "filer": report.filer,
                     "filed_at": report.filed_at,

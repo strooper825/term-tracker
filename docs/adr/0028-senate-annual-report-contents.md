@@ -83,3 +83,24 @@ highest amendment number, then the latest filed, among reports that read.
   range a net worth.
 - **The House is stage 2b:** the same three tables, filled from the Clerk's electronic PDFs
   (about 93% of 2024 and 2025 annual reports), with paper filers left as links.
+
+## Addendum, 2026-11-16: no net-worth figure on the site
+
+Once the figures were live, Tom Cotton's 2025 "reported net worth" read -$4,731,984 – -$30,002.
+His only debts are two home mortgages ($1,050,002 – $5,100,000). The homes need not be listed,
+because a home that earns no income is exempt, but the mortgages are. A net figure therefore
+counts the loan without the house, and turns anyone with a large mortgage negative. Carol Miller,
+Murphy and others read the same way.
+
+The owner decided to drop the net-worth figure. The tab shows "Reported assets" and "Reported
+debts" side by side, with a note that the two are not a net worth because a member's home need
+not be listed while its mortgage usually is. `mart.annual_net_worth` keeps `net_low` and
+`net_high` for analysis; the site does not show them.
+
+The same review found a reader bug. eFD can nest one note block inside another: Cotton's report
+has a "Type: Savings" block inside the comment block. The reader matched blocks in pairs, which
+left "Filer comment: ..." in the asset name. It now cuts at every block boundary
+(`efd_annual_report._cell`). Pages carry the reader version (`payload.reader`, now 2), and pages
+read by an older version are read again on the next run. Each holding's notes (city, account
+type, filer's comment) are now shown under it, which tells apart same-named holdings such as
+Cotton's three Marcus savings accounts.

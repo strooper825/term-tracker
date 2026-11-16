@@ -257,3 +257,36 @@ def test_a_report_naming_someone_else_is_not_trusted(migrated_engine: Engine, cl
     fake.pages[SANDERS_2025] = read(ANNUAL_PAGES[JOHNSON_2025])
     _load(fake)
     assert _pages(migrated_engine)[SANDERS_2025] == ("failed", None, 0)
+
+
+def test_nested_blocks_are_notes_and_never_part_of_the_name() -> None:
+    from ingest.efd_annual_report import _cell
+
+    # Cotton's 2025 report: a block nested inside the comment block.
+    cell = _cell(
+        '<strong>Marcus by Goldman Sachs</strong><div class="muted noWrap">(NYC, New York)</div>'
+        '<div class="muted"><div class="muted"><em>Type: </em>Savings</div>'
+        "<em>Filer comment:  </em>Marcus Savings Account #1 (of 3).</div>"
+    )
+    assert cell.text == "Marcus by Goldman Sachs"
+    assert cell.notes == (
+        "(NYC, New York)",
+        "Type: Savings",
+        "Filer comment: Marcus Savings Account #1 (of 3).",
+    )
+
+
+@pytest.mark.integration
+def test_a_report_read_by_an_older_reader_is_read_again(
+    migrated_engine: Engine, clean: None
+) -> None:
+    _load(FakeEfd(_rows()))
+    with migrated_engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE raw.annual_report_page SET payload = payload - 'reader' WHERE doc_id = :d"
+            ),
+            {"d": SANDERS_2025},
+        )
+    assert _load(FakeEfd(_rows())) == 2 + 1 + 1  # the old page is opened again
+    assert _load(FakeEfd(_rows())) == 2 + 1  # and then not again
