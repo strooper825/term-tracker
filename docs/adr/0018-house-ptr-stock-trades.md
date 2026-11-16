@@ -126,3 +126,20 @@ capitol-api (github.com/crnicholson/capitol-api) does the House half of this in 
   decision on the proxy or browser-automation profile. Both are recorded in docs/PLAN.md, section 12.
 - `pdfplumber` (MIT, pure Python over pdfminer.six) is a new dependency. PyMuPDF was used only for
   a one-off cross-check and is not one: it is AGPL.
+
+## Addendum, 2026-11-16: carried onto main
+
+The September branch was never merged. It was replayed onto main after the rebrand, the rollover
+work (ADR 0021) and the first batch of 46 members (ADR 0023), with these changes only:
+
+- The migration is now `0012` (main had taken `0009` to `0011`).
+- `covers_from` uses the `congress_start_date()` macro instead of the retired
+  `current_congress_start` var, so the tab moves with `vars.current_congress` at rollover.
+- The Senate copy says the eFD system is "not collected yet" instead of "blocks automated
+  access": on 2026-11-16 one request from a GitHub-hosted runner with this project's User-Agent got
+  HTTP 200 from efdsearch.senate.gov. Collecting it is still a separate decision.
+
+A run against the 56 tracked members on 2026-11-16: 50 PTRs of tracked members in the index,
+26 parsed (101 transactions), 24 scanned, 0 failed, 52 requests, 21 MB, 51 s. Eight members have
+readable trades (Foxx, Miller, A. Smith, Clark, Begich, Spartz, Arrington, Jordan); Khanna, Cole
+and Raskin have scanned reports only. OCR of scanned reports remains open (PLAN section 12).

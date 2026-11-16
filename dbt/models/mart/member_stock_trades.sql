@@ -1,5 +1,5 @@
 -- One row per tracked member: what the Stock trades tab says (ADR 0018).
---   senate_unavailable  a senator: the Senate eFD system blocks automated access, so no trades
+--   senate_unavailable  a senator: the Senate eFD system is not collected yet (ADR 0018), so no trades
 --                       are ingested and the tab says so
 --   no_filings          a House member the Clerk index lists no PTR for since the Congress began
 --   filed               a House member with at least one PTR; `filings_scanned` counts paper forms
@@ -78,7 +78,7 @@ select
     coalesce(t.sales_high_is_open, false) as sales_high_is_open,
     t.first_trade_date,
     t.last_trade_date,
-    '{{ var("current_congress_start") }}'::date as covers_from,
+    {{ congress_start_date() }} as covers_from,
     case lt.chamber
         when 'senate' then 'https://efdsearch.senate.gov/search/'
         else 'https://disclosures-clerk.house.gov/FinancialDisclosure'

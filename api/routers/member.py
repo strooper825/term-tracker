@@ -659,7 +659,7 @@ def member_stock_trades(
             StockTradeFiling(**{k: f[k] for k in StockTradeFiling.model_fields}) for f in filings
         ],
         items=[StockTradeItem(**{k: t[k] for k in StockTradeItem.model_fields}) for t in trades],
-        sources=_sources([row]),
+        sources=distinct_sources([row]),
     )
 
 

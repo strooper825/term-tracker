@@ -49,7 +49,7 @@ describe('stock trades: a House member the Clerk lists no report for', () => {
     expect(screen.queryByText('Not available for the Senate')).not.toBeInTheDocument();
     expect(screen.queryByText('Coming in a future release')).not.toBeInTheDocument();
     expect(trades()).toHaveLength(0);
-    expect(screen.getByRole('link', { name: /source/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Source/ })).toHaveAttribute(
       'href',
       'https://disclosures-clerk.house.gov/FinancialDisclosure',
     );

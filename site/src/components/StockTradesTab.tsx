@@ -2,7 +2,7 @@
 
 // The Stock trades tab (ADR 0018). Three honest states, kept visibly apart the way "no roll call
 // vote" is kept apart from "pending" elsewhere on the site:
-//   - a senator: the Senate's disclosure system blocks automated access, so nothing is ingested;
+//   - a senator: the Senate's disclosure system (eFD) is not collected yet, so nothing is ingested;
 //     the tab says that is a gap in this site, not an empty record;
 //   - a House member the Clerk lists no report for: an empty record, stated as what the Clerk holds;
 //   - a House member with reports: the trades read from the PDFs, plus every report, including
@@ -81,8 +81,8 @@ function SenateUnavailable({ model, name }: { model: StockTradesModel; name: str
       </div>
       <p className="text-body text-ink2 leading-relaxed m-0 max-w-[68ch]">
         This site has no stock trade data for senators. Senators file their periodic transaction
-        reports in the Senate&rsquo;s own disclosure system, which blocks automated access, so the
-        reports cannot be collected here. That is a gap in this site&rsquo;s coverage, not a sign
+        reports in the Senate&rsquo;s own disclosure system, which this site does not collect
+        yet. That is a gap in this site&rsquo;s coverage, not a sign
         that {name} has made no trades. House members&rsquo; reports come from the House Clerk instead.
       </p>
       <a
@@ -367,7 +367,7 @@ export function StockTradesTab({ model, name }: { model: StockTradesModel; name:
         footer={
           <Footer
             model={model}
-            text="Senate periodic transaction reports are filed in the Senate’s own system, which this site cannot read. Its search is the record."
+            text="Senate periodic transaction reports are filed in the Senate’s own system, which this site does not collect yet. Its search is the record."
           />
         }
       >

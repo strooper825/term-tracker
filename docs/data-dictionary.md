@@ -211,7 +211,7 @@ Speaker 381, Slotkin 269, Sanders 225, R. Johnson 117), 9.8 MB in `raw.statement
 reads page 1 of each feed (6 requests) and stops at the first page that holds a stored item. One
 item in Jeffries's history (2025-05-23) has an empty title and is skipped with a warning.
 
-## Raw tables: House Periodic Transaction Reports (Alembic migration `0009`, ADR 0018)
+## Raw tables: House Periodic Transaction Reports (Alembic migration `0012`, ADR 0018)
 
 Loaded by `python -m ingest.run --source house_ptr` for every tracked member whose latest term is
 in the House. Two files are read from `disclosures-clerk.house.gov/public_disc`, both public and
