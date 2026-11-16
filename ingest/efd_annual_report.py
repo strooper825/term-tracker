@@ -30,6 +30,9 @@ from typing import Any
 
 from ingest.senate_efd import FILED_RE, EfdParseError
 
+# Bumped when a fix changes what the reader stores; pages read by an older version are read
+# again on the next run (ingest.sources.senate_annual.stored_pages).
+READER_VERSION = 2
 ASSETS = "3"
 LIABILITIES = "7"
 EXPECTED_COLUMNS = {
@@ -94,10 +97,15 @@ class AnnualReport:
 
 
 def _cell(fragment: str) -> Cell:
-    """A cell's main text, and the text of each block nested in it (``<div>``), in order."""
-    notes = [_text(n) for n in re.findall(r"<div[^>]*>(.*?)</div>", fragment, re.S)]
-    main = re.sub(r"<div[^>]*>.*?</div>", " ", fragment, flags=re.S)
-    return Cell(_text(main), tuple(n for n in notes if n))
+    """A cell's main text (what comes before its first nested block) and the text of each block
+    nested in it, in order. Blocks can nest: Cotton's 2025 report prints
+    ``<div class="muted"><div class="muted"><em>Type: </em>Savings</div><em>Filer comment: </em>
+    ...</div>``, so the text is cut at every ``<div>`` and ``</div>``, not matched in pairs.
+    Matching pairs left "Filer comment: ..." in the asset name (fixed 2026-11-16, reader 2)."""
+    head, _, rest = fragment.partition("<div")
+    pieces = re.split(r"</?div[^>]*>", "<div" + rest) if rest else []
+    notes = tuple(n for n in (_text(p) for p in pieces) if n)
+    return Cell(_text(head), notes)
 
 
 def parse_annual_report(page: str) -> AnnualReport:

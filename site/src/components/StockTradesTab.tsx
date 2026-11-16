@@ -178,7 +178,7 @@ function Figure({
       <div
         className={
           stacked
-            ? 'min-w-0'
+            ? 'flex flex-col items-start gap-1.5 min-w-0'
             : 'flex items-baseline justify-end gap-x-2 flex-wrap min-w-0 md:flex-col md:items-start md:gap-1.5'
         }
       >
@@ -426,18 +426,16 @@ function NetWorth({ worth }: { worth: NetWorthModel }) {
   const more = worth.holdings.length - visible.length;
   return (
     <div className="flex flex-col gap-4 px-[18px] pb-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3.5 border border-rule rounded-card p-4">
-        <Figure label={`Reported net worth, ${worth.year}`} value={worth.net} stacked />
-        <Figure label="Assets" value={worth.assets} note={worth.holdingsNote} stacked />
-        <Figure label="Liabilities" value={worth.liabilities} note={worth.liabilitiesNote} stacked />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 border border-rule rounded-card p-4">
+        <Figure label={`Reported assets, ${worth.year}`} value={worth.assets} note={worth.holdingsNote} stacked />
+        <Figure label={`Reported debts, ${worth.year}`} value={worth.liabilities} note={worth.liabilitiesNote} stacked />
       </div>
       <p className="text-meta text-ink3 m-0 max-w-[68ch]">
         From the {worth.reportLabel.charAt(0).toLowerCase() + worth.reportLabel.slice(1)} (
-        <ExternalLink href={worth.url}>{worth.filedLabel}</ExternalLink>). Members report
-        each asset and debt as a value range, so every total here is a range: the reported assets
-        minus the reported debts. It is not a full net worth: some things need not be reported, such
-        as a home that earns no income. A spouse&rsquo;s and dependent children&rsquo;s holdings are
-        included.
+        <ExternalLink href={worth.url}>{worth.filedLabel}</ExternalLink>). Members report each
+        asset and debt as a value range, so each total is a range too. The two are not a net
+        worth: a home a member lives in does not have to be listed, but the mortgage on it usually
+        is. A spouse&rsquo;s and dependent children&rsquo;s holdings are included.
       </p>
       {worth.holdings.length > 0 && (
         <section aria-labelledby="holdings-title" className="border border-rule rounded-card">
@@ -459,6 +457,7 @@ function NetWorth({ worth }: { worth: NetWorthModel }) {
                     {[h.kind, h.owner, h.heldIn ? `in ${h.heldIn}` : null].filter(Boolean).join(' \u00b7 ')}
                   </span>
                   {h.income && <span className="text-meta text-ink3">Income {h.income}</span>}
+                  {h.notes && <span className="text-meta text-ink3 break-words">{h.notes}</span>}
                 </div>
                 <span className="text-body text-ink font-semibold tnum whitespace-nowrap">{h.value}</span>
               </li>
@@ -481,7 +480,7 @@ function NetWorth({ worth }: { worth: NetWorthModel }) {
         <section aria-labelledby="debts-title" className="border border-rule rounded-card">
           <div className="px-[18px] pt-3 pb-2">
             <h3 id="debts-title" className="text-base font-semibold text-ink m-0">
-              Liabilities
+              Debts
             </h3>
           </div>
           <ul className="list-none m-0 p-0">

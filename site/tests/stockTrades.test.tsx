@@ -93,15 +93,19 @@ describe('annual financial disclosures', () => {
 });
 
 describe('annual financial disclosures: a read report', () => {
-  it('sums the newest report into ranges, with the caveats beside them', () => {
+  it('shows reported assets and debts as ranges, and no net worth', () => {
     tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
     const section = annualSection();
-    expect(within(section).getByText('Reported net worth, 2025')).toBeInTheDocument();
-    expect(within(section).getByText('-$183,997 \u2013 $64,999')).toBeInTheDocument();
+    expect(within(section).getByText('Reported assets, 2025')).toBeInTheDocument();
     expect(within(section).getByText('$66,003 \u2013 $165,000')).toBeInTheDocument();
     expect(within(section).getByText('3 holdings \u00b7 1 not valued')).toBeInTheDocument();
+    expect(within(section).getByText('Reported debts, 2025')).toBeInTheDocument();
     expect(within(section).getByText('$100,001 \u2013 $250,000')).toBeInTheDocument();
-    expect(within(section).getByText(/It is not a full net worth/)).toBeInTheDocument();
+    expect(within(section).getByText('1 debt')).toBeInTheDocument();
+    // Homes need not be listed but their mortgages usually are, so no net figure is shown.
+    expect(within(section).queryByText(/net worth,/i)).not.toBeInTheDocument();
+    expect(within(section).queryByText('-$183,997 \u2013 $64,999')).not.toBeInTheDocument();
+    expect(within(section).getByText(/The two are not a net worth/)).toBeInTheDocument();
     expect(within(section).getByText(/summarised below/)).toBeInTheDocument();
   });
 
@@ -121,9 +125,9 @@ describe('annual financial disclosures: a read report', () => {
     expect(within(list).getByText('Income Interest: $201 - $1,000')).toBeInTheDocument();
   });
 
-  it('lists the liabilities', () => {
+  it('lists the debts', () => {
     tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
-    const list = screen.getByRole('region', { name: 'Liabilities' });
+    const list = screen.getByRole('region', { name: 'Debts' });
     expect(within(list).getByText('Mortgage \u00b7 Example Mortgage Co.')).toBeInTheDocument();
     expect(within(list).getByText('Joint \u00b7 Incurred 2013 \u00b7 8.0% (30 years)')).toBeInTheDocument();
   });
@@ -156,9 +160,9 @@ describe('annual financial disclosures: a read House report', () => {
     ]);
     expect(items[0]).toHaveTextContent('$209,630.10');
     expect(items[1]).toHaveTextContent('in EXAMPLE SECURITIES BROKERAGE ACCOUNT');
-    expect(within(annualSection()).getByText('Liabilities')).toBeInTheDocument();
+    expect(within(annualSection()).getByText('Reported debts, 2025')).toBeInTheDocument();
     expect(within(annualSection()).getByText('None reported')).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Liabilities' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Debts' })).not.toBeInTheDocument();
   });
 });
 
@@ -394,4 +398,12 @@ it('names the report the figures come from, with its filing date', () => {
     'href',
     'https://efdsearch.senate.gov/search/view/annual/aaaaaaaa-0000-4000-8000-000000000001/',
   );
+});
+
+it('shows a holding’s notes, which tell same-named holdings apart', () => {
+  const read = structuredClone(SENATE_READ_ANNUAL);
+  read.latest!.assets[3].asset_notes = '(NYC, New York); Type: Savings; Filer comment: Account #1 (of 3).';
+  tab(EXAMPLE_SENATE, 'Sen. Example', read);
+  const list = screen.getByRole('region', { name: 'Holdings' });
+  expect(within(list).getByText(/Filer comment: Account #1 \(of 3\)/)).toBeInTheDocument();
 });

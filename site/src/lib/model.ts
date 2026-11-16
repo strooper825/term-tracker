@@ -874,8 +874,6 @@ export interface NetWorthModel {
   /** "filed Aug 13, 2026", lower case: it sits mid-sentence. */
   filedLabel: string;
   url: string;
-  /** "$162,029 \u2013 $1,629,998"; "$X or more" when an asset has no upper end. */
-  net: string;
   assets: string;
   liabilities: string;
   holdingsNote: string;
@@ -939,11 +937,10 @@ export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
     reportLabel: w.label,
     filedLabel: `filed ${formatDate(w.filing_date)}`,
     url: w.source_url,
-    net: moneyRange(w.net_low, w.net_high),
     assets: moneyRange(w.assets_low, w.assets_high_is_open ? null : w.assets_high),
     liabilities: w.liabilities === 0 ? 'None reported' : moneyRange(w.liabilities_low, w.liabilities_high_is_open ? null : w.liabilities_high),
     holdingsNote: `${formatNumber(w.holdings)} holding${w.holdings === 1 ? '' : 's'}${unvalued}`,
-    liabilitiesNote: `${formatNumber(w.liabilities)} liabilit${w.liabilities === 1 ? 'y' : 'ies'}`,
+    liabilitiesNote: `${formatNumber(w.liabilities)} debt${w.liabilities === 1 ? '' : 's'}`,
     holdings,
     debts,
   };
