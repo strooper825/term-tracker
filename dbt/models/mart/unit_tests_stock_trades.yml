@@ -1,0 +1,109 @@
+version: 2
+
+# Constructed cases for the Stock trades models (ADR 0018). No tracked House member has an
+# electronic PTR to load, so the parsed-trade path (code mapping, amount bands, totals) is
+# exercised here on invented rows rather than on a real member's filing.
+unit_tests:
+  - name: stg_house_ptr_transactions_reads_cells
+    model: stg_house_ptr_transactions
+    given:
+      - input: source('raw', 'house_ptr_transaction')
+        format: sql
+        rows: |
+          select 'D1' as doc_id, 1 as row_number, 'T000001' as bioguide_id, 'https://example.test/a.pdf#page=1' as source_url, now() as fetched_at,
+                 '{"page": 1, "owner": null, "asset": "Amazon.com, Inc. - Common Stock (AMZN) [ST]", "type": "S (partial)", "trade_date": "03/16/2026", "notification_date": "03/17/2026", "amount": "$1,001 - $15,000", "detail": {"filing_status": "New"}}'::jsonb as payload
+          union all
+          select 'D1', 2, 'T000001', 'https://example.test/a.pdf#page=1', now(),
+                 '{"page": 1, "owner": "SP", "asset": "US Treasury Note 3.5% DUE 01/31/28 (91282CGH8) [GS]", "type": "P", "trade_date": "01/26/2026", "notification_date": "02/04/2026", "amount": "$100,001 - $250,000", "detail": {}}'::jsonb
+          union all
+          select 'D1', 3, 'T000001', 'https://example.test/a.pdf#page=2', now(),
+                 '{"page": 2, "owner": "JT", "asset": "Berkshire Hathaway Inc. New Common Stock (BRK.B) [ST]", "type": "P", "trade_date": "01/26/2026", "notification_date": "02/04/2026", "amount": "$1,000,001 - $5,000,000", "detail": {}}'::jsonb
+          union all
+          select 'D1', 4, 'T000001', 'https://example.test/a.pdf#page=2', now(),
+                 '{"page": 2, "owner": "DC", "asset": "Invesco QQQ [OT]", "type": "S", "trade_date": "01/26/2026", "notification_date": "02/04/2026", "amount": "Over $50,000,000", "detail": {}}'::jsonb
+          union all
+          select 'D1', 6, 'T000001', 'https://example.test/a.pdf#page=3', now(),
+                 '{"page": 3, "owner": null, "asset": "New Water Capital Partners II, LP (GLAS Funds, LP) [HN]", "type": "P", "trade_date": "04/03/2025", "notification_date": "04/28/2025", "amount": "$1,972.55", "detail": {}}'::jsonb
+          union all
+          select 'D1', 5, 'T000001', 'https://example.test/a.pdf#page=2', now(),
+                 '{"page": 2, "owner": null, "asset": "DIA - State Street SPDR Dow Jones Indust Avg ETF Trust NYSEARCA: DIA [OT]", "type": "E", "trade_date": "01/26/2026", "notification_date": "02/04/2026", "amount": "$15,001 - $50,000", "detail": {}}'::jsonb
+    expect:
+      rows:
+        - {row_number: 1, owner_code: SELF, asset_type_code: ST, ticker: AMZN, asset_name: "Amazon.com, Inc. - Common Stock", transaction_type_code: "S (partial)", amount_low: 1001, amount_high: 15000, trade_date: 2026-03-16}
+        # A CUSIP is not a ticker: the bond keeps it in the name.
+        - {row_number: 2, owner_code: SP, asset_type_code: GS, ticker: null, asset_name: "US Treasury Note 3.5% DUE 01/31/28 (91282CGH8)", transaction_type_code: P, amount_low: 100001, amount_high: 250000, trade_date: 2026-01-26}
+        - {row_number: 3, owner_code: JT, asset_type_code: ST, ticker: BRK.B, asset_name: "Berkshire Hathaway Inc. New Common Stock", transaction_type_code: P, amount_low: 1000001, amount_high: 5000000, trade_date: 2026-01-26}
+        # The top band has a low end and no high end.
+        - {row_number: 4, owner_code: DC, asset_type_code: OT, ticker: null, asset_name: Invesco QQQ, transaction_type_code: S, amount_low: 50000000, amount_high: null, trade_date: 2026-01-26}
+        - {row_number: 5, owner_code: SELF, asset_type_code: OT, ticker: null, asset_name: "DIA - State Street SPDR Dow Jones Indust Avg ETF Trust NYSEARCA: DIA", transaction_type_code: E, amount_low: 15001, amount_high: 50000, trade_date: 2026-01-26}
+        # A filer may enter one exact figure instead of a band: low equals high, kind says so.
+        - {row_number: 6, owner_code: SELF, asset_type_code: HN, ticker: null, asset_name: "New Water Capital Partners II, LP (GLAS Funds, LP)", transaction_type_code: P, amount_low: 1972.55, amount_high: 1972.55, trade_date: 2025-04-03}
+
+  - name: stock_trade_maps_codes_and_keeps_unknown_ones
+    model: stock_trade
+    given:
+      - input: ref('stg_house_ptr_transactions')
+        rows:
+          - {doc_id: D1, row_number: 1, bioguide_id: T000001, owner_code: SP, asset_name: Paychex, asset_type_code: ST, transaction_type_code: S, trade_date: 2026-01-14, notification_date: 2026-02-04, amount_low: 15001, amount_high: 50000, source_url: "https://example.test/a.pdf#page=1"}
+          - {doc_id: D1, row_number: 2, bioguide_id: T000001, owner_code: SELF, asset_name: Odd asset, asset_type_code: ZZ, transaction_type_code: X, trade_date: 2026-01-20, notification_date: 2026-02-04, amount_low: 1001, amount_high: 15000, source_url: "https://example.test/a.pdf#page=1"}
+      - input: ref('stg_house_ptr_filings')
+        rows:
+          - {doc_id: D1, bioguide_id: T000001, filing_date: 2026-02-17, status: parsed}
+      - input: ref('member')
+        rows:
+          - {bioguide_id: T000001}
+      - input: ref('ptr_owner_codes')
+        rows:
+          - {code: SELF, label: Self}
+          - {code: SP, label: Spouse}
+      - input: ref('ptr_asset_types')
+        rows:
+          - {code: ST, label: Stocks (including ADRs)}
+      - input: ref('ptr_transaction_types')
+        rows:
+          - {code: S, label: Sale, direction: sale}
+    expect:
+      rows:
+        - {row_number: 1, owner_label: Spouse, asset_type_label: Stocks (including ADRs), transaction_type_label: Sale, direction: sale, days_to_file: 34, has_unmapped_code: false}
+        # No seed maps ZZ or X: the row stays, labelled by its raw codes, and is flagged.
+        - {row_number: 2, owner_label: Self, asset_type_label: ZZ, transaction_type_label: X, direction: other, days_to_file: 28, has_unmapped_code: true}
+
+  - name: member_stock_trades_statuses_and_totals
+    model: member_stock_trades
+    given:
+      - input: ref('member')
+        rows:
+          - {bioguide_id: H_FILED}
+          - {bioguide_id: H_NONE}
+          - {bioguide_id: S_SENATE}
+          - {bioguide_id: S_BOTH}
+      - input: ref('term')
+        rows:
+          - {bioguide_id: H_FILED, chamber: house, start_date: 2025-01-03}
+          - {bioguide_id: H_NONE, chamber: house, start_date: 2025-01-03}
+          - {bioguide_id: S_SENATE, chamber: senate, start_date: 2025-01-03}
+          # Served in the House, now in the Senate: the latest term decides.
+          - {bioguide_id: S_BOTH, chamber: house, start_date: 2019-01-03}
+          - {bioguide_id: S_BOTH, chamber: senate, start_date: 2025-01-03}
+      - input: ref('stock_trade_filing')
+        rows:
+          - {doc_id: D1, bioguide_id: H_FILED, status: parsed, filing_date: 2026-02-17, fetched_at: 2026-09-20}
+          - {doc_id: D2, bioguide_id: H_FILED, status: scanned, filing_date: 2026-03-09, fetched_at: 2026-09-20}
+          - {doc_id: D3, bioguide_id: H_FILED, status: failed, filing_date: 2026-01-05, fetched_at: 2026-09-20}
+      - input: ref('stock_trade')
+        rows:
+          - {bioguide_id: H_FILED, direction: purchase, amount_low: 1001, amount_high: 15000, trade_date: 2026-01-10}
+          - {bioguide_id: H_FILED, direction: purchase, amount_low: 50000000, amount_high: null, trade_date: 2026-01-12}
+          - {bioguide_id: H_FILED, direction: sale, amount_low: 15001, amount_high: 50000, trade_date: 2026-01-14}
+          - {bioguide_id: H_FILED, direction: exchange, amount_low: 1001, amount_high: 15000, trade_date: 2026-01-20}
+      - input: source('meta', 'ingest_run')
+        rows:
+          - {source: house_ptr, status: success, finished_at: "2026-09-20 06:10:00+00"}
+          - {source: house_ptr, status: failed, finished_at: "2026-09-21 06:10:00+00"}
+          - {source: fec, status: success, finished_at: "2026-09-22 06:10:00+00"}
+    expect:
+      rows:
+        - {bioguide_id: H_FILED, chamber: house, status: filed, filings: 3, filings_parsed: 1, filings_scanned: 1, filings_failed: 1, latest_filing_date: 2026-03-09, trades: 4, purchases: 2, sales: 1, exchanges: 1, purchases_low: "50001001.00", purchases_high: "15000.00", purchases_high_is_open: true, sales_low: "15001.00", sales_high: "50000.00", sales_high_is_open: false, first_trade_date: 2026-01-10, last_trade_date: 2026-01-20, covers_from: 2025-01-03, lookup_url: "https://disclosures-clerk.house.gov/FinancialDisclosure", source: house_clerk_ptr, checked_at: "2026-09-20 06:10:00+00"}
+        - {bioguide_id: H_NONE, chamber: house, status: no_filings, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://disclosures-clerk.house.gov/FinancialDisclosure", source: house_clerk_ptr, checked_at: "2026-09-20 06:10:00+00"}
+        - {bioguide_id: S_SENATE, chamber: senate, status: senate_unavailable, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-09-20 06:10:00+00"}
+        - {bioguide_id: S_BOTH, chamber: senate, status: senate_unavailable, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-09-20 06:10:00+00"}
