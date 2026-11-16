@@ -13,6 +13,7 @@ import { useState } from 'react';
 import type {
   AnnualReportRow,
   AnnualReportsModel,
+  NetWorthModel,
   StockFilingRow,
   StockTradeRow,
   StockTradesModel,
@@ -417,7 +418,98 @@ function AnnualRow({ r }: { r: AnnualReportRow }) {
   );
 }
 
-/* The annual financial disclosures (ADR 0027): listed and linked, nothing inside them read yet.
+const HOLDINGS_PAGE = 10;
+
+function NetWorth({ worth }: { worth: NetWorthModel }) {
+  const [shown, setShown] = useState(HOLDINGS_PAGE);
+  const visible = worth.holdings.slice(0, shown);
+  const more = worth.holdings.length - visible.length;
+  return (
+    <div className="flex flex-col gap-4 px-[18px] pb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3.5 border border-rule rounded-card p-4">
+        <Figure label={`Reported net worth, ${worth.year}`} value={worth.net} stacked />
+        <Figure label="Assets" value={worth.assets} note={worth.holdingsNote} stacked />
+        <Figure label="Liabilities" value={worth.liabilities} note={worth.liabilitiesNote} stacked />
+      </div>
+      <p className="text-meta text-ink3 m-0 max-w-[68ch]">
+        From the {worth.reportLabel.charAt(0).toLowerCase() + worth.reportLabel.slice(1)} (
+        <ExternalLink href={worth.url}>{worth.filedLabel}</ExternalLink>). Members report
+        each asset and debt as a value range, so every total here is a range: the reported assets
+        minus the reported debts. It is not a full net worth: some things need not be reported, such
+        as a home that earns no income. A spouse&rsquo;s and dependent children&rsquo;s holdings are
+        included.
+      </p>
+      {worth.holdings.length > 0 && (
+        <section aria-labelledby="holdings-title" className="border border-rule rounded-card">
+          <div className="px-[18px] pt-3 pb-2 flex items-baseline justify-between gap-3 flex-wrap">
+            <h3 id="holdings-title" className="text-base font-semibold text-ink m-0">
+              Holdings
+            </h3>
+            <span className="text-label uppercase text-ink3 tnum">largest first</span>
+          </div>
+          <ul className="list-none m-0 p-0">
+            {visible.map((h) => (
+              <li
+                key={h.key}
+                className="flex flex-col gap-1 px-[18px] py-2.5 border-t border-rule md:flex-row md:items-baseline md:justify-between md:gap-4"
+              >
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-base text-ink break-words">{h.name}</span>
+                  <span className="text-meta text-ink3 break-words">
+                    {[h.kind, h.owner, h.heldIn ? `in ${h.heldIn}` : null].filter(Boolean).join(' \u00b7 ')}
+                  </span>
+                  {h.income && <span className="text-meta text-ink3">Income {h.income}</span>}
+                </div>
+                <span className="text-body text-ink font-semibold tnum whitespace-nowrap">{h.value}</span>
+              </li>
+            ))}
+          </ul>
+          {more > 0 && (
+            <div className="px-[18px] py-3 border-t border-rule flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShown(worth.holdings.length)}
+                className="text-label uppercase font-semibold text-ink underline decoration-[#7F92C4] underline-offset-4"
+              >
+                Show all {worth.holdings.length}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+      {worth.debts.length > 0 && (
+        <section aria-labelledby="debts-title" className="border border-rule rounded-card">
+          <div className="px-[18px] pt-3 pb-2">
+            <h3 id="debts-title" className="text-base font-semibold text-ink m-0">
+              Liabilities
+            </h3>
+          </div>
+          <ul className="list-none m-0 p-0">
+            {worth.debts.map((d) => (
+              <li
+                key={d.key}
+                className="flex flex-col gap-1 px-[18px] py-2.5 border-t border-rule md:flex-row md:items-baseline md:justify-between md:gap-4"
+              >
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-base text-ink break-words">
+                    {`${d.kind} \u00b7 ${d.creditor}`}
+                  </span>
+                  <span className="text-meta text-ink3">
+                    {[d.owner, d.detail].filter(Boolean).join(' \u00b7 ')}
+                  </span>
+                </div>
+                <span className="text-body text-ink font-semibold tnum whitespace-nowrap">{d.amount}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/* The annual financial disclosures (ADR 0027, ADR 0028): every report listed and linked, and for
+   a member whose newest report has been read, what it adds up to.
    They sit above the trades because they are the fuller record: holdings, income and debts. */
 function AnnualReports({ annual, name }: { annual: AnnualReportsModel; name: string }) {
   const office = OFFICE[annual.chamber];
@@ -436,7 +528,10 @@ function AnnualReports({ annual, name }: { annual: AnnualReportsModel; name: str
         </div>
         <p className="text-meta text-ink3 m-0 max-w-[68ch]">
           Each year members report what they own, owe and earn outside their salary, as value
-          ranges. This site lists the reports and links to them; it does not read them yet.
+          ranges.{' '}
+          {annual.worth
+            ? 'The newest report is summarised below; every report is listed after it.'
+            : 'This site lists the reports and links to them; it does not read them yet.'}
         </p>
         {annual.status === 'unavailable' && (
           <p className="text-body text-ink2 m-0 max-w-[68ch]">
@@ -449,6 +544,7 @@ function AnnualReports({ annual, name }: { annual: AnnualReportsModel; name: str
           </p>
         )}
       </div>
+      {annual.worth && <NetWorth worth={annual.worth} />}
       {annual.status === 'filed' && (
         <ul className="list-none m-0 p-0">
           {annual.rows.map((r) => (

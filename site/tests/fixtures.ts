@@ -18,6 +18,7 @@ import type {
   StockTradeItem,
   StockTradesResponse,
   AnnualDisclosuresResponse,
+  AnnualAsset,
   StockTradesSummary,
   TermHistoryItem,
   WeekBucket,
@@ -1628,6 +1629,85 @@ export const ANNUAL_SENATE_UNREAD: AnnualDisclosuresResponse = {
   lookup_url: 'https://efdsearch.senate.gov/search/',
   checked_at: null,
   items: [],
+};
+
+function asset(row: string, name: string, value: string, low: number | null, high: number | null,
+  over: Partial<AnnualAsset> = {}): AnnualAsset {
+  return {
+    row_label: row,
+    is_account: false,
+    asset_name: name,
+    asset_notes: null,
+    asset_category: 'Mutual Funds',
+    asset_subtype: 'Mutual Fund',
+    owner_label: 'Spouse',
+    value_raw: value,
+    value_kind: 'band',
+    value_low: low,
+    value_high: high,
+    income_type: 'Excepted Investment Fund',
+    income_raw: 'None (or less than $201)',
+    ...over,
+  };
+}
+
+/** A senator whose newest report has been read. Invented rows in the shape of a real eFD report:
+ *  an account holding two funds, a bank deposit, an asset the filer could not value, a mortgage. */
+export const SENATE_READ_ANNUAL: AnnualDisclosuresResponse = {
+  ...ANNUAL_SENATE_UNREAD,
+  bioguide_id: 'X000004',
+  status: 'filed',
+  checked_at: '2026-11-16T18:40:00Z',
+  items: [
+    {
+      doc_id: 'aaaaaaaa-0000-4000-8000-000000000001',
+      kind: 'annual',
+      label: 'Annual report for 2025',
+      covers_year: 2025,
+      filing_date: '2026-08-13',
+      extended_on: '2026-05-15',
+      source: 'senate_efd',
+      source_url: 'https://efdsearch.senate.gov/search/view/annual/aaaaaaaa-0000-4000-8000-000000000001/',
+    },
+  ],
+  latest: {
+    covers_year: 2025,
+    doc_id: 'aaaaaaaa-0000-4000-8000-000000000001',
+    label: 'Annual report for 2025',
+    filing_date: '2026-08-13',
+    holdings: 3,
+    unascertainable: 1,
+    assets_low: 66003,
+    assets_high: 165000,
+    assets_high_is_open: false,
+    liabilities: 1,
+    liabilities_low: 100001,
+    liabilities_high: 250000,
+    liabilities_high_is_open: false,
+    net_low: -183997,
+    net_high: 64999,
+    source_url: 'https://efdsearch.senate.gov/search/view/annual/aaaaaaaa-0000-4000-8000-000000000001/',
+    assets: [
+      asset('1', 'Spouse retirement plan', '--', null, null, { is_account: true, value_kind: 'not_valued', asset_category: 'Retirement Plans', asset_subtype: null, income_type: null, income_raw: null }),
+      asset('1.1', 'Example Stock Account', '$15,001 - $50,000', 15001, 50000),
+      asset('1.2', 'Example Growth Account', '$50,001 - $100,000', 50001, 100000),
+      asset('2', 'Example Bank', '$1,001 - $15,000', 1001, 15000, { asset_category: 'Bank Deposit', asset_subtype: null, owner_label: 'Joint', income_type: 'Interest', income_raw: '$201 - $1,000' }),
+      asset('3', 'Family farm partnership', 'Unascertainable', null, null, { value_kind: 'unascertainable', asset_category: 'Business Entity', asset_subtype: null, owner_label: 'Self', income_type: null, income_raw: null }),
+    ],
+    liabilities_list: [
+      {
+        incurred: '2013',
+        owner_label: 'Joint',
+        liability_type: 'Mortgage',
+        rate: '8.0% (30 years)',
+        amount_raw: '$100,001 - $250,000',
+        amount_low: 100001,
+        amount_high: 250000,
+        creditor: 'Example Mortgage Co.',
+        comments: null,
+      },
+    ],
+  },
 };
 
 const EFD = 'https://efdsearch.senate.gov/search/view/ptr';

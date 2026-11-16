@@ -300,6 +300,25 @@ left out. Verified 2026-11-16: House 171 rows for all 50 tracked House members (
 11 amendments, 60 extensions); Senate 47 for all 16 tracked senators (32 annual, 3 amendments,
 12 extensions).
 
+## Raw tables: inside annual reports (Alembic migration `0015`, ADR 0028)
+
+Loaded by `python -m ingest.run --source senate_annual`, which after listing opens each electronic
+Senate annual, amendment, new filer or termination report it has not read (a filed eFD report is never
+edited). House reports are not opened yet.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.annual_report_page` | `source`, `doc_id` | report opened; `bioguide_id`, `status` (`parsed`, `paper` (not opened), `failed`), `error`, `payload` (`title`, `filer`, `filed_at`, `covers_year`, and `parts`: per part key its `title`, `columns`, row count and, for a part without a table, the filer's `answer`), `source_url`, `fetched_at` |
+| `raw.annual_report_row` | `source`, `doc_id`, `part`, `row_index` | table row of a parsed report; `part` is the report's own number (`1` to `10`, `4a`, `4b`) or `comments`; `payload.cells` is each cell as `{text, notes}`, the notes being the blocks eFD nests in the cell (a filer's comment under an asset, a subtype under a type, a city under a creditor) |
+
+Parts 3 (Assets: blank/#, Asset, Asset Type, Owner, Value, Income Type, Income) and 7 (Liabilities:
+blank, #, Incurred, Debtor, Type, Points, Rate (Term), Amount, Creditor, Comments) must have exactly
+those headings; a report without Part 3, or with a row whose cell count differs from its part's
+headings, or whose heading names someone else, is `failed` and stores no rows. Verified 2026-11-16 on
+all 35 annual reports and amendments of the 16 tracked senators for 2024 and 2025: all parsed;
+1,661 asset lines (values: bands, 189 "None (or less than $1,001)", 127 "--" accounts, 8
+"Unascertainable"), 48 liabilities.
+
 ## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
 
 Loaded by `python -m ingest.run --source census_geography` and `--source census_acs`, for the
@@ -626,6 +645,24 @@ a House extension counts only when filed in the year after the one it is listed 
 site shows it: "Annual report for 2025", "New member report for 2024", "Amended report for 2024" (House),
 "Amended annual report for 2024" (Senate), "Termination report", "Report for 2026: not filed yet"),
 `source_url`, `fetched_at`.
+
+### `mart.annual_report_version`, `mart.annual_asset`, `mart.annual_liability`, `mart.annual_net_worth`
+
+ADR 0028. `annual_report_version`: one row per (member, source, year) with a parsed annual report or
+amendment, the one that stands for the year (highest amendment number, then latest filed). `annual_asset`:
+each Part 3 line of that report in order, with `row_label` ("1", "1.1"), `parent_label`, `is_account`
+(a line holding other lines; counts in no total), `asset_name`, `asset_notes`, `asset_category`,
+`asset_subtype`, `owner_code`/`owner_label`, `value_raw`, `value_kind` (`band`, `none` (0 to 1,000),
+`top_band` (no upper end), `not_valued` ("--"), `unascertainable`), `value_low`, `value_high`,
+`counts_in_total`, `income_type`, `income_raw`. `annual_liability`: each Part 7 line, with `incurred`,
+`owner_code`/`owner_label`, `liability_type`, `rate`, `amount_raw`, `amount_kind`, `amount_low`,
+`amount_high`, `creditor`, `comments`. `annual_net_worth`: per report, `holdings` (valued lines,
+accounts excluded), `unascertainable`, `assets_low`/`assets_high`/`assets_high_is_open`, `liabilities`,
+`liabilities_low`/`liabilities_high`/`liabilities_high_is_open`, `net_low` (assets low minus liabilities
+high; null when a debt has no upper end) and `net_high` (assets high minus liabilities low; null when an
+asset has no upper end). Reported net worth only: a home that earns no income need not be reported.
+`GET /api/v1/members/{id}/annual-disclosures` returns the newest year's row as `latest`, with its
+`assets` and `liabilities_list`.
 
 ### `mart.member_annual_disclosures`
 

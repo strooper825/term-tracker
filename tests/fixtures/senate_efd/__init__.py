@@ -11,6 +11,14 @@ The report pages are real eFD pages (public filings), saved whole on 2026-11-16:
   with eFD's coupon and maturity under the asset name.
 * ``paper_929216d5.html``: a paper report (Blumenthal, 08/31/2026), nine page images.
 
+Annual reports (ADR 0028), saved whole on 2026-11-16:
+
+* ``annual_81060eb2_sanders_2025.html``: Sanders, calendar 2025. 33 asset lines (a retirement
+  plan holding funds as 1.1 to 1.n, one "Unascertainable"), two mortgages, income and positions.
+* ``annual_7edd491e_johnson_2025.html``: Ron Johnson, calendar 2025, 13 asset lines and no
+  liabilities (Part 7 is the filer's "No").
+* ``annual_25bb47de_slotkin_2024_amendment.html``: Slotkin, calendar 2024, Amendment 1.
+
 The search rows and the agreement page are built here by hand; they are not recordings.
 """
 
@@ -33,6 +41,15 @@ BOOZMAN_B = "3a779539-8451-49d2-8419-d3eb72c7922a"
 BOOZMAN_AMENDMENT = "51455bcd-4966-4e77-b481-09897ada81ae"
 FETTERMAN_BOND = "0541be4f-4f96-4d84-8d6f-d349f218bb2a"
 PAPER = "929216d5-5dbd-429c-858c-1e9332924627"
+
+SANDERS_2025 = "81060eb2-fc35-4a8c-857d-3220cf411b9b"
+JOHNSON_2025 = "7edd491e-0ee4-46cb-acb2-6c9d06b89803"
+SLOTKIN_2024_AMENDMENT = "25bb47de-6695-4a3e-8714-49df656bc5fa"
+ANNUAL_PAGES = {
+    SANDERS_2025: "annual_81060eb2_sanders_2025.html",
+    JOHNSON_2025: "annual_7edd491e_johnson_2025.html",
+    SLOTKIN_2024_AMENDMENT: "annual_25bb47de_slotkin_2024_amendment.html",
+}
 
 PAGES = {
     BOOZMAN_A: "ptr_2c4705cc.html",
@@ -88,7 +105,11 @@ class FakeEfd:
         lapse_once: bool = False,
     ) -> None:
         self.rows = list(rows)
-        self.pages = pages if pages is not None else {k: read(v) for k, v in PAGES.items()}
+        self.pages = (
+            pages
+            if pages is not None
+            else {k: read(v) for k, v in {**PAGES, **ANNUAL_PAGES}.items()}
+        )
         self.refuse = refuse
         self.lapse = lapse_once
         self.agreed = 0
@@ -125,7 +146,7 @@ class FakeEfd:
             }
             return httpx.Response(200, text=json.dumps(body))
         for report_id, page in self.pages.items():
-            if path in (report_path(report_id), report_path(report_id, "paper")):
+            if path.startswith("/search/view/") and path.endswith(f"/{report_id}/"):
                 return httpx.Response(200, text=page)
         return httpx.Response(404, text="Not found")
 

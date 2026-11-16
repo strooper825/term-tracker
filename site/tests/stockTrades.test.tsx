@@ -14,6 +14,7 @@ import {
   EXAMPLE_SENATE,
   KHANNA_ALL_SCANNED,
   KHANNA_ANNUAL,
+  SENATE_READ_ANNUAL,
   SENATE_NO_FILINGS,
   STEIL_NO_FILINGS,
 } from './fixtures';
@@ -87,6 +88,58 @@ describe('annual financial disclosures', () => {
     tab(COTTON_SENATE, 'Sen. Tom Cotton', ANNUAL_SENATE_UNREAD);
     expect(within(annualSection()).getByText(/Not collected yet for Sen\. Tom Cotton/)).toBeInTheDocument();
     expect(within(annualSection()).queryByRole('listitem')).not.toBeInTheDocument();
+  });
+});
+
+describe('annual financial disclosures: a read report', () => {
+  it('sums the newest report into ranges, with the caveats beside them', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+    const section = annualSection();
+    expect(within(section).getByText('Reported net worth, 2025')).toBeInTheDocument();
+    expect(within(section).getByText('-$183,997 \u2013 $64,999')).toBeInTheDocument();
+    expect(within(section).getByText('$66,003 \u2013 $165,000')).toBeInTheDocument();
+    expect(within(section).getByText('3 holdings \u00b7 1 not valued')).toBeInTheDocument();
+    expect(within(section).getByText('$100,001 \u2013 $250,000')).toBeInTheDocument();
+    expect(within(section).getByText(/It is not a full net worth/)).toBeInTheDocument();
+    expect(within(section).getByText(/summarised below/)).toBeInTheDocument();
+  });
+
+  it('lists holdings largest first, inside their account, and never the account itself', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+    const list = screen.getByRole('region', { name: 'Holdings' });
+    const names = within(list).getAllByRole('listitem').map((li) => li.firstChild?.firstChild?.textContent);
+    expect(names).toEqual([
+      'Example Growth Account',
+      'Example Stock Account',
+      'Example Bank',
+      'Family farm partnership',
+    ]);
+    expect(within(list).queryByText('Spouse retirement plan')).not.toBeInTheDocument();
+    expect(within(list).getAllByText(/in Spouse retirement plan/)).toHaveLength(2);
+    expect(within(list).getByText('Value not stated by the filer')).toBeInTheDocument();
+    expect(within(list).getByText('Income Interest: $201 - $1,000')).toBeInTheDocument();
+  });
+
+  it('lists the liabilities', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+    const list = screen.getByRole('region', { name: 'Liabilities' });
+    expect(within(list).getByText('Mortgage \u00b7 Example Mortgage Co.')).toBeInTheDocument();
+    expect(within(list).getByText('Joint \u00b7 Incurred 2013 \u00b7 8.0% (30 years)')).toBeInTheDocument();
+  });
+
+  it('shows ten holdings, then all on request', () => {
+    const many = structuredClone(SENATE_READ_ANNUAL);
+    const base = many.latest!.assets[1];
+    many.latest!.assets = Array.from({ length: 14 }, (_, i) => ({
+      ...base,
+      row_label: String(i + 1),
+      asset_name: `Fund ${i + 1}`,
+    }));
+    tab(EXAMPLE_SENATE, 'Sen. Example', many);
+    const list = screen.getByRole('region', { name: 'Holdings' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(10);
+    fireEvent.click(within(list).getByRole('button', { name: 'Show all 14' }));
+    expect(within(list).getAllByRole('listitem')).toHaveLength(14);
   });
 });
 
@@ -314,4 +367,12 @@ describe('buildStockTrades', () => {
     expect([m.purchasesRange, m.salesRange, m.firstTrade]).toEqual([null, null, null]);
     expect(m.checkedAt).toBe('Sep 20, 2026 06:10 UTC');
   });
+});
+
+it('names the report the figures come from, with its filing date', () => {
+  tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+  expect(within(annualSection()).getByRole('link', { name: /filed Aug 13, 2026/ })).toHaveAttribute(
+    'href',
+    'https://efdsearch.senate.gov/search/view/annual/aaaaaaaa-0000-4000-8000-000000000001/',
+  );
 });
