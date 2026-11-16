@@ -281,6 +281,25 @@ senators: 84 reports, all electronic, 479 rows. Values seen: types `Purchase` 25
 `Sale (Partial)` 156, `Sale (Full)` 65; owners `Joint` 411, `Child` 53, `Spouse` 15; asset types
 `Stock` 433, `Corporate Bond` 42, `Municipal Security` 4.
 
+## Raw table: annual financial disclosures (Alembic migration `0014`, ADR 0027)
+
+Loaded by `python -m ingest.run --source house_annual` and `--source senate_annual`. Listed and
+linked; no report is opened.
+
+| Table | Key | One row per |
+|---|---|---|
+| `raw.annual_disclosure` | `source`, `doc_id` | annual report, amendment, new member report, termination report or due-date extension a tracked member filed since the tracked Congress began; `source` is `house_clerk` (the Clerk's index; `doc_id` the DocID) or `senate_efd` (the eFD search; `doc_id` the report UUID); columns `bioguide_id`, `kind` (`annual`, `amendment`, `new_filer`, `termination`, `extension`), `covers_year` (the year covered: the index file's year for the House, the year in the eFD title, null when the title has none), `filing_date`, `payload` (`index`: the index row, or `search`: `first`, `last`, `office`, `title`, `view`, `kind`, `covers_year`, `amendment`, `filed`), `source_url` (the House PDF `financial-pdfs/{year}/{DocID}.pdf` or the eFD page), `fetched_at` |
+
+House: index types `O` annual, `H` new member, `A` amendment, `T` termination, `X` extension are kept;
+`P` (trades), `C` (candidate) and `D`, `W`, `E`, `G`, `B` are not. A row is matched by seat and name
+(`ingest.sources.house_ptr.SeatIndex`): the seat must be a tracked member's and the member's last name
+the row's last name or a word of its name ("Arenholz, Ashley Hinson" is Hinson). The index for the year
+before the Congress began is read too: its annual reports are filed during the Congress. Senate: eFD
+report types 7 and 10, filer type senator; candidate reports, blind trusts and new-filer extensions are
+left out. Verified 2026-11-16: House 171 rows for all 50 tracked House members (97 annual, 3 new member,
+11 amendments, 60 extensions); Senate 47 for all 16 tracked senators (32 annual, 3 amendments,
+12 extensions).
+
 ## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
 
 Loaded by `python -m ingest.run --source census_geography` and `--source census_acs`, for the
@@ -595,6 +614,27 @@ report, newest first) and `items` (every trade, newest first). The site formats 
 nothing: the tab shows the empty-record message for `no_filings`, a "not available for the Senate"
 message for `senate_unavailable`, and for `filed` the summary, a notice for scanned and unreadable
 reports, the trade list and the report list.
+
+### `mart.annual_disclosure`
+
+One row per annual-disclosure report a tracked member filed since the tracked Congress began, both
+chambers (ADR 0027), plus one row per report due after an extension and not filed yet (`kind`
+`extension`, linking the extension). Columns `bioguide_id`, `doc_id`, `source` (`house_clerk`,
+`senate_efd`), `kind`, `covers_year`, `filing_date`, `amendment` (eFD's number; null for the House),
+`extended_on` (the latest extension for the same year filed on or before an annual or new member report;
+a House extension counts only when filed in the year after the one it is listed under), `label` (as the
+site shows it: "Annual report for 2025", "New member report for 2024", "Amended report for 2024" (House),
+"Amended annual report for 2024" (Senate), "Termination report", "Report for 2026: not filed yet"),
+`source_url`, `fetched_at`.
+
+### `mart.member_annual_disclosures`
+
+One row per tracked member: `status` (`unavailable` while the chamber's listing has never been read,
+`no_filings`, `filed`), `reports`, `pending` (reports due after an extension and not filed yet),
+`latest_year`, `latest_filing_date`, `covers_from`, `lookup_url`, `source`, `source_url`, `checked_at`
+(last successful `house_annual` or `senate_annual` run), `fetched_at`. `GET
+/api/v1/members/{id}/annual-disclosures` returns it with the member's rows from `mart.annual_disclosure`
+as `items`, newest first.
 
 ### `mart.stock_trade_filing`
 

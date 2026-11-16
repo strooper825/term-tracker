@@ -37,9 +37,11 @@ from ingest.sources import (
     census_geography,
     congress_gov,
     fec,
+    house_annual,
     house_ptr,
     house_votes,
     legislators,
+    senate_annual,
     senate_ptr,
     senate_votes,
     statements,
@@ -58,6 +60,7 @@ from tests.fixtures.fec import PRINCIPAL as FEC_TRACKED
 from tests.fixtures.fec import fixture_client as fec_fixture_client
 from tests.fixtures.house_ptr import MART_MEMBERS, MART_TODAY, MART_YEAR, mart_client
 from tests.fixtures.legislators import fixture_fetch as legislators_fixture_fetch
+from tests.fixtures.senate_efd import FakeEfd, efd_client
 from tests.fixtures.senate_efd import mart_client as efd_mart_client
 from tests.fixtures.statements import TARGETS as STATEMENT_TARGETS
 from tests.fixtures.statements import feed_client as statements_feed_client
@@ -171,6 +174,12 @@ def built_mart(migrated_engine: Engine) -> None:
         statements.load(conn, statements_feed_client(), STATEMENT_TARGETS, date(2025, 1, 3))
         house_ptr.load(conn, mart_client(), MART_MEMBERS, [MART_YEAR], today=MART_TODAY)
         senate_ptr.load(conn, efd_mart_client(), MART_MEMBERS, date(2025, 1, 3))
+        # Annual reports: the fixture index lists none for a tracked member, and the eFD search
+        # none, so each tracked member reads "no annual report" once both have been read.
+        house_annual.load(
+            conn, mart_client(), MART_MEMBERS, [MART_YEAR], date(2025, 1, 3), today=MART_TODAY
+        )
+        senate_annual.load(conn, efd_client(FakeEfd([])), MART_MEMBERS, date(2025, 1, 3))
         census_geography.load(
             conn, FixtureFiles(), CENSUS_YEAR, full_refresh=True, minimums=GEOGRAPHY_MINIMUMS
         )

@@ -22,6 +22,7 @@ import type {
   SessionsResponse,
   StatementsResponse,
   StockTradesResponse,
+  AnnualDisclosuresResponse,
 } from './types';
 
 function baseUrl(): string {
@@ -73,6 +74,8 @@ export const api = {
   contact: (bioguide: string) => getJson<ContactResponse>(`/api/v1/members/${bioguide}/contact`),
   statements: (bioguide: string) =>
     getJson<StatementsResponse>(`/api/v1/members/${bioguide}/statements`),
+  annualDisclosures: (bioguide: string) =>
+    getJson<AnnualDisclosuresResponse>(`/api/v1/members/${bioguide}/annual-disclosures`),
   stockTrades: (bioguide: string) =>
     getJson<StockTradesResponse>(`/api/v1/members/${bioguide}/stock-trades`),
   constituency: (bioguide: string) =>

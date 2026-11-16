@@ -16,6 +16,8 @@ from api.provenance import distinct_sources
 from api.routers.members import COMMITTEES_SQL, member_ids, seat_label
 from api.schemas.member import (
     ActivityCounts,
+    AnnualDisclosureItem,
+    AnnualDisclosuresResponse,
     BillItem,
     BillsResponse,
     CommitteesResponse,
@@ -225,6 +227,23 @@ STOCK_TRADES_SQL = text(
     FROM mart.stock_trade
     WHERE bioguide_id = :bioguide
     ORDER BY trade_date DESC, doc_id DESC, row_number
+    """
+)
+
+ANNUAL_DISCLOSURES_SUMMARY_SQL = text(
+    """
+    SELECT *
+    FROM mart.member_annual_disclosures
+    WHERE bioguide_id = :bioguide
+    """
+)
+
+ANNUAL_DISCLOSURES_SQL = text(
+    """
+    SELECT doc_id, kind, label, covers_year, filing_date, extended_on, source, source_url
+    FROM mart.annual_disclosure
+    WHERE bioguide_id = :bioguide
+    ORDER BY filing_date DESC, doc_id DESC
     """
 )
 
@@ -660,6 +679,36 @@ def member_stock_trades(
             StockTradeFiling(**{k: f[k] for k in StockTradeFiling.model_fields}) for f in filings
         ],
         items=[StockTradeItem(**{k: t[k] for k in StockTradeItem.model_fields}) for t in trades],
+        sources=distinct_sources([row]),
+    )
+
+
+@router.get(
+    "/annual-disclosures",
+    response_model=AnnualDisclosuresResponse,
+    summary="Annual financial disclosure reports the member filed, listed and linked",
+)
+def member_annual_disclosures(
+    bioguide: str, session: Annotated[Session, Depends(get_session)]
+) -> AnnualDisclosuresResponse:
+    _summary(session, bioguide)
+    row = session.execute(ANNUAL_DISCLOSURES_SUMMARY_SQL, {"bioguide": bioguide}).mappings().first()
+    if row is None:
+        raise HTTPException(
+            status_code=404, detail=f"No annual disclosure status for {bioguide}; rebuild the mart"
+        )
+    items = session.execute(ANNUAL_DISCLOSURES_SQL, {"bioguide": bioguide}).mappings().all()
+    return AnnualDisclosuresResponse(
+        bioguide_id=bioguide,
+        chamber=row["chamber"],
+        status=row["status"],
+        covers_from=row["covers_from"],
+        lookup_url=row["lookup_url"],
+        checked_at=row["checked_at"],
+        items=[
+            AnnualDisclosureItem(**{k: i[k] for k in AnnualDisclosureItem.model_fields})
+            for i in items
+        ],
         sources=distinct_sources([row]),
     )
 

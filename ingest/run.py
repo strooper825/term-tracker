@@ -29,10 +29,12 @@ from ingest.sources import (
     census_geography,
     congress_gov,
     fec,
+    house_annual,
     house_ptr,
     house_votes,
     legislators,
     press_pages,
+    senate_annual,
     senate_ptr,
     senate_votes,
     statements,
@@ -46,7 +48,8 @@ log = logging.getLogger("ingest")
 # Census sources read nothing from the others and change once a year, so they go near the end.
 # Statements and the press-page probe read third-party office sites, so they run last
 # (ADR 0015). House PTRs read the Clerk's public files and come just before them (ADR 0018),
-# then Senate PTRs from eFD (ADR 0026).
+# then Senate PTRs from eFD (ADR 0026), then both chambers' annual-disclosure listings
+# (ADR 0027).
 # A failing source no longer stops the ones after it, but the order still decides
 # what a later source can read.
 SOURCES: dict[str, Callable[..., int]] = {
@@ -59,6 +62,8 @@ SOURCES: dict[str, Callable[..., int]] = {
     census_acs.SOURCE: census_acs.run,
     house_ptr.SOURCE: house_ptr.run,
     senate_ptr.SOURCE: senate_ptr.run,
+    house_annual.SOURCE: house_annual.run,
+    senate_annual.SOURCE: senate_annual.run,
     statements.SOURCE: statements.run,
     press_pages.SOURCE: press_pages.run,
 }

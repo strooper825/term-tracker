@@ -49,6 +49,8 @@ sources:
         description: One transaction row of a parsed House PTR, every cell as the PDF prints it (ADR 0018).
       - name: senate_ptr_report
         description: One Senate Periodic Transaction Report of a tracked senator (eFD search, ADR 0026); status parsed, paper or failed; supersedes names the report an amendment replaces.
+      - name: annual_disclosure
+        description: One annual-disclosure filing of a tracked member, both chambers (Clerk index or eFD search, ADR 0027); listed and linked, not read.
       - name: senate_ptr_transaction
         description: One transaction row of a parsed Senate PTR, every cell as the eFD page prints it (ADR 0026).
 

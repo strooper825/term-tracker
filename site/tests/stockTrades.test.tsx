@@ -1,22 +1,34 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { StockTradesTab } from '@/components/StockTradesTab';
-import { buildStockTrades } from '@/lib/model';
-import type { StockTradesResponse } from '@/lib/types';
+import { buildAnnualReports, buildStockTrades } from '@/lib/model';
+import type { AnnualDisclosuresResponse, StockTradesResponse } from '@/lib/types';
 import {
+  ANNUAL_NONE,
+  ANNUAL_PENDING,
+  ANNUAL_SENATE_UNREAD,
   COTTON_SENATE,
   EXAMPLE_MANY,
   EXAMPLE_MIXED,
   EXAMPLE_TOP_BAND,
   EXAMPLE_SENATE,
   KHANNA_ALL_SCANNED,
+  KHANNA_ANNUAL,
   SENATE_NO_FILINGS,
   STEIL_NO_FILINGS,
 } from './fixtures';
 
-function tab(response: StockTradesResponse, name = 'Rep. Example') {
-  render(<StockTradesTab model={buildStockTrades(response)} name={name} />);
+function tab(
+  response: StockTradesResponse,
+  name = 'Rep. Example',
+  annual: AnnualDisclosuresResponse = ANNUAL_NONE,
+) {
+  render(
+    <StockTradesTab model={buildStockTrades(response)} annual={buildAnnualReports(annual)} name={name} />,
+  );
 }
+
+const annualSection = () => screen.getByRole('region', { name: 'Annual financial disclosures' });
 
 const trades = () => screen.queryAllByRole('article');
 
@@ -39,9 +51,48 @@ describe('stock trades: a senator', () => {
   });
 });
 
+describe('annual financial disclosures', () => {
+  it('lists each report with its date, extension and link, above the trades', () => {
+    tab(KHANNA_ALL_SCANNED, 'Rep. Ro Khanna', KHANNA_ANNUAL);
+    const section = annualSection();
+    const rows = within(section).getAllByRole('listitem');
+    expect(rows).toHaveLength(3);
+    expect(within(rows[0]).getByText('Annual report for 2025')).toBeInTheDocument();
+    expect(rows[0]).toHaveTextContent('Filed Aug 10, 2026 \u00b7 after an extension requested Apr 9, 2026');
+    expect(within(rows[0]).getByRole('link', { name: /Report/ })).toHaveAttribute(
+      'href',
+      'https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025/9116272.pdf',
+    );
+    expect(within(rows[1]).getByText('Amended report for 2024')).toBeInTheDocument();
+    expect(rows[1]).not.toHaveTextContent('extension');
+    expect(within(section).getByText(/does not read them yet/)).toBeInTheDocument();
+    // The section comes before the trades on the tab.
+    const order = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(order.indexOf('Annual financial disclosures')).toBeLessThan(order.indexOf('Stock trades'));
+  });
+
+  it('shows a report due after an extension as not filed yet, linking the extension', () => {
+    tab(STEIL_NO_FILINGS, 'Rep. Example', ANNUAL_PENDING);
+    const row = within(annualSection()).getByRole('listitem');
+    expect(row).toHaveTextContent('Report for 2026: not filed yet');
+    expect(row).toHaveTextContent('Extension requested May 10, 2027');
+    expect(row).not.toHaveTextContent('Filed');
+    expect(within(row).getByRole('link', { name: /Extension/ })).toBeInTheDocument();
+  });
+
+  it('states an empty record, and a listing never read, differently', () => {
+    tab(STEIL_NO_FILINGS, 'Rep. Bryan Steil', ANNUAL_NONE);
+    expect(within(annualSection()).getByText(/lists no annual report for Rep\. Bryan Steil since Jan 3, 2025/)).toBeInTheDocument();
+    cleanup();
+    tab(COTTON_SENATE, 'Sen. Tom Cotton', ANNUAL_SENATE_UNREAD);
+    expect(within(annualSection()).getByText(/Not collected yet for Sen\. Tom Cotton/)).toBeInTheDocument();
+    expect(within(annualSection()).queryByRole('listitem')).not.toBeInTheDocument();
+  });
+});
+
 describe('stock trades: a senator once eFD is read', () => {
   it('lists the trades and says they come from eFD', () => {
-    tab(EXAMPLE_SENATE, 'Sen. Example');
+    tab(EXAMPLE_SENATE, 'Sen. Example', ANNUAL_SENATE_UNREAD);
     expect(trades()).toHaveLength(2);
     expect(screen.queryByText('Not available for the Senate')).not.toBeInTheDocument();
     expect(screen.getByText(/read from the Senate\u2019s eFD periodic transaction reports/)).toBeInTheDocument();

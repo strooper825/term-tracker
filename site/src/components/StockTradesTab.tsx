@@ -10,7 +10,13 @@
 //     paper forms whose trades this site cannot read and Senate reports an amendment replaced.
 // Every count and value total is a mart column formatted in src/lib/model.ts.
 import { useState } from 'react';
-import type { StockFilingRow, StockTradeRow, StockTradesModel } from '@/lib/model';
+import type {
+  AnnualReportRow,
+  AnnualReportsModel,
+  StockFilingRow,
+  StockTradeRow,
+  StockTradesModel,
+} from '@/lib/model';
 import { SourceLink } from './SiteChrome';
 
 const PAGE = 25;
@@ -390,7 +396,80 @@ function FilingList({ model }: { model: StockTradesModel }) {
   );
 }
 
-export function StockTradesTab({ model, name }: { model: StockTradesModel; name: string }) {
+function AnnualRow({ r }: { r: AnnualReportRow }) {
+  return (
+    <li className="flex flex-col gap-1 px-[18px] py-3 border-t border-rule md:flex-row md:items-center md:justify-between md:gap-4">
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-base font-semibold text-ink">{r.label}</span>
+        <span className="text-meta text-ink3 tnum">
+          {r.pending ? null : (
+            <>
+              Filed <time dateTime={r.isoDate}>{r.dateLabel}</time>
+            </>
+          )}
+          {r.note && (r.pending ? r.note : ` \u00b7 ${r.note}`)}
+        </span>
+      </div>
+      <div className="flex items-baseline gap-3 flex-wrap text-meta">
+        <ExternalLink href={r.url}>{r.linkLabel}</ExternalLink>
+      </div>
+    </li>
+  );
+}
+
+/* The annual financial disclosures (ADR 0027): listed and linked, nothing inside them read yet.
+   They sit above the trades because they are the fuller record: holdings, income and debts. */
+function AnnualReports({ annual, name }: { annual: AnnualReportsModel; name: string }) {
+  const office = OFFICE[annual.chamber];
+  return (
+    <section aria-labelledby="annual-title" className="border border-rule rounded-card bg-card">
+      <div className="px-[18px] pt-4 pb-3 flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <h2 id="annual-title" className="text-heading font-semibold text-ink m-0">
+            Annual financial disclosures
+          </h2>
+          {annual.status === 'filed' && (
+            <span className="text-label uppercase text-ink3 tnum">
+              {annual.rows.length} · newest first
+            </span>
+          )}
+        </div>
+        <p className="text-meta text-ink3 m-0 max-w-[68ch]">
+          Each year members report what they own, owe and earn outside their salary, as value
+          ranges. This site lists the reports and links to them; it does not read them yet.
+        </p>
+        {annual.status === 'unavailable' && (
+          <p className="text-body text-ink2 m-0 max-w-[68ch]">
+            Not collected yet for {name}. {office.index} is the record.
+          </p>
+        )}
+        {annual.status === 'no_filings' && (
+          <p className="text-body text-ink2 m-0 max-w-[68ch]">
+            {office.index} lists no annual report for {name} since {annual.coversFrom}.
+          </p>
+        )}
+      </div>
+      {annual.status === 'filed' && (
+        <ul className="list-none m-0 p-0">
+          {annual.rows.map((r) => (
+            <AnnualRow key={r.key} r={r} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export function StockTradesTab({
+  model,
+  annual,
+  name,
+}: {
+  model: StockTradesModel;
+  annual: AnnualReportsModel;
+  name: string;
+}) {
+  const reports = <AnnualReports annual={annual} name={name} />;
   if (model.status === 'senate_unavailable') {
     return (
       <Shell
@@ -401,6 +480,7 @@ export function StockTradesTab({ model, name }: { model: StockTradesModel; name:
           />
         }
       >
+        {reports}
         <SenateUnavailable model={model} name={name} />
       </Shell>
     );
@@ -410,6 +490,7 @@ export function StockTradesTab({ model, name }: { model: StockTradesModel; name:
       <Shell
         footer={<Footer model={model} text={OFFICE[model.chamber].none} />}
       >
+        {reports}
         <NoFilings model={model} name={name} />
       </Shell>
     );
@@ -418,6 +499,7 @@ export function StockTradesTab({ model, name }: { model: StockTradesModel; name:
     <Shell
       footer={<Footer model={model} text={OFFICE[model.chamber].filed} />}
     >
+      {reports}
       <Summary model={model} />
       <UnreadNotice model={model} />
       <TradeList model={model} />

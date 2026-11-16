@@ -42,6 +42,7 @@ import type {
   MemberDetail,
   StatementsResponse,
   StockTradesResponse,
+  AnnualDisclosuresResponse,
   MemberListItem,
   RaceKey,
 } from './types';
@@ -822,6 +823,59 @@ export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
     lastTrade: sum.last_trade_date ? formatDate(sum.last_trade_date) : null,
     tradeRows,
     filingRows,
+  };
+}
+
+export interface AnnualReportRow {
+  key: string;
+  label: string;
+  isoDate: string;
+  dateLabel: string;
+  /** A report due after an extension and not filed yet: the date is the extension's. */
+  pending: boolean;
+  /** "after an extension requested Apr 9, 2026" (follows the filing date), or for a pending
+   *  report "Extension requested May 15, 2025"; null when neither. */
+  note: string | null;
+  url: string;
+  /** "Report" for a filed report, "Extension" for a pending one. */
+  linkLabel: string;
+}
+
+export interface AnnualReportsModel {
+  status: 'filed' | 'no_filings' | 'unavailable';
+  chamber: 'house' | 'senate';
+  coversFrom: string;
+  checkedAt: string | null;
+  lookupUrl: string;
+  rows: AnnualReportRow[];
+}
+
+/** The annual-disclosure section from mart.annual_disclosure (ADR 0027): reports listed and
+ *  linked, nothing inside them read. Formats and labels only. */
+export function buildAnnualReports(r: AnnualDisclosuresResponse): AnnualReportsModel {
+  return {
+    status: r.status,
+    chamber: r.chamber,
+    coversFrom: formatDate(r.covers_from),
+    checkedAt: r.checked_at ? formatTimestampUtc(r.checked_at) : null,
+    lookupUrl: r.lookup_url,
+    rows: r.items.map((i) => {
+      const pending = i.kind === 'extension';
+      return {
+        key: `${i.source}-${i.doc_id}`,
+        label: i.label,
+        isoDate: i.filing_date,
+        dateLabel: formatDate(i.filing_date),
+        pending,
+        note: pending
+          ? `Extension requested ${formatDate(i.filing_date)}`
+          : i.extended_on
+            ? `after an extension requested ${formatDate(i.extended_on)}`
+            : null,
+        url: i.source_url,
+        linkLabel: pending ? 'Extension' : 'Report',
+      };
+    }),
   };
 }
 

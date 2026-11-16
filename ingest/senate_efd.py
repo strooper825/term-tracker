@@ -51,6 +51,9 @@ HOME_PATH = "/search/home/"
 SEARCH_PATH = "/search/"
 DATA_PATH = "/search/report/data/"
 PTR_REPORT_TYPE = 11
+ANNUAL_REPORT_TYPE = 7  # annual, new filer, termination and candidate reports (ADR 0027)
+EXTENSION_REPORT_TYPE = 10  # due-date extensions
+SENATOR_FILER_TYPE = 1
 PAGE_SIZE = 100
 
 TITLE_RE = re.compile(
@@ -158,15 +161,22 @@ class EfdClient:
     def _lapsed(self, response: httpx.Response) -> bool:
         return response.is_redirect and HOME_PATH in response.headers.get("location", "")
 
-    def search_page(self, since: date, start: int) -> dict[str, Any]:
-        """One page of the search: PTRs submitted on or after ``since``, every filer."""
+    def search_page(
+        self,
+        since: date,
+        start: int,
+        report_types: Sequence[int] = (PTR_REPORT_TYPE,),
+        filer_types: Sequence[int] = (),
+    ) -> dict[str, Any]:
+        """One page of the search: reports of ``report_types`` submitted on or after ``since``,
+        by ``filer_types`` (every filer when empty). The default is the PTR search."""
         if not self._agreed:
             self.agree()
         form = {
             "start": str(start),
             "length": str(PAGE_SIZE),
-            "report_types": f"[{PTR_REPORT_TYPE}]",
-            "filer_types": "[]",
+            "report_types": "[" + ", ".join(str(n) for n in report_types) + "]",
+            "filer_types": "[" + ", ".join(str(n) for n in filer_types) + "]",
             "submitted_start_date": since.strftime("%m/%d/%Y 00:00:00"),
             "submitted_end_date": "",
             "candidate_state": "",
