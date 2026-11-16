@@ -391,13 +391,14 @@ export interface AnnualDisclosureItem {
 export interface AnnualAsset {
   row_label: string;
   is_account: boolean;
+  held_in: string | null;
   asset_name: string;
   asset_notes: string | null;
   asset_category: string | null;
   asset_subtype: string | null;
   owner_label: string;
   value_raw: string;
-  value_kind: 'band' | 'none' | 'top_band' | 'not_valued' | 'unascertainable';
+  value_kind: 'band' | 'none' | 'top_band' | 'exact' | 'not_valued' | 'unascertainable';
   value_low: number | null;
   value_high: number | null;
   income_type: string | null;

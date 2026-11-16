@@ -906,7 +906,6 @@ function moneyRange(low: number | null, high: number | null, lowOpen = false): s
 /** The net-worth figures, holdings and debts of the newest read report (ADR 0028). Every figure
  *  is a mart column; this only orders and formats. */
 export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
-  const accounts = new Map(w.assets.filter((a) => a.is_account).map((a) => [a.row_label, a.asset_name]));
   const holdings = w.assets
     .filter((a) => !a.is_account)
     .map((a, i) => ({ a, i }))
@@ -916,7 +915,7 @@ export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
       name: a.asset_name,
       kind: [a.asset_category, a.asset_subtype].filter(Boolean).join(' \u00b7 '),
       owner: a.owner_label,
-      heldIn: a.row_label.includes('.') ? accounts.get(a.row_label.split('.')[0]) ?? null : null,
+      heldIn: a.held_in,
       value:
         a.value_kind === 'unascertainable'
           ? 'Value not stated by the filer'

@@ -263,7 +263,7 @@ NET_WORTH_SQL = text(
 
 ANNUAL_ASSETS_SQL = text(
     """
-    SELECT row_label, is_account, asset_name, asset_notes, asset_category, asset_subtype,
+    SELECT row_label, is_account, held_in, asset_name, asset_notes, asset_category, asset_subtype,
            owner_label, value_raw, value_kind, value_low, value_high, income_type, income_raw
     FROM mart.annual_asset
     WHERE doc_id = :doc_id

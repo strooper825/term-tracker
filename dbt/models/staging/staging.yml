@@ -173,6 +173,26 @@ models:
       - name: amount_kind
         tests:
           - accepted_values: { arguments: { values: ["band", "top_band"] } }
+  - name: stg_house_annual_assets
+    columns:
+      - name: asset_name
+        tests: [not_null]
+      - name: asset_code
+        tests: [not_null]
+      - name: owner_code
+        tests:
+          - accepted_values: { arguments: { values: ["SELF", "SP", "JT", "DC"] } }
+      - name: value_kind
+        tests:
+          - accepted_values:
+              arguments: { values: ["band", "top_band", "exact", "none", "unascertainable"] }
+  - name: stg_house_annual_liabilities
+    columns:
+      - name: creditor
+        tests: [not_null]
+      - name: amount_kind
+        tests:
+          - accepted_values: { arguments: { values: ["band", "top_band", "exact"] } }
   - name: stg_statements
     columns:
       - name: title

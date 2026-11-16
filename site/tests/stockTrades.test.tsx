@@ -13,6 +13,7 @@ import {
   EXAMPLE_TOP_BAND,
   EXAMPLE_SENATE,
   KHANNA_ALL_SCANNED,
+  HOUSE_READ_ANNUAL,
   KHANNA_ANNUAL,
   SENATE_READ_ANNUAL,
   SENATE_NO_FILINGS,
@@ -140,6 +141,24 @@ describe('annual financial disclosures: a read report', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(10);
     fireEvent.click(within(list).getByRole('button', { name: 'Show all 14' }));
     expect(within(list).getAllByRole('listitem')).toHaveLength(14);
+  });
+});
+
+describe('annual financial disclosures: a read House report', () => {
+  it('names each holding\u2019s account and keeps an exact figure as printed', () => {
+    tab(STEIL_NO_FILINGS, 'Rep. Example', HOUSE_READ_ANNUAL);
+    const list = screen.getByRole('region', { name: 'Holdings' });
+    const items = within(list).getAllByRole('listitem');
+    expect(items.map((li) => li.firstChild?.firstChild?.textContent)).toEqual([
+      'Example Family Partnership',
+      'Example Growth Fund',
+      'Closed Savings Account',
+    ]);
+    expect(items[0]).toHaveTextContent('$209,630.10');
+    expect(items[1]).toHaveTextContent('in EXAMPLE SECURITIES BROKERAGE ACCOUNT');
+    expect(within(annualSection()).getByText('Liabilities')).toBeInTheDocument();
+    expect(within(annualSection()).getByText('None reported')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Liabilities' })).not.toBeInTheDocument();
   });
 });
 

@@ -302,14 +302,14 @@ left out. Verified 2026-11-16: House 171 rows for all 50 tracked House members (
 
 ## Raw tables: inside annual reports (Alembic migration `0015`, ADR 0028)
 
-Loaded by `python -m ingest.run --source senate_annual`, which after listing opens each electronic
-Senate annual, amendment, new filer or termination report it has not read (a filed eFD report is never
-edited). House reports are not opened yet.
+Loaded by `python -m ingest.run --source senate_annual` and `--source house_annual`, which after
+listing open each annual, amended, new member or termination report not read yet (a filed report never
+changes): eFD pages for the Senate (ADR 0028), Clerk PDFs for the House (ADR 0029).
 
 | Table | Key | One row per |
 |---|---|---|
 | `raw.annual_report_page` | `source`, `doc_id` | report opened; `bioguide_id`, `status` (`parsed`, `paper` (not opened), `failed`), `error`, `payload` (`title`, `filer`, `filed_at`, `covers_year`, and `parts`: per part key its `title`, `columns`, row count and, for a part without a table, the filer's `answer`), `source_url`, `fetched_at` |
-| `raw.annual_report_row` | `source`, `doc_id`, `part`, `row_index` | table row of a parsed report; `part` is the report's own number (`1` to `10`, `4a`, `4b`) or `comments`; `payload.cells` is each cell as `{text, notes}`, the notes being the blocks eFD nests in the cell (a filer's comment under an asset, a subtype under a type, a city under a creditor) |
+| `raw.annual_report_row` | `source`, `doc_id`, `part`, `row_index` | table row of a parsed report. Senate: `part` is the report's own number (`1` to `10`, `4a`, `4b`) or `comments`; `payload.cells` is each cell as `{text, notes}`, the notes being the blocks eFD nests in the cell. House: `part` is `A` (assets) or `D` (liabilities); `payload` is `page`, `cells` by column name (A: `asset`, `owner`, `value`, `income_type`, `income`, and `tx_over_1000` or, on a new member's report, `income_preceding`; D: `owner`, `creditor`, `date_incurred`, `type`, `amount`) and `detail` (`description`, `location`, `comments`) |
 
 Parts 3 (Assets: blank/#, Asset, Asset Type, Owner, Value, Income Type, Income) and 7 (Liabilities:
 blank, #, Incurred, Debtor, Type, Points, Rate (Term), Amount, Creditor, Comments) must have exactly
@@ -318,6 +318,14 @@ headings, or whose heading names someone else, is `failed` and stores no rows. V
 all 35 annual reports and amendments of the 16 tracked senators for 2024 and 2025: all parsed;
 1,661 asset lines (values: bands, 189 "None (or less than $1,001)", 127 "--" accounts, 8
 "Unascertainable"), 48 liabilities.
+
+House (ADR 0029): a PDF with no text is `paper`; one whose own state-district or filing year differs
+from the index row, or whose Schedule A or D does not read back whole (an asset without its `[XX]`
+code, a row without a value), is `failed`. The page payload holds `pages`, `text_chars`, `filer_name`,
+`state_district`, `filing_type`, `filing_year` and per schedule its row count and whether it reads
+"None disclosed.". Verified 2026-11-16 on the 111 reports of the 50 tracked House members: 101
+parsed, 10 paper, 0 failed; 3,423 asset lines and 245 liabilities; every report's asset count equals
+an independent count of its `[XX]` codes.
 
 ## Raw tables: Census boundaries and ACS (Alembic migration `0008`, ADR 0016)
 
@@ -648,12 +656,16 @@ site shows it: "Annual report for 2025", "New member report for 2024", "Amended 
 
 ### `mart.annual_report_version`, `mart.annual_asset`, `mart.annual_liability`, `mart.annual_net_worth`
 
-ADR 0028. `annual_report_version`: one row per (member, source, year) with a parsed annual report or
-amendment, the one that stands for the year (highest amendment number, then latest filed). `annual_asset`:
+ADR 0028, ADR 0029; both chambers. `annual_report_version`: one row per (member, source, year) with a
+parsed annual, new member or amended report, the one that stands for the year (highest amendment
+number, then latest filed). `annual_asset`:
 each Part 3 line of that report in order, with `row_label` ("1", "1.1"), `parent_label`, `is_account`
 (a line holding other lines; counts in no total), `asset_name`, `asset_notes`, `asset_category`,
-`asset_subtype`, `owner_code`/`owner_label`, `value_raw`, `value_kind` (`band`, `none` (0 to 1,000),
-`top_band` (no upper end), `not_valued` ("--"), `unascertainable`), `value_low`, `value_high`,
+`asset_subtype`, `asset_code` (House), `held_in` (the account or plan holding the line: the House text
+before ⇒, or the Senate parent line), `owner_code`/`owner_label`, `value_raw`, `value_kind` (`band`,
+`none` (Senate 0 to 1,000; House 0, its scale having a $1 - $1,000 band), `exact` (a figure a House
+filer entered), `top_band` (no upper end), `not_valued` ("--"), `unascertainable` (Senate
+"Unascertainable", House "Undetermined")), `value_low`, `value_high`,
 `counts_in_total`, `income_type`, `income_raw`. `annual_liability`: each Part 7 line, with `incurred`,
 `owner_code`/`owner_label`, `liability_type`, `rate`, `amount_raw`, `amount_kind`, `amount_low`,
 `amount_high`, `creditor`, `comments`. `annual_net_worth`: per report, `holdings` (valued lines,
