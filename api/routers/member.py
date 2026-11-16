@@ -207,7 +207,8 @@ STOCK_TRADES_SUMMARY_SQL = text(
 
 STOCK_TRADE_FILINGS_SQL = text(
     """
-    SELECT doc_id, year, filing_date, status, error, pages, trades, source_url
+    SELECT doc_id, year, filing_date, status, error, pages, amendment, superseded_by, trades,
+           source, source_url
     FROM mart.stock_trade_filing
     WHERE bioguide_id = :bioguide
     ORDER BY filing_date DESC, doc_id DESC

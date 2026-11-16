@@ -125,6 +125,29 @@ models:
         tests: [not_null]
       - name: transaction_type_code
         tests: [not_null]
+  - name: stg_senate_ptr_reports
+    columns:
+      - name: report_id
+        tests: [unique, not_null]
+      - name: status
+        tests:
+          - accepted_values: { arguments: { values: ["parsed", "paper", "failed"] } }
+      - name: filing_date
+        tests: [not_null]
+      - name: report_for
+        tests: [not_null]
+      - name: amendment
+        tests: [not_null]
+  - name: stg_senate_ptr_transactions
+    columns:
+      - name: trade_date
+        tests: [not_null]
+      - name: amount_low
+        tests: [not_null]
+      - name: asset_type_code
+        tests: [not_null]
+      - name: transaction_type_code
+        tests: [not_null]
   - name: stg_statements
     columns:
       - name: title

@@ -166,6 +166,20 @@ seeds:
       - name: code
         tests: [unique, not_null]
 
+  - name: efd_asset_types
+    description: >
+      Asset types as the Senate's eFD system prints them on a periodic transaction report
+      (ADR 0026), with the label the site shows. Only the values tracked senators' reports
+      have used are listed; a new one is kept, shown as printed and flagged
+      (has_unmapped_code), and the ingest log names it.
+    config:
+      column_types:
+        code: text
+        label: text
+    columns:
+      - name: code
+        tests: [unique, not_null]
+
   - name: ptr_asset_types
     description: >
       Asset-type codes the Clerk defines (https://fd.house.gov/reference/asset-type-codes.aspx,

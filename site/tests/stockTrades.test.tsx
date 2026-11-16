@@ -8,7 +8,9 @@ import {
   EXAMPLE_MANY,
   EXAMPLE_MIXED,
   EXAMPLE_TOP_BAND,
+  EXAMPLE_SENATE,
   KHANNA_ALL_SCANNED,
+  SENATE_NO_FILINGS,
   STEIL_NO_FILINGS,
 } from './fixtures';
 
@@ -34,6 +36,47 @@ describe('stock trades: a senator', () => {
     expect(screen.queryByText(/not yet published/)).not.toBeInTheDocument();
     expect(screen.queryByText('No reports on file')).not.toBeInTheDocument();
     expect(screen.queryByText('Reports filed')).not.toBeInTheDocument();
+  });
+});
+
+describe('stock trades: a senator once eFD is read', () => {
+  it('lists the trades and says they come from eFD', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example');
+    expect(trades()).toHaveLength(2);
+    expect(screen.queryByText('Not available for the Senate')).not.toBeInTheDocument();
+    expect(screen.getByText(/read from the Senate\u2019s eFD periodic transaction reports/)).toBeInTheDocument();
+    expect(screen.queryByText(/House Clerk/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Source/ })).toHaveAttribute(
+      'title',
+      'Open the Senate disclosure search',
+    );
+  });
+
+  it('keeps a replaced report listed, marks it, and does not count its trades', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example');
+    const reports = screen.getByRole('region', { name: 'All reports' });
+    const rows = within(reports).getAllByRole('listitem');
+    expect(rows).toHaveLength(3);
+    expect(within(rows[0]).getByText('Amendment 1')).toBeInTheDocument();
+    expect(within(rows[0]).getByText('1 trade')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('Replaced by amendment')).toBeInTheDocument();
+    expect(within(rows[1]).queryByText(/trade/)).not.toBeInTheDocument();
+    expect(within(reports).getByText(/only the amendment\u2019s trades are counted/)).toBeInTheDocument();
+    // eFD report ids are UUIDs: the link names the system, not the id.
+    expect(within(rows[1]).getByRole('link', { name: /Report on eFD/ })).toHaveAttribute(
+      'href',
+      'https://efdsearch.senate.gov/search/view/ptr/3a779539-8451-49d2-8419-d3eb72c7922a/',
+    );
+  });
+
+  it('states an empty Senate record as what eFD holds', () => {
+    tab(SENATE_NO_FILINGS, 'Sen. Tom Cotton');
+    expect(screen.getByText('No reports on file')).toBeInTheDocument();
+    expect(
+      screen.getByText(/disclosure search \(eFD\) lists no periodic transaction reports for Sen\. Tom Cotton/),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Search last checked Nov 16, 2026 18:10 UTC')).toBeInTheDocument();
+    expect(screen.queryByText('Not available for the Senate')).not.toBeInTheDocument();
   });
 });
 

@@ -30,6 +30,7 @@ also recorded here once made.
 - [0023. Groundwork for all 535 members: ingest the whole Congress incrementally, set limits first, stop hand-maintaining per-member data](0023-groundwork-for-all-535-members.md)
 - [0024. Elections is a set of what-if maps the owner feeds by hand](0024-elections-what-if-maps.md)
 - [0025. A browse page for every bill, filtered in the browser](0025-a-browse-page-for-every-bill.md)
+- [0026. Senate stock trades from eFD, agreeing to its terms each run](0026-senate-ptrs-from-efd.md)
 
 ## Format
 

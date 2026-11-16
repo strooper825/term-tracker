@@ -292,13 +292,15 @@ def test_stock_trades_statuses(built_mart: None, client: TestClient) -> None:
     assert steil["sources"][0]["source"] == "house_clerk_ptr"
     assert client.get(f"{JEFFRIES}/stock-trades").json()["status"] == "no_filings"
 
-    # A senator is "not available", never an empty record.
+    # eFD has been read (the fixture search lists only filers who are not tracked), so a
+    # senator is an empty record from eFD, dated by that run (ADR 0026).
     cotton = client.get(f"{COTTON}/stock-trades").json()
-    assert cotton["status"] == "senate_unavailable" and cotton["chamber"] == "senate"
+    assert cotton["status"] == "no_filings" and cotton["chamber"] == "senate"
     assert cotton["items"] == [] and cotton["filings"] == []
     assert cotton["lookup_url"] == "https://efdsearch.senate.gov/search/"
+    assert cotton["checked_at"] is not None
     assert cotton["sources"][0]["source"] == "senate_efd"
-    assert client.get(f"{SANDERS}/stock-trades").json()["status"] == "senate_unavailable"
+    assert client.get(f"{SANDERS}/stock-trades").json()["status"] == "no_filings"
 
 
 def test_committees_and_key_dates(built_mart: None, client: TestClient) -> None:

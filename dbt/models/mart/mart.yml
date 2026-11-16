@@ -131,8 +131,10 @@ models:
 
   - name: stock_trade_filing
     description: >
-      One House Periodic Transaction Report per row, for tracked House members since the tracked
-      Congress began (ADR 0018): parsed, scanned (paper, no text layer) or failed.
+      One Periodic Transaction Report per row, for tracked members since the tracked Congress
+      began: House reports from the Clerk (ADR 0018), Senate reports from eFD (ADR 0026).
+      parsed, scanned (paper) or failed; superseded_by names the Senate amendment that
+      replaced a report.
     columns:
       - name: doc_id
         tests: [unique, not_null]
@@ -143,13 +145,20 @@ models:
       - name: status
         tests:
           - accepted_values: { arguments: { values: ["parsed", "scanned", "failed"] } }
+      - name: source
+        tests:
+          - accepted_values: { arguments: { values: ["house_clerk_ptr", "senate_efd"] } }
+      - name: superseded_by
+        tests:
+          - relationships: { arguments: { to: ref('stock_trade_filing'), field: doc_id } }
       - name: source_url
         tests: [not_null]
 
   - name: stock_trade
     description: >
-      One transaction of a tracked House member's Periodic Transaction Report (ADR 0018). The
-      amount is the disclosed band, not a figure.
+      One transaction of a tracked member's Periodic Transaction Report, House (ADR 0018) or
+      Senate (ADR 0026). The amount is the disclosed band, not a figure. A Senate report an
+      amendment replaced contributes no rows.
     columns:
       - name: bioguide_id
         tests:
@@ -167,8 +176,8 @@ models:
 
   - name: member_stock_trades
     description: >
-      One row per tracked member: senate_unavailable, no_filings or filed (ADR 0018), with the
-      counts and value-band totals the Stock trades tab shows.
+      One row per tracked member: senate_unavailable (eFD never read), no_filings or filed
+      (ADR 0018, ADR 0026), with the counts and value-band totals the Stock trades tab shows.
     columns:
       - name: bioguide_id
         tests:
