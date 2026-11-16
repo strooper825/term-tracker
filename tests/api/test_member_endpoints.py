@@ -758,6 +758,8 @@ def test_annual_disclosures_list_reports_and_extensions(client: TestClient) -> N
     _use_rows(
         [_summary_row()],
         {
+            # The net-worth query also names mart.annual_disclosure: none read yet.
+            "mart.annual_net_worth": [],
             "mart.member_annual_disclosures": [_annual_summary()],
             "mart.annual_disclosure": [
                 {
@@ -794,3 +796,70 @@ def test_annual_disclosures_list_reports_and_extensions(client: TestClient) -> N
 def test_annual_disclosures_without_a_mart_row_is_404(client: TestClient) -> None:
     _use_rows([_summary_row()], {"mart.member_annual_disclosures": []})
     assert client.get("/api/v1/members/S001213/annual-disclosures").status_code == 404
+
+
+def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> None:
+    url = "https://efdsearch.senate.gov/search/view/annual/81060eb2-fc35-4a8c-857d-3220cf411b9b/"
+    worth = {
+        "bioguide_id": "S001213",
+        "covers_year": 2025,
+        "doc_id": "81060eb2-fc35-4a8c-857d-3220cf411b9b",
+        "label": "Annual report for 2025",
+        "filing_date": date(2026, 8, 13),
+        "holdings": 29,
+        "unascertainable": 1,
+        "assets_low": 662029,
+        "assets_high": 1830000,
+        "assets_high_is_open": False,
+        "liabilities": 2,
+        "liabilities_low": 200002,
+        "liabilities_high": 500000,
+        "liabilities_high_is_open": False,
+        "net_low": 162029,
+        "net_high": 1629998,
+        "source_url": url,
+    }
+    asset = {
+        "row_label": "1.1",
+        "is_account": False,
+        "asset_name": "CREF Stock Account - R1",
+        "asset_notes": None,
+        "asset_category": "Mutual Funds",
+        "asset_subtype": "Mutual Fund",
+        "owner_label": "Spouse",
+        "value_raw": "$15,001 - $50,000",
+        "value_kind": "band",
+        "value_low": 15001,
+        "value_high": 50000,
+        "income_type": "Excepted Investment Fund",
+        "income_raw": "None (or less than $201)",
+    }
+    debt = {
+        "incurred": "2013",
+        "owner_label": "Joint",
+        "liability_type": "Mortgage",
+        "rate": "8.0% (30 years)",
+        "amount_raw": "$100,001 - $250,000",
+        "amount_low": 100001,
+        "amount_high": 250000,
+        "creditor": "Quicken Loans/Rocket Mortgage",
+        "comments": None,
+    }
+    _use_rows(
+        [_summary_row()],
+        {
+            # Order matters: the net-worth query also names mart.annual_disclosure.
+            "mart.annual_net_worth": [worth],
+            "mart.annual_asset": [asset],
+            "mart.annual_liability": [debt],
+            "mart.member_annual_disclosures": [
+                _annual_summary(chamber="senate", source="senate_efd")
+            ],
+            "mart.annual_disclosure": [],
+        },
+    )
+    latest = client.get("/api/v1/members/S001213/annual-disclosures").json()["latest"]
+    assert latest["covers_year"] == 2025 and latest["net_low"] == 162029
+    assert latest["assets"][0]["asset_name"] == "CREF Stock Account - R1"
+    assert latest["liabilities_list"][0]["creditor"] == "Quicken Loans/Rocket Mortgage"
+    assert latest["source_url"] == url

@@ -43,6 +43,7 @@ import type {
   StatementsResponse,
   StockTradesResponse,
   AnnualDisclosuresResponse,
+  AnnualNetWorth,
   MemberListItem,
   RaceKey,
 } from './types';
@@ -841,6 +842,49 @@ export interface AnnualReportRow {
   linkLabel: string;
 }
 
+export interface HoldingRow {
+  key: string;
+  name: string;
+  /** "Mutual Funds · Mutual Fund" */
+  kind: string;
+  owner: string;
+  /** The account the holding sits in, when the report nests it in one. */
+  heldIn: string | null;
+  /** The band as printed, or "Not valued by the filer". */
+  value: string;
+  income: string | null;
+  notes: string | null;
+}
+
+export interface DebtRow {
+  key: string;
+  /** "Mortgage", "Other (Margin Loan)" */
+  kind: string;
+  creditor: string;
+  owner: string;
+  amount: string;
+  /** "Incurred 2013 · 8.0% (30 years)" */
+  detail: string | null;
+}
+
+export interface NetWorthModel {
+  year: number;
+  /** "Annual report for 2025" */
+  reportLabel: string;
+  /** "filed Aug 13, 2026", lower case: it sits mid-sentence. */
+  filedLabel: string;
+  url: string;
+  /** "$162,029 \u2013 $1,629,998"; "$X or more" when an asset has no upper end. */
+  net: string;
+  assets: string;
+  liabilities: string;
+  holdingsNote: string;
+  liabilitiesNote: string;
+  /** Largest first by the band's high end; accounts are not rows of their own. */
+  holdings: HoldingRow[];
+  debts: DebtRow[];
+}
+
 export interface AnnualReportsModel {
   status: 'filed' | 'no_filings' | 'unavailable';
   chamber: 'house' | 'senate';
@@ -848,6 +892,62 @@ export interface AnnualReportsModel {
   checkedAt: string | null;
   lookupUrl: string;
   rows: AnnualReportRow[];
+  /** What the newest read report adds up to; null until one is read (House reports for now). */
+  worth: NetWorthModel | null;
+}
+
+function moneyRange(low: number | null, high: number | null, lowOpen = false): string {
+  if (low === null && high === null) return 'Unknown';
+  if (high === null) return `${formatMoney(low as number)} or more`;
+  if (low === null || lowOpen) return `Up to ${formatMoney(high)}`;
+  return low === high ? formatMoney(low) : `${formatMoney(low)} \u2013 ${formatMoney(high)}`;
+}
+
+/** The net-worth figures, holdings and debts of the newest read report (ADR 0028). Every figure
+ *  is a mart column; this only orders and formats. */
+export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
+  const accounts = new Map(w.assets.filter((a) => a.is_account).map((a) => [a.row_label, a.asset_name]));
+  const holdings = w.assets
+    .filter((a) => !a.is_account)
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => (y.a.value_high ?? y.a.value_low ?? -1) - (x.a.value_high ?? x.a.value_low ?? -1) || x.i - y.i)
+    .map<HoldingRow>(({ a }) => ({
+      key: a.row_label,
+      name: a.asset_name,
+      kind: [a.asset_category, a.asset_subtype].filter(Boolean).join(' \u00b7 '),
+      owner: a.owner_label,
+      heldIn: a.row_label.includes('.') ? accounts.get(a.row_label.split('.')[0]) ?? null : null,
+      value:
+        a.value_kind === 'unascertainable'
+          ? 'Value not stated by the filer'
+          : a.value_kind === 'not_valued'
+            ? 'No value given'
+            : a.value_raw,
+      income: a.income_type && a.income_raw ? `${a.income_type}: ${a.income_raw}` : a.income_raw,
+      notes: a.asset_notes,
+    }));
+  const debts = w.liabilities_list.map<DebtRow>((d, i) => ({
+    key: String(i),
+    kind: d.liability_type,
+    creditor: d.creditor,
+    owner: d.owner_label,
+    amount: d.amount_raw,
+    detail: [d.incurred ? `Incurred ${d.incurred}` : null, d.rate].filter(Boolean).join(' \u00b7 ') || null,
+  }));
+  const unvalued = w.unascertainable ? ` \u00b7 ${w.unascertainable} not valued` : '';
+  return {
+    year: w.covers_year,
+    reportLabel: w.label,
+    filedLabel: `filed ${formatDate(w.filing_date)}`,
+    url: w.source_url,
+    net: moneyRange(w.net_low, w.net_high),
+    assets: moneyRange(w.assets_low, w.assets_high_is_open ? null : w.assets_high),
+    liabilities: w.liabilities === 0 ? 'None reported' : moneyRange(w.liabilities_low, w.liabilities_high_is_open ? null : w.liabilities_high),
+    holdingsNote: `${formatNumber(w.holdings)} holding${w.holdings === 1 ? '' : 's'}${unvalued}`,
+    liabilitiesNote: `${formatNumber(w.liabilities)} liabilit${w.liabilities === 1 ? 'y' : 'ies'}`,
+    holdings,
+    debts,
+  };
 }
 
 /** The annual-disclosure section from mart.annual_disclosure (ADR 0027): reports listed and
@@ -859,6 +959,7 @@ export function buildAnnualReports(r: AnnualDisclosuresResponse): AnnualReportsM
     coversFrom: formatDate(r.covers_from),
     checkedAt: r.checked_at ? formatTimestampUtc(r.checked_at) : null,
     lookupUrl: r.lookup_url,
+    worth: r.latest ? buildNetWorth(r.latest) : null,
     rows: r.items.map((i) => {
       const pending = i.kind === 'extension';
       return {

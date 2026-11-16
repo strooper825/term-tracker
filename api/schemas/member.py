@@ -393,6 +393,57 @@ class AnnualDisclosureItem(BaseModel):
     source_url: str = Field(description="The report (or the extension) at the source")
 
 
+class AnnualAsset(BaseModel):
+    row_label: str = Field(
+        description='The report\'s numbering: "1", or "1.1" for a holding in line 1'
+    )
+    is_account: bool = Field(description="Holds other lines, which carry the values")
+    asset_name: str
+    asset_notes: str | None = Field(description="Notes the report prints under the name")
+    asset_category: str | None
+    asset_subtype: str | None
+    owner_label: str
+    value_raw: str = Field(description="As printed, e.g. $15,001 - $50,000")
+    value_kind: Literal["band", "none", "top_band", "not_valued", "unascertainable"]
+    value_low: float | None
+    value_high: float | None
+    income_type: str | None
+    income_raw: str | None
+
+
+class AnnualLiability(BaseModel):
+    incurred: str | None
+    owner_label: str
+    liability_type: str
+    rate: str | None
+    amount_raw: str
+    amount_low: float | None
+    amount_high: float | None
+    creditor: str
+    comments: str | None
+
+
+class AnnualNetWorth(BaseModel):
+    covers_year: int
+    doc_id: str
+    label: str = Field(description='The report it comes from, e.g. "Annual report for 2025"')
+    filing_date: dt.date
+    holdings: int = Field(description="Asset lines with a value (accounts excluded)")
+    unascertainable: int = Field(description="Asset lines the filer could not value")
+    assets_low: float
+    assets_high: float
+    assets_high_is_open: bool
+    liabilities: int
+    liabilities_low: float
+    liabilities_high: float
+    liabilities_high_is_open: bool
+    net_low: float | None = Field(description="Assets low minus liabilities high")
+    net_high: float | None = Field(description="Assets high minus liabilities low")
+    source_url: str
+    assets: list[AnnualAsset] = Field(description="In the report's order")
+    liabilities_list: list[AnnualLiability] = Field(description="In the report's order")
+
+
 class AnnualDisclosuresResponse(BaseModel):
     bioguide_id: str
     chamber: Literal["house", "senate"]
@@ -404,6 +455,9 @@ class AnnualDisclosuresResponse(BaseModel):
     lookup_url: str = Field(description="The official search, for checking against the source")
     checked_at: dt.datetime | None = Field(description="Last successful read of the listing")
     items: list[AnnualDisclosureItem] = Field(description="Newest filing first")
+    latest: AnnualNetWorth | None = Field(
+        description="What the newest read report adds up to (ADR 0028); null until one is read"
+    )
     sources: list[SourceRef]
 
 

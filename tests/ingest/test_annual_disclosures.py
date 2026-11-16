@@ -18,7 +18,7 @@ from ingest.senate_efd import SourceShapeError
 from ingest.sources import house_annual, senate_annual
 from ingest.sources.house_ptr import SeatIndex, TrackedHouseMember
 from tests.fixtures.house_ptr import clerk_client, index_archive, index_row
-from tests.fixtures.senate_efd import FakeEfd, efd_client
+from tests.fixtures.senate_efd import ANNUAL_PAGES, JOHNSON_2025, FakeEfd, efd_client, read
 
 UUID = "{:08x}-0000-4000-8000-000000000000"
 
@@ -119,7 +119,12 @@ def clean(migrated_engine: Engine) -> Iterator[None]:
 
     def wipe() -> None:
         with migrated_engine.begin() as conn:
-            for table in ("annual_disclosure", "legislator"):
+            for table in (
+                "annual_report_row",
+                "annual_report_page",
+                "annual_disclosure",
+                "legislator",
+            ):
                 conn.execute(
                     text(f"DELETE FROM raw.{table} WHERE bioguide_id IN (:h, :s)"),  # noqa: S608
                     {"h": HOUSE, "s": SENATOR},
@@ -236,10 +241,18 @@ def _senate_rows() -> list[list[str]]:
 
 
 @pytest.mark.integration
+def _senate_fake(**kwargs) -> FakeEfd:
+    # The annual report is also opened (ADR 0028). The page served is another senator's, so it
+    # is stored as failed; reading is tested in test_efd_annual_report.py.
+    return FakeEfd(
+        _senate_rows(), pages={UUID.format(1): read(ANNUAL_PAGES[JOHNSON_2025])}, **kwargs
+    )
+
+
 def test_senate_reports_of_tracked_senators_are_listed_with_their_efd_page(
     migrated_engine: Engine, clean: None
 ) -> None:
-    fake = FakeEfd(_senate_rows())
+    fake = _senate_fake()
     client = efd_client(fake)
     with connect() as conn:
         rows = senate_annual.load(conn, client, [SENATOR], SINCE)
@@ -249,17 +262,17 @@ def test_senate_reports_of_tracked_senators_are_listed_with_their_efd_page(
         ("annual", 2025, "2026-07-18"),
     ]
     assert stored[1][4] == f"https://efdsearch.senate.gov/search/view/annual/{UUID.format(1)}/"
-    assert rows == 2
+    assert rows == 2 + 1  # two listed, one report page stored
     # Annual reports and extensions, by sitting senators only.
     assert fake.searches[0]["report_types"] == ["[7, 10]"]
     assert fake.searches[0]["filer_types"] == ["[1]"]
-    assert client.requests_made == 3  # agree (2) and one search page; no report page
+    assert client.requests_made == 4  # agree (2), one search page, the annual report
 
 
 @pytest.mark.integration
 def test_senate_a_refusal_keeps_what_is_held(migrated_engine: Engine, clean: None) -> None:
     with connect() as conn:
-        senate_annual.load(conn, efd_client(FakeEfd(_senate_rows())), [SENATOR], SINCE)
+        senate_annual.load(conn, efd_client(_senate_fake()), [SENATOR], SINCE)
         with pytest.raises(SourceUnavailable):
             senate_annual.load(conn, efd_client(FakeEfd([], refuse=True)), [SENATOR], SINCE)
     assert len(_stored(migrated_engine, SENATOR)) == 2

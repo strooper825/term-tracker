@@ -158,6 +158,21 @@ models:
               arguments: { values: ["annual", "amendment", "new_filer", "termination", "extension"] }
       - name: filing_date
         tests: [not_null]
+  - name: stg_annual_report_assets
+    columns:
+      - name: row_label
+        tests: [not_null]
+      - name: asset_name
+        tests: [not_null]
+      - name: value_kind
+        tests:
+          - accepted_values:
+              arguments: { values: ["band", "none", "top_band", "not_valued", "unascertainable"] }
+  - name: stg_annual_report_liabilities
+    columns:
+      - name: amount_kind
+        tests:
+          - accepted_values: { arguments: { values: ["band", "top_band"] } }
   - name: stg_statements
     columns:
       - name: title

@@ -16,8 +16,11 @@ from api.provenance import distinct_sources
 from api.routers.members import COMMITTEES_SQL, member_ids, seat_label
 from api.schemas.member import (
     ActivityCounts,
+    AnnualAsset,
     AnnualDisclosureItem,
     AnnualDisclosuresResponse,
+    AnnualLiability,
+    AnnualNetWorth,
     BillItem,
     BillsResponse,
     CommitteesResponse,
@@ -244,6 +247,37 @@ ANNUAL_DISCLOSURES_SQL = text(
     FROM mart.annual_disclosure
     WHERE bioguide_id = :bioguide
     ORDER BY filing_date DESC, doc_id DESC
+    """
+)
+
+NET_WORTH_SQL = text(
+    """
+    SELECT n.*, d.label
+    FROM mart.annual_net_worth AS n
+    JOIN mart.annual_disclosure AS d ON d.source = n.source AND d.doc_id = n.doc_id
+    WHERE n.bioguide_id = :bioguide
+    ORDER BY n.covers_year DESC
+    LIMIT 1
+    """
+)
+
+ANNUAL_ASSETS_SQL = text(
+    """
+    SELECT row_label, is_account, asset_name, asset_notes, asset_category, asset_subtype,
+           owner_label, value_raw, value_kind, value_low, value_high, income_type, income_raw
+    FROM mart.annual_asset
+    WHERE doc_id = :doc_id
+    ORDER BY row_index
+    """
+)
+
+ANNUAL_LIABILITIES_SQL = text(
+    """
+    SELECT incurred, owner_label, liability_type, rate, amount_raw, amount_low, amount_high,
+           creditor, comments
+    FROM mart.annual_liability
+    WHERE doc_id = :doc_id
+    ORDER BY row_index
     """
 )
 
@@ -698,6 +732,20 @@ def member_annual_disclosures(
             status_code=404, detail=f"No annual disclosure status for {bioguide}; rebuild the mart"
         )
     items = session.execute(ANNUAL_DISCLOSURES_SQL, {"bioguide": bioguide}).mappings().all()
+    worth = session.execute(NET_WORTH_SQL, {"bioguide": bioguide}).mappings().first()
+    latest = None
+    if worth is not None:
+        params = {"doc_id": worth["doc_id"]}
+        assets = session.execute(ANNUAL_ASSETS_SQL, params).mappings().all()
+        debts = session.execute(ANNUAL_LIABILITIES_SQL, params).mappings().all()
+        fields = set(AnnualNetWorth.model_fields) - {"assets", "liabilities_list"}
+        latest = AnnualNetWorth(
+            **{k: worth[k] for k in fields},
+            assets=[AnnualAsset(**{k: a[k] for k in AnnualAsset.model_fields}) for a in assets],
+            liabilities_list=[
+                AnnualLiability(**{k: d[k] for k in AnnualLiability.model_fields}) for d in debts
+            ],
+        )
     return AnnualDisclosuresResponse(
         bioguide_id=bioguide,
         chamber=row["chamber"],
@@ -709,6 +757,7 @@ def member_annual_disclosures(
             AnnualDisclosureItem(**{k: i[k] for k in AnnualDisclosureItem.model_fields})
             for i in items
         ],
+        latest=latest,
         sources=distinct_sources([row]),
     )
 

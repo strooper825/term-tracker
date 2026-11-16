@@ -388,6 +388,55 @@ export interface AnnualDisclosureItem {
   source_url: string;
 }
 
+export interface AnnualAsset {
+  row_label: string;
+  is_account: boolean;
+  asset_name: string;
+  asset_notes: string | null;
+  asset_category: string | null;
+  asset_subtype: string | null;
+  owner_label: string;
+  value_raw: string;
+  value_kind: 'band' | 'none' | 'top_band' | 'not_valued' | 'unascertainable';
+  value_low: number | null;
+  value_high: number | null;
+  income_type: string | null;
+  income_raw: string | null;
+}
+
+export interface AnnualLiability {
+  incurred: string | null;
+  owner_label: string;
+  liability_type: string;
+  rate: string | null;
+  amount_raw: string;
+  amount_low: number | null;
+  amount_high: number | null;
+  creditor: string;
+  comments: string | null;
+}
+
+export interface AnnualNetWorth {
+  covers_year: number;
+  doc_id: string;
+  label: string;
+  filing_date: string;
+  holdings: number;
+  unascertainable: number;
+  assets_low: number;
+  assets_high: number;
+  assets_high_is_open: boolean;
+  liabilities: number;
+  liabilities_low: number;
+  liabilities_high: number;
+  liabilities_high_is_open: boolean;
+  net_low: number | null;
+  net_high: number | null;
+  source_url: string;
+  assets: AnnualAsset[];
+  liabilities_list: AnnualLiability[];
+}
+
 export interface AnnualDisclosuresResponse {
   bioguide_id: string;
   chamber: 'house' | 'senate';
@@ -396,6 +445,8 @@ export interface AnnualDisclosuresResponse {
   lookup_url: string;
   checked_at: string | null;
   items: AnnualDisclosureItem[];
+  /** What the newest read report adds up to (ADR 0028); null until one is read. */
+  latest?: AnnualNetWorth | null;
   sources: SourceRef[];
 }
 

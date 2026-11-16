@@ -131,7 +131,8 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
         },
     {
       id: 'stock-trades',
-      label: 'Stock trades',
+      // Renamed when the annual reports' contents arrived (ADR 0028); the id keeps old links working.
+      label: 'Financial disclosures',
       content: (
         <StockTradesTab model={props.stockTrades} annual={props.annualReports} name={props.member.name} />
       ),

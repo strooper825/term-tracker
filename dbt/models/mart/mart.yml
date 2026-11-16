@@ -234,6 +234,39 @@ models:
       - name: lookup_url
         tests: [not_null]
 
+  - name: annual_report_version
+    description: >
+      The read report that stands for each member's year: the highest amendment, then the latest
+      filed (ADR 0028).
+    columns:
+      - name: doc_id
+        tests: [unique, not_null]
+
+  - name: annual_asset
+    description: >
+      Asset lines of the report that stands for each member's year (ADR 0028). Values are bands.
+    columns:
+      - name: bioguide_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('member'), field: bioguide_id } }
+      - name: asset_name
+        tests: [not_null]
+
+  - name: annual_liability
+    description: Liabilities of the report that stands for each member's year (ADR 0028).
+    columns:
+      - name: bioguide_id
+        tests: [not_null]
+
+  - name: annual_net_worth
+    description: >
+      Per member and year with a read report: summed asset and liability bands and the reported
+      net-worth range (ADR 0028).
+    columns:
+      - name: doc_id
+        tests: [unique, not_null]
+
   - name: term_history
     description: Every term a tracked member has served, in source order.
     columns:

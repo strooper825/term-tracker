@@ -332,7 +332,7 @@ describe('member tabs', () => {
       'Congress activity',
       'Election',
       'Contact',
-      'Stock trades',
+      'Financial disclosures',
       'Public statements' + 'Soon',
       'Constituency',
     ]);
@@ -661,7 +661,7 @@ describe('fundraising card: given a mart.member_fundraising row, this text rende
 describe('member dashboard: stock trades tab', () => {
   it('is a live tab, not a locked placeholder', () => {
     render(dashboard());
-    const tab = screen.getByRole('tab', { name: /Stock trades/ });
+    const tab = screen.getByRole('tab', { name: /Financial disclosures/ });
     expect(tab).not.toHaveTextContent('Soon');
     fireEvent.click(tab);
     const panel = screen.getByRole('tabpanel');
@@ -671,7 +671,7 @@ describe('member dashboard: stock trades tab', () => {
 
   it('a House member with no reports on file gets the empty-record message', () => {
     render(dashboard());
-    fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Financial disclosures/ }));
     const panel = screen.getByRole('tabpanel');
     expect(panel).toHaveTextContent('No reports on file');
     expect(panel).toHaveTextContent('since Jan 3, 2025');
@@ -679,7 +679,7 @@ describe('member dashboard: stock trades tab', () => {
 
   it('a senator gets the not-available-for-the-Senate message, not the same empty record', () => {
     render(dashboard(COTTON));
-    fireEvent.click(screen.getByRole('tab', { name: /Stock trades/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Financial disclosures/ }));
     const panel = screen.getByRole('tabpanel');
     expect(panel).toHaveTextContent('Not available for the Senate');
     expect(panel).not.toHaveTextContent('No reports on file');
