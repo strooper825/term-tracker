@@ -1,0 +1,51 @@
+committee_thomas_id,sic_from,sic_to,industry,basis
+HSAG,0100,0999,"Farming, livestock and forestry","Agriculture generally; forestry"
+HSAG,2011,2015,"Meat packing, prepared meats and poultry","Inspection of livestock, poultry and meat products"
+HSAG,2870,2879,Agricultural chemicals,"Agriculture generally"
+SSAF,0100,0999,"Farming, livestock and forestry","Agriculture, food, and nutrition"
+SSAF,2011,2015,"Meat packing, prepared meats and poultry","Agriculture, food, and nutrition; meat and poultry inspection"
+SSAF,2870,2879,Agricultural chemicals,"Agriculture, food, and nutrition"
+HSAS,3480,3489,Ordnance and ammunition,Military and defense
+HSAS,3730,3732,Ship building,Military and defense
+HSAS,3760,3769,Guided missiles and space vehicles,Military and defense
+HSAS,3795,3795,Tanks and tank components,Military and defense
+HSAS,3812,3812,"Defense electronics (search, detection, navigation, guidance)",Military and defense
+SSAS,3480,3489,Ordnance and ammunition,Military and defense
+SSAS,3730,3732,Ship building,Military and defense
+SSAS,3760,3769,Guided missiles and space vehicles,Military and defense
+SSAS,3795,3795,Tanks and tank components,Military and defense
+SSAS,3812,3812,"Defense electronics (search, detection, navigation, guidance)",Military and defense
+HSBA,6000,6299,"Banks, lenders and securities firms","The banking system; securities and exchanges"
+HSBA,6300,6411,Insurance,Insurance
+SSBK,6000,6299,"Banks, lenders and securities firms","Banks, banking, and financial institutions"
+HSIF,2833,2836,Pharmaceuticals and biologics,Food and drug safety
+HSIF,3841,3845,Medical devices,Food and drug safety
+HSIF,4812,4899,Telecommunications and broadcasting,Telecommunications
+HSIF,4911,4939,Electric and gas utilities,Energy policy
+SSHR,2833,2836,Pharmaceuticals and biologics,Food and Drug Administration
+SSHR,3841,3845,Medical devices,Food and Drug Administration
+SSHR,8000,8099,Health services,"Agencies and programs of the Department of Health and Human Services"
+SSHR,8200,8299,Educational services,Education
+HSED,8200,8299,Educational services,Education
+HSPW,1600,1629,Heavy and highway construction,Infrastructure
+HSPW,4011,4013,Railroads,Transportation
+HSPW,4210,4231,Trucking,Transportation
+HSPW,4400,4499,Water transportation,Transportation
+HSPW,4512,4581,Air transportation and airports,Transportation
+SSCM,4011,4013,Railroads,Transportation
+SSCM,4210,4231,Trucking,Transportation
+SSCM,4400,4499,Water transportation,Transportation
+SSCM,4512,4581,Air transportation and airports,Transportation
+SSCM,4812,4899,Telecommunications and broadcasting,Communications
+HSII,1000,1099,Metal mining,Mining and mineral resources on public lands
+HSII,1200,1299,Coal mining,Mining and mineral resources on public lands
+HSII,1311,1389,Oil and gas extraction,Energy and mineral resources on public lands
+HSII,1400,1499,Nonmetallic mineral mining,Mining and mineral resources on public lands
+SSEG,1000,1099,Metal mining,Energy and natural resources
+SSEG,1200,1299,Coal mining,Energy and natural resources
+SSEG,1311,1389,Oil and gas extraction,Energy and natural resources
+SSEG,2911,2911,Petroleum refining,Energy and natural resources
+SSEG,4911,4939,Electric and gas utilities,Energy and natural resources
+SSEV,1600,1629,Heavy and highway construction,Public works
+SSEV,4950,4959,Waste management,Environment
+HSSY,3760,3769,Guided missiles and space vehicles,"Space (NASA)"

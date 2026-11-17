@@ -34,6 +34,7 @@ from ingest.sources import (
     house_votes,
     legislators,
     press_pages,
+    sec_industry,
     senate_annual,
     senate_ptr,
     senate_votes,
@@ -49,7 +50,7 @@ log = logging.getLogger("ingest")
 # Statements and the press-page probe read third-party office sites, so they run last
 # (ADR 0015). House PTRs read the Clerk's public files and come just before them (ADR 0018),
 # then Senate PTRs from eFD (ADR 0026), then both chambers' annual-disclosure listings
-# (ADR 0027).
+# (ADR 0027). The SEC industry lookup follows the PTR sources, whose tickers it reads (ADR 0032).
 # A failing source no longer stops the ones after it, but the order still decides
 # what a later source can read.
 SOURCES: dict[str, Callable[..., int]] = {
@@ -62,6 +63,7 @@ SOURCES: dict[str, Callable[..., int]] = {
     census_acs.SOURCE: census_acs.run,
     house_ptr.SOURCE: house_ptr.run,
     senate_ptr.SOURCE: senate_ptr.run,
+    sec_industry.SOURCE: sec_industry.run,
     house_annual.SOURCE: house_annual.run,
     senate_annual.SOURCE: senate_annual.run,
     statements.SOURCE: statements.run,

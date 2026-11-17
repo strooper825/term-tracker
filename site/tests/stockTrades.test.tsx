@@ -575,3 +575,57 @@ it('shows a holding’s notes, which tell same-named holdings apart', () => {
   const list = screen.getByRole('region', { name: 'Holdings' });
   expect(within(list).getByText(/Filer comment: Account #1 \(of 3\)/)).toBeInTheDocument();
 });
+
+describe('stock trades: industry and committee overlap (ADR 0032)', () => {
+  function withIndustries(): StockTradesResponse {
+    const r = structuredClone(EXAMPLE_MIXED);
+    r.items = r.items.map((t, n) =>
+      n === 0
+        ? {
+            ...t,
+            company: 'EXAMPLE MISSILES CORP',
+            sic: 3760,
+            industry: 'Guided Missiles & Space Vehicles & Parts',
+            overlaps: [
+              {
+                committee_thomas_id: 'HSAS',
+                committee_name: 'House Committee on Armed Services',
+                industry: 'Guided missiles and space vehicles',
+              },
+            ],
+          }
+        : n === 1
+          ? { ...t, company: 'EXAMPLE COMPUTERS INC', sic: 3571, industry: 'Electronic Computers', overlaps: [] }
+          : { ...t, company: null, sic: null, industry: null, overlaps: [] },
+    );
+    return r;
+  }
+
+  it('shows a trade’s industry and its overlap note, linked to how it is decided', () => {
+    tab(withIndustries(), 'Rep. Example');
+    const [first, second] = trades();
+    expect(within(first).getByText('Industry: Guided Missiles & Space Vehicles & Parts')).toBeInTheDocument();
+    expect(within(first).getByText(/In an industry the House Committee on Armed Services oversees/)).toBeInTheDocument();
+    expect(within(first).getByRole('link', { name: 'how this is decided' })).toHaveAttribute(
+      'href',
+      '/methodology/committee-industries',
+    );
+    expect(within(second).getByText('Industry: Electronic Computers')).toBeInTheDocument();
+    expect(within(second).queryByText(/oversees/)).not.toBeInTheDocument();
+  });
+
+  it('counts overlaps over trades with a known industry only, and calls it no finding', () => {
+    tab(withIndustries(), 'Rep. Example');
+    const list = screen.getByRole('region', { name: 'Trades' });
+    expect(
+      within(list).getByText(/1 of 2 trades with a known industry are in an industry one of this member’s committees oversees/),
+    ).toBeInTheDocument();
+    expect(within(list).getByText(/not a finding of wrongdoing/)).toBeInTheDocument();
+  });
+
+  it('says nothing about overlap when no trade has an industry', () => {
+    tab(EXAMPLE_MIXED, 'Rep. Example');
+    expect(screen.queryByText(/known industry/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Industry:/)).not.toBeInTheDocument();
+  });
+});

@@ -13,6 +13,7 @@ Every number on Term is read from a public record and links back to it. The site
 - **The unitedstates/congress-legislators project**: who holds each seat, party, terms, committee assignments and office contact details.
 - **The Census Bureau**: state and district boundaries for the maps, and district demographics from the American Community Survey.
 - **Members' own press offices**: public statements, from each office's published feed where it has one.
+- **The Securities and Exchange Commission**: the industry of each company a member trades. A trade in an industry one of the member's committees oversees is noted; [how that is decided](/methodology/committee-industries).
 
 ## Refreshed nightly
 

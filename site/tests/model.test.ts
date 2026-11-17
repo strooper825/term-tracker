@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCommitteeIndustries,
   buildCommitteeRows,
   buildElection,
   buildFundraising,
@@ -404,5 +405,37 @@ describe('a source that is refusing the nightly reader (ADR 0020)', () => {
 
   it('has no stamp at all on a database with no recorded run', () => {
     expect(lastUpdated({ generated_at, sources: [] })).toBeNull();
+  });
+});
+
+describe('buildCommitteeIndustries (ADR 0032)', () => {
+  it('writes SIC codes as four digits and lists mapped committees apart from the rest', () => {
+    const model = buildCommitteeIndustries({
+      committees: [
+        {
+          thomas_id: 'HSAG',
+          name: 'House Committee on Agriculture',
+          chamber: 'house',
+          mapped: true,
+          reason: null,
+          industries: [
+            { sic_from: 100, sic_to: 999, industry: 'Farming', basis: 'Agriculture generally' },
+            { sic_from: 3795, sic_to: 3795, industry: 'Tanks', basis: 'Defense' },
+          ],
+        },
+        {
+          thomas_id: 'HSWM',
+          name: 'House Committee on Ways and Means',
+          chamber: 'house',
+          mapped: false,
+          reason: 'Writes tax law for every industry',
+          industries: [],
+        },
+      ],
+    });
+    expect(model.mapped[0].industries.map((i) => i.codes)).toEqual(['0100–0999', '3795']);
+    expect(model.unmapped).toEqual([
+      { key: 'HSWM', name: 'House Committee on Ways and Means', reason: 'Writes tax law for every industry' },
+    ]);
   });
 });

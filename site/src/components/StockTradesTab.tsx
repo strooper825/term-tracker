@@ -22,6 +22,8 @@ import type {
 import { SourceLink } from './SiteChrome';
 
 const PAGE = 25;
+/* ADR 0032: what the overlap notes rest on, published whole. */
+const OVERLAP_METHODS = '/methodology/committee-industries';
 
 /* Who holds the record, in the words each state uses. */
 const OFFICE = {
@@ -287,6 +289,15 @@ function TradeCard({ t }: { t: StockTradeRow }) {
           {t.assetType} · {t.owner}
           {t.heldIn ? ` · held in ${t.heldIn}` : ''}
         </p>
+        {t.industry && <p className="text-meta text-ink3 m-0 break-words">Industry: {t.industry}</p>}
+        {t.overlaps.map((note) => (
+          <p key={note} className="text-meta text-ink2 m-0 break-words">
+            {note} ·{' '}
+            <a href={OVERLAP_METHODS} className="underline decoration-[#7F92C4] underline-offset-4">
+              how this is decided
+            </a>
+          </p>
+        ))}
         {t.description && (
           <details className="text-meta text-ink2">
             <summary className="cursor-pointer text-ink3">Filer&rsquo;s description</summary>
@@ -326,6 +337,15 @@ function TradeList({ model }: { model: StockTradesModel }) {
           {model.tradeRows.length.toLocaleString('en-US')} · newest first
         </span>
       </div>
+      {model.overlapSummary && (
+        <p className="px-[18px] pb-3 text-meta text-ink3 m-0 max-w-[68ch]">
+          {model.overlapSummary}. A note of overlap, not a finding of wrongdoing:{' '}
+          <a href={OVERLAP_METHODS} className="underline decoration-[#7F92C4] underline-offset-4">
+            how this is decided
+          </a>
+          .
+        </p>
+      )}
       {visible.map((t) => (
         <TradeCard key={t.key} t={t} />
       ))}

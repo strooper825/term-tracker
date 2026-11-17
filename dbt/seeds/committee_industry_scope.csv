@@ -1,0 +1,50 @@
+committee_thomas_id,mapped,reason
+HSAG,true,
+SSAF,true,
+HSAS,true,
+SSAS,true,
+HSBA,true,
+SSBK,true,
+HSIF,true,"Core industries only; its consumer protection and interstate commerce reach most of the economy and are not mapped"
+SSHR,true,
+HSED,true,
+HSPW,true,
+SSCM,true,"Core industries only; its consumer affairs and science reach are not mapped"
+HSII,true,
+SSEG,true,
+SSEV,true,
+HSSY,true,"Space only; research in general has no industry of its own"
+HSHM,false,"Homeland security agencies; no industry of its own"
+HSAP,false,Funds every part of the government; no industry of its own
+SSAP,false,Funds every part of the government; no industry of its own
+HSBU,false,Sets overall spending and revenue; no industry of its own
+SSBU,false,Sets overall spending and revenue; no industry of its own
+HSWM,false,Writes tax law for every industry; mapping it would flag nearly every trade
+SSFI,false,Writes tax law for every industry; mapping it would flag nearly every trade
+JSTX,false,Tax law for every industry
+JSEC,false,Studies the economy as a whole
+HSRU,false,Sets the House's procedures
+SSRA,false,Sets the Senate's procedures and runs its administration
+HSHA,false,Runs the House's administration
+HSSO,false,Member conduct
+SLET,false,Member conduct
+HSGO,false,Oversees the whole government; no industry of its own
+SSGA,false,Oversees the whole government; no industry of its own
+HSJU,false,"Courts, law and antitrust across every industry"
+SSJU,false,"Courts, law and antitrust across every industry"
+HSFA,false,Foreign policy; no industry of its own
+SSFR,false,Foreign policy; no industry of its own
+HLIG,false,Intelligence agencies; no industry of its own
+SLIN,false,Intelligence agencies; no industry of its own
+HSZS,false,Investigates; no legislative jurisdiction
+HSQJ,false,Investigates; no legislative jurisdiction
+HSVR,false,Veterans' benefits and care; no industry of its own
+SSVA,false,Veterans' benefits and care; no industry of its own
+HSSM,false,Small businesses in every industry
+SSSB,false,Small businesses in every industry
+SPAG,false,Studies; no legislative jurisdiction
+SLIA,false,Indian affairs; no industry of its own
+SCNC,false,Caucus; no legislative jurisdiction
+JCSE,false,Commission; no legislative jurisdiction
+JSLC,false,Library of Congress administration
+JSPR,false,Government printing administration

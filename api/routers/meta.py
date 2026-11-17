@@ -12,6 +12,9 @@ from sqlalchemy.orm import Session
 from api.db import get_session
 from api.schemas.members import SourceRef
 from api.schemas.meta import (
+    CommitteeIndustriesResponse,
+    CommitteeIndustry,
+    CommitteeIndustryScope,
     CongressSession,
     FreshnessResponse,
     SessionsResponse,
@@ -104,4 +107,52 @@ def sessions(session: Annotated[Session, Depends(get_session)]) -> SessionsRespo
             )
             for row in rows[:1]
         ],
+    )
+
+
+# ADR 0032: the mapping is published whole, mapped committees and unmapped ones alike, so a
+# reader can see exactly what the overlap notes rest on. Only committees in the tracked Congress
+# (mart.committee) are listed.
+COMMITTEE_SCOPE_SQL = text(
+    """
+    SELECT c.thomas_id, c.name, c.chamber, s.mapped, s.reason
+    FROM seed.committee_industry_scope AS s
+    JOIN mart.committee AS c ON c.thomas_id = s.committee_thomas_id
+    ORDER BY s.mapped DESC, c.name
+    """
+)
+COMMITTEE_INDUSTRIES_SQL = text(
+    """
+    SELECT committee_thomas_id, sic_from, sic_to, industry, basis
+    FROM seed.committee_industries
+    ORDER BY committee_thomas_id, sic_from
+    """
+)
+
+
+@router.get(
+    "/committee-industries",
+    response_model=CommitteeIndustriesResponse,
+    summary="Which industries each committee is taken to oversee, for the trade overlap notes",
+)
+def committee_industries(
+    session: Annotated[Session, Depends(get_session)],
+) -> CommitteeIndustriesResponse:
+    industries: dict[str, list[CommitteeIndustry]] = {}
+    for row in session.execute(COMMITTEE_INDUSTRIES_SQL).mappings().all():
+        industries.setdefault(row["committee_thomas_id"], []).append(
+            CommitteeIndustry(**{k: row[k] for k in CommitteeIndustry.model_fields})
+        )
+    return CommitteeIndustriesResponse(
+        committees=[
+            CommitteeIndustryScope(
+                thomas_id=row["thomas_id"],
+                name=row["name"],
+                chamber=row["chamber"],
+                mapped=row["mapped"],
+                reason=row["reason"],
+                industries=industries.get(row["thomas_id"], []),
+            )
+            for row in session.execute(COMMITTEE_SCOPE_SQL).mappings().all()
+        ]
     )

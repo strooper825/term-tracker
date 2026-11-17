@@ -10,6 +10,8 @@
 -- minus the trade date. `doc_id` is the Clerk's DocID or eFD's report UUID. A Senate report that
 -- an amendment replaced keeps its place in mart.stock_trade_filing, but its trades are not here:
 -- the amendment's are. `source_url` is the House PDF with #page=N, or the eFD report page.
+-- `company`, `sic` and `industry` are the SEC's for the ticker (ADR 0032); null for a trade with no
+-- ticker (a bond, a fund) or a ticker the SEC does not list.
 with house as (
     select
         t.bioguide_id,
@@ -113,6 +115,9 @@ select
     t.description,
     t.location,
     t.comments,
+    sec.company,
+    sec.sic,
+    sec.sic_description as industry,
     (o.code is null or not t.asset_type_mapped or tt.code is null) as has_unmapped_code,
     t.source,
     t.source_url,
@@ -121,3 +126,5 @@ from both_chambers as t
 inner join {{ ref('member') }} as m on m.bioguide_id = t.bioguide_id
 left join {{ ref('ptr_owner_codes') }} as o on o.code = t.owner_code
 left join {{ ref('ptr_transaction_types') }} as tt on tt.code = t.transaction_type_code
+left join {{ ref('stg_sec_companies') }} as sec
+    on sec.ticker = upper(regexp_replace(t.ticker, '[./]', '-', 'g'))

@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     census_geography_year: int = 2025  # vintage of the cartographic boundary files
     census_acs_year: int = 2024  # last year of the ACS 5-year estimates (2020-2024)
 
+    # Ingestion (SEC, ADR 0032). The SEC asks automated clients to name a contact address in the
+    # User-Agent; this is the project's, chosen by the owner, never a personal one.
+    sec_contact_email: str | None = None
+
     @property
     def fec_cycle(self) -> int:
         """The two-year election cycle that ends with the current Congress (119 -> 2026)."""

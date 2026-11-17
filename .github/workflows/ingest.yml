@@ -74,6 +74,8 @@ jobs:
       CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
       FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
       CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+      # The project's contact address for SEC requests (ADR 0032); a repository secret.
+      SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
       # How the bills source reads Congress.gov (ADR 0023). The repository variable
       # BILL_INGEST_MODE decides for the schedule, so moving to "incremental" (the whole
       # Congress, only what changed) and back to "full" is a settings change, not a commit.
