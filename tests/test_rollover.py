@@ -82,7 +82,7 @@ def test_an_archive_build_cannot_land_on_the_live_site() -> None:
 
     names = [step.get("name", "") for step in job["steps"]]
     check = names.index("Archive: check the mart is still this Congress")
-    assert names.index("Start the API against the managed database") < check
+    assert names.index("Start the API against the runner's Postgres") < check
     assert check < names.index("Build the site (Vercel prebuilt output)")
     step = job["steps"][check]
     assert step["if"] == "inputs.archive_congress"

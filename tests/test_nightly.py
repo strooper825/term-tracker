@@ -110,7 +110,8 @@ def test_old_single_job_workflow_is_gone() -> None:
 
 def test_ingest_workflow_shape() -> None:
     workflow, triggers, raw = _workflow("ingest.yml")
-    assert triggers["schedule"] == [{"cron": "0 6 * * *"}, {"cron": "0 18 * * *"}]
+    # One scheduled run a day: the 18:00 run doubled the reads from Neon (ADR 0034).
+    assert triggers["schedule"] == [{"cron": "0 6 * * *"}]
     inputs = triggers["workflow_dispatch"]["inputs"]
     assert inputs["full_refresh"]["type"] == "boolean"
     assert inputs["max_age_hours"]["default"] == 26
@@ -131,6 +132,14 @@ def test_ingest_workflow_shape() -> None:
         ingest["steps"], ("Migrate", "dbt seed", "Ingest", "dbt build", "Freshness check")
     )
     assert order == sorted(order), "migrate -> seed -> ingest -> dbt build -> freshness"
+    # The run reads the mart out of Neon once, after the build, for every deploy to use.
+    snapshot = next(s for s in ingest["steps"] if s.get("name", "").startswith("Snapshot the mart"))
+    assert "scripts/mart-snapshot.sh dump" in snapshot["run"]
+    assert ingest["steps"].index(snapshot) > order[-1]
+    upload = ingest["steps"][ingest["steps"].index(snapshot) + 1]
+    assert upload["uses"].startswith("actions/upload-artifact@")
+    assert upload["with"]["name"] == "mart-snapshot"
+    assert workflow["permissions"]["actions"] == "read"  # deploy.yml downloads it
     names = " ".join(step.get("name", "") for step in ingest["steps"])
     assert "Deploy" not in names and "Build the site" not in names  # deploy lives in deploy.yml
 
@@ -252,7 +261,33 @@ def test_deploy_workflow_shape() -> None:
     assert workflow["name"] == "Deploy site"
     # This job re-derives the mart but never fetches: no source is ingested here.
     assert "ingest.run" not in raw and "CONGRESS_GOV_API_KEY" not in raw
-    assert workflow["permissions"] == {"contents": "read"}
+    assert workflow["permissions"] == {"contents": "read", "actions": "read"}
+
+    # ADR 0034: the pages are rendered from a Postgres in the runner, never from Neon. The
+    # API gets the local URL; Neon is touched only to rebuild and dump the mart when the
+    # snapshot does not match this commit's models.
+    assert job["services"]["postgres"]["image"] == "postgres:17"
+    api = steps[order[3]]
+    assert api["env"]["DATABASE_URL"].endswith("@127.0.0.1:5432/term_tracker")
+    snap = next(s for s in steps if s.get("id") == "snap")
+    assert "dbt migrations" in snap["run"]  # what invalidates a snapshot
+    assert '"$GITHUB_WORKFLOW" = "Nightly ingest"' in snap["run"]  # same run's snapshot
+    neon_steps = [
+        s
+        for s in steps
+        if s.get("name", "")
+        in (
+            "Export dbt connection settings from DATABASE_URL",
+            "Migrate",
+            "Dump the mart from Neon",
+        )
+        or s.get("name", "").startswith("dbt build")
+    ]
+    assert len(neon_steps) == 4
+    assert all(s["if"] == "steps.snap.outputs.mode == 'refresh'" for s in neon_steps)
+    load = next(s for s in steps if s.get("name", "").startswith("Load the mart"))
+    assert steps.index(load) < order[3] and "mart-snapshot.sh restore" in load["run"]
+    assert "steps.snap.outputs.mode == 'refresh'" in restore["if"]  # only refresh migrates
 
 
 @pytest.mark.integration
