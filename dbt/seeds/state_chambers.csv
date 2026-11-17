@@ -1,0 +1,103 @@
+state,chamber,chamber_name,legislature_name,title,seats
+AK,upper,Senate,Alaska State Legislature,Senator,20
+AK,lower,House,Alaska State Legislature,Representative,40
+AL,upper,Senate,Alabama Legislature,Senator,35
+AL,lower,House,Alabama Legislature,Representative,105
+AR,upper,Senate,Arkansas General Assembly,Senator,35
+AR,lower,House,Arkansas General Assembly,Representative,100
+AZ,upper,Senate,Arizona State Legislature,Senator,30
+AZ,lower,House,Arizona State Legislature,Representative,60
+CA,upper,Senate,California State Legislature,Senator,40
+CA,lower,Assembly,California State Legislature,Assemblymember,80
+CO,upper,Senate,Colorado General Assembly,Senator,35
+CO,lower,House,Colorado General Assembly,Representative,65
+CT,upper,Senate,Connecticut General Assembly,Senator,36
+CT,lower,House,Connecticut General Assembly,Representative,151
+DC,legislature,Council of the District of Columbia,Council of the District of Columbia,Councilmember,13
+DE,upper,Senate,Delaware General Assembly,Senator,21
+DE,lower,House,Delaware General Assembly,Representative,41
+FL,upper,Senate,Florida Legislature,Senator,40
+FL,lower,House,Florida Legislature,Representative,120
+GA,upper,Senate,Georgia General Assembly,Senator,56
+GA,lower,House,Georgia General Assembly,Representative,180
+HI,upper,Senate,Hawaii State Legislature,Senator,25
+HI,lower,House,Hawaii State Legislature,Representative,51
+IA,upper,Senate,Iowa General Assembly,Senator,50
+IA,lower,House,Iowa General Assembly,Representative,100
+ID,upper,Senate,Idaho State Legislature,Senator,35
+ID,lower,House,Idaho State Legislature,Representative,70
+IL,upper,Senate,Illinois General Assembly,Senator,59
+IL,lower,House,Illinois General Assembly,Representative,118
+IN,upper,Senate,Indiana General Assembly,Senator,50
+IN,lower,House,Indiana General Assembly,Representative,100
+KS,upper,Senate,Kansas State Legislature,Senator,40
+KS,lower,House,Kansas State Legislature,Representative,125
+KY,upper,Senate,Kentucky General Assembly,Senator,38
+KY,lower,House,Kentucky General Assembly,Representative,100
+LA,upper,Senate,Louisiana Legislature,Senator,39
+LA,lower,House,Louisiana Legislature,Representative,105
+MA,upper,Senate,Massachusetts General Court,Senator,40
+MA,lower,House,Massachusetts General Court,Representative,160
+MD,upper,Senate,Maryland General Assembly,Senator,47
+MD,lower,House,Maryland General Assembly,Delegate,141
+ME,upper,Senate,Maine Legislature,Senator,35
+ME,lower,House,Maine Legislature,Representative,151
+MI,upper,Senate,Michigan Legislature,Senator,38
+MI,lower,House,Michigan Legislature,Representative,110
+MN,upper,Senate,Minnesota State Legislature,Senator,67
+MN,lower,House,Minnesota State Legislature,Representative,134
+MO,upper,Senate,Missouri General Assembly,Senator,34
+MO,lower,House,Missouri General Assembly,Representative,163
+MS,upper,Senate,Mississippi Legislature,Senator,52
+MS,lower,House,Mississippi Legislature,Representative,122
+MT,upper,Senate,Montana Legislature,Senator,50
+MT,lower,House,Montana Legislature,Representative,100
+NC,upper,Senate,North Carolina General Assembly,Senator,50
+NC,lower,House,North Carolina General Assembly,Representative,120
+ND,upper,Senate,North Dakota Legislative Assembly,Senator,47
+ND,lower,House,North Dakota Legislative Assembly,Representative,94
+NE,legislature,Nebraska Legislature,Nebraska Legislature,Senator,49
+NH,upper,Senate,New Hampshire General Court,Senator,24
+NH,lower,House,New Hampshire General Court,Representative,400
+NJ,upper,Senate,New jersey Legislature,Senator,40
+NJ,lower,Assembly,New jersey Legislature,Assembly Member,80
+NM,upper,Senate,New Mexico Legislature,Senator,42
+NM,lower,House,New Mexico Legislature,Representative,70
+NV,upper,Senate,Nevada Legislature,Senator,21
+NV,lower,Assembly,Nevada Legislature,Assembly Member,42
+NY,upper,Senate,New York Legislature,Senator,63
+NY,lower,Assembly,New York Legislature,Assembly Member,150
+OH,upper,Senate,Ohio General Assembly,Senator,33
+OH,lower,House,Ohio General Assembly,Representative,99
+OK,upper,Senate,Oklahoma Legislature,Senator,48
+OK,lower,House,Oklahoma Legislature,Representative,101
+OR,upper,Senate,Oregon Legislative Assembly,Senator,30
+OR,lower,House,Oregon Legislative Assembly,Representative,60
+PA,upper,Senate,Pennsylvania General Assembly,Senator,50
+PA,lower,House,Pennsylvania General Assembly,Representative,203
+PR,upper,Senate,Legislative Assembly of Puerto Rico,Senator,28
+PR,lower,House,Legislative Assembly of Puerto Rico,Representative,53
+RI,upper,Senate,Rhode Island General Assembly,Senator,38
+RI,lower,House,Rhode Island General Assembly,Representative,75
+SC,upper,Senate,South Carolina Legislature,Senator,46
+SC,lower,House,South Carolina Legislature,Representative,124
+SD,upper,Senate,South Dakota State Legislature,Senator,35
+SD,lower,House,South Dakota State Legislature,Representative,70
+TN,upper,Senate,Tennessee General Assembly,Senator,33
+TN,lower,House,Tennessee General Assembly,Representative,99
+TX,upper,Senate,Texas Legislature,Senator,31
+TX,lower,House,Texas Legislature,Representative,150
+UT,upper,Senate,Utah State Legislature,Senator,29
+UT,lower,House,Utah State Legislature,Representative,75
+VA,upper,Senate,Virginia General Assembly,Senator,40
+VA,lower,House,Virginia General Assembly,Delegate,100
+VT,upper,Senate,Vermont General Assembly,Senator,30
+VT,lower,House,Vermont General Assembly,Representative,150
+WA,upper,Senate,Washington State Legislature,Senator,49
+WA,lower,House,Washington State Legislature,Representative,98
+WI,upper,Senate,Wisconsin State Legislature,Senator,33
+WI,lower,Assembly,Wisconsin State Legislature,Representative,99
+WV,upper,Senate,West Virginia Legislature,Senator,34
+WV,lower,House,West Virginia Legislature,Delegate,100
+WY,upper,Senate,Wyoming State Legislature,Senator,31
+WY,lower,House,Wyoming State Legislature,Representative,62

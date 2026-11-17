@@ -49,5 +49,10 @@ vars:
   composition_as_of: "2026-09-19"
   composition_house_source_url: "https://clerk.house.gov/Members"
   composition_senate_source_url: "https://www.senate.gov/senators/"
+  # The day the States section describes (ADR 0035, macro states_as_of): empty for today. The
+  # January archive sets it to 2026-11-02, the day before the 2026 elections, so the archived
+  # site shows the legislatures that served alongside the 119th Congress
+  # (docs/rollover-runbook.md).
+  states_as_of: null
   # Party of the sitting Vice President, who breaks Senate ties (ADR 0014): republican or democratic.
   senate_vp_party: "republican"

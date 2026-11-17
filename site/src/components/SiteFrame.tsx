@@ -70,13 +70,7 @@ export function SiteHeader({ active }: { active: NavKey }) {
           {tab('Home', '/')}
           <NavMenu label="Congress" links={CONGRESS_LINKS} active={active === 'Congress'} />
           <NavMenu label="Elections" links={ELECTION_LINKS} active={active === 'Elections'} />
-          {tab(
-            'States',
-            '/states',
-            <span className="hidden md:inline text-micro font-semibold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-chip bg-lockBg text-ink2">
-              Soon
-            </span>,
-          )}
+          {tab('States', '/states')}
           {tab('Articles', '/articles')}
           <NavMenu label="About" links={ABOUT_LINKS} active={active === 'About'} alignRight />
         </nav>
@@ -92,7 +86,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
     { label: 'Congress overview', href: '/congress' },
     { label: 'Members', href: '/members' },
     { label: 'Elections', href: ELECTION_LINKS[0].href },
-    { label: 'States (soon)', href: '/states' },
+    { label: 'States', href: '/states' },
     { label: 'Articles', href: '/articles' },
   ];
   const quick = [

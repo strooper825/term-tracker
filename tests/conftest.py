@@ -41,6 +41,7 @@ from ingest.sources import (
     house_ptr,
     house_votes,
     legislators,
+    openstates_people,
     senate_annual,
     senate_ptr,
     senate_votes,
@@ -60,6 +61,7 @@ from tests.fixtures.fec import PRINCIPAL as FEC_TRACKED
 from tests.fixtures.fec import fixture_client as fec_fixture_client
 from tests.fixtures.house_ptr import MART_MEMBERS, MART_TODAY, MART_YEAR, mart_client
 from tests.fixtures.legislators import fixture_fetch as legislators_fixture_fetch
+from tests.fixtures.openstates_people import fixture_fetch as openstates_fixture_fetch
 from tests.fixtures.senate_efd import FakeEfd, efd_client
 from tests.fixtures.senate_efd import mart_client as efd_mart_client
 from tests.fixtures.statements import TARGETS as STATEMENT_TARGETS
@@ -184,6 +186,7 @@ def built_mart(migrated_engine: Engine) -> None:
             conn, FixtureFiles(), CENSUS_YEAR, full_refresh=True, minimums=GEOGRAPHY_MINIMUMS
         )
         census_acs.load(conn, census_client(), ACS_YEAR, minimums=ACS_MINIMUMS)
+        openstates_people.load(conn, fetch=openstates_fixture_fetch, minimum=1, full_refresh=True)
         # The loader now skips the Census's ZZ (no district) rows, but the 2026-09-20 nightly
         # had already stored some: staging must build with one in raw, or dbt fails on "ZZ".
         with conn.cursor() as cur:

@@ -1268,3 +1268,63 @@ its `_house_origin` / `_senate_origin` split (distinct bills, so the halves sum 
 (1,956 House, 1,966 Senate), 665 passed a chamber (425 House bills, 240 Senate bills), 69 law
 (1.8%), 2 vetoed (none overridden), 84 passed both. `assert_congress_overview_consistent` checks the
 splits against their totals and each figure against the one it is a subset of.
+
+## States (`/states`, ADR 0035)
+
+Every table describes one day, the dbt var `states_as_of` (macro `states_as_of`): today on the
+live site, 2026-11-02 in the 119th Congress archive. Parties are reduced to `R`, `D`, `I`
+(independent or another party) and `N` (Nebraska's nonpartisan legislature) by the macro
+`state_party_letter`; `party_group` keeps the party itself for anyone not R, D or N, so Puerto
+Rico's parties are counted apart.
+
+### `raw.state_person`
+
+One row per openstates/people file kept (a legislative or governor role held on or after
+2025-01-01; 50 states, DC, Puerto Rico): `person_id` (`ocd-person/<uuid>`), `state`, `folder`
+(`legislature`, `executive`, `retired`), `payload` (the YAML as JSON), `source_url` (the
+commit's tarball), `fetched_at`. Replaced whole on each load: 8,525 rows on 2026-11-17.
+
+### `seed.state_chambers`, `seed.state_districts`
+
+Written by `python -m ingest.state_maps` from the openstates-core metadata and the Census 2025
+state legislative district files. `state_chambers`: `state`, `chamber` (`upper`, `lower`,
+`legislature`), `chamber_name`, `legislature_name`, `title`, `seats` (voting seats; 102 chambers,
+7,480 seats). `state_districts`: `state`, `chamber`, `district` (Open States' name), `seats`,
+`shape` (Census code in `site/public/maps/states/{abbr}.json`, blank when none), `note`
+(`at-large`, `floterial`, `non-voting`); 6,911 rows.
+
+### `seed.state_supermajority`, `seed.state_control_overrides`
+
+Hand-kept. `state_supermajority`: `state`, `numerator`, `denominator`, `basis`, `checked` (the
+day the owner confirmed it; blank = draft). `state_control_overrides`: `state`, `chamber`,
+`from_date`, `to_date`, `control` (`coalition`), `note`, `source_url`, `checked`.
+
+### `mart.state_seat_holder`
+
+One row per person in a legislative role on the day: `state`, `chamber`, `district`,
+`district_seats`, `shape`, `district_note`, `person_id`, `name`, `given_name`, `family_name`,
+`image_url`, `email`, `website_url`, `party_label`, `party`, `party_group`, `start_date`,
+`end_date`, `is_seated` (false for a person beyond the district's seat count),
+`is_non_voting`, `as_of`, `source_url`, `fetched_at`.
+
+### `mart.state_chamber_party`
+
+Seats per `state`, `chamber`, `party_group` (with its `party` letter), counting seated voting
+members only. The chamber bar's segments.
+
+### `mart.state_chamber`
+
+One row per chamber: `seats`, `republican`, `democratic`, `other`, `nonpartisan`, `filled`,
+`vacant`, `majority_seats` (seats / 2 + 1), `supermajority_seats` (ceiling of seats x the seed's
+share), `supermajority_numerator`/`_denominator`/`_basis`, `control_party`, `control_group`,
+`control_kind` (`supermajority`, `majority`, `coalition`, `nonpartisan`, `none`),
+`control_note`, `chamber_order`, `as_of`.
+
+### `mart.state_government`
+
+One row per state, DC and Puerto Rico: `state_name`, `legislature_name`, the governor
+(`governor_person_id`, `governor_name`, `governor_party`, `governor_party_label`,
+`governor_image_url`, `governor_website_url`, `governor_start_date`; DC's mayor, with
+`executive_title` `Mayor`), and `control`: the governor's party when the same party group
+controls every chamber with a majority or more, `N` for Nebraska, `split` otherwise. On
+2026-11-17: 22 R, 16 D, 12 split, Nebraska N, Puerto Rico I (PNP).

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from api.routers import bills, congress, member, members, meta
+from api.routers import bills, congress, member, members, meta, states
 
 API_PREFIX = "/api/v1"
 
@@ -22,3 +22,4 @@ app.include_router(member.router, prefix=API_PREFIX)
 app.include_router(bills.router, prefix=API_PREFIX)
 app.include_router(meta.router, prefix=API_PREFIX)
 app.include_router(congress.router, prefix=API_PREFIX)
+app.include_router(states.router, prefix=API_PREFIX)

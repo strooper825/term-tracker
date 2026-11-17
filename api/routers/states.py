@@ -1,0 +1,197 @@
+"""/api/v1/states: state governments, their governors and legislatures (ADR 0035).
+
+Every figure is a mart column (state_government, state_chamber, state_chamber_party,
+state_seat_holder), all describing one day: today for the live site, a fixed day for an archived
+build. This router selects and reshapes rows and does no arithmetic.
+"""
+
+from __future__ import annotations
+
+from collections import defaultdict
+from datetime import UTC, datetime
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from api.db import get_session
+from api.provenance import distinct_sources
+from api.schemas.states import (
+    Chamber,
+    District,
+    Governor,
+    Legislator,
+    PartySeats,
+    StateDetail,
+    StatesResponse,
+    StateSummary,
+)
+
+router = APIRouter(prefix="/states", tags=["states"])
+
+GOVERNMENT_SQL = """
+    SELECT state, state_name, legislature_name, control, as_of, executive_title,
+           governor_person_id, governor_name, governor_party, governor_party_label,
+           governor_image_url, governor_website_url, governor_start_date,
+           'openstates_people' AS source, source_url, fetched_at
+    FROM mart.state_government
+"""
+
+CHAMBER_SQL = """
+    SELECT state, chamber, chamber_name, title, seats, republican, democratic, other, nonpartisan,
+           vacant, majority_seats, supermajority_seats, supermajority_numerator,
+           supermajority_denominator, supermajority_basis, control_party, control_group,
+           control_kind, control_note
+    FROM mart.state_chamber
+"""
+
+PARTY_SQL = """
+    SELECT state, chamber, party, party_group, seats
+    FROM mart.state_chamber_party
+"""
+
+LEGISLATOR_SQL = text(
+    """
+    SELECT person_id, chamber, district, shape, district_seats, district_note, name, party,
+           party_label, image_url, email, website_url, family_name
+    FROM mart.state_seat_holder
+    WHERE state = :state AND is_seated
+    ORDER BY chamber, district, family_name NULLS LAST, name
+    """
+)
+
+DISTRICT_SQL = text(
+    """
+    SELECT chamber, district, seats, nullif(shape, '') AS shape, nullif(note, '') AS note
+    FROM seed.state_districts
+    WHERE state = :state
+    ORDER BY chamber, district
+    """
+)
+
+# The bar reads left to right: Democrats, other parties, independents, nonpartisan, Republicans.
+PARTY_ORDER = {"D": 0, "I": 1, "N": 2, "R": 3}
+
+
+def _chamber(row: Any, parties: list[Any]) -> Chamber:
+    return Chamber(
+        chamber=row["chamber"],
+        name=row["chamber_name"],
+        title=row["title"],
+        seats=row["seats"],
+        republican=row["republican"],
+        democratic=row["democratic"],
+        other=row["other"],
+        nonpartisan=row["nonpartisan"],
+        vacant=row["vacant"],
+        majority_seats=row["majority_seats"],
+        supermajority_seats=row["supermajority_seats"],
+        supermajority_fraction=f"{row['supermajority_numerator']}/{row['supermajority_denominator']}",
+        supermajority_basis=row["supermajority_basis"],
+        control_party=row["control_party"],
+        control_group=row["control_group"],
+        control_kind=row["control_kind"],
+        control_note=row["control_note"],
+        parties=[
+            PartySeats(party=p["party"], party_group=p["party_group"], seats=p["seats"])
+            for p in sorted(
+                parties,
+                key=lambda p: (
+                    PARTY_ORDER.get(p["party"], 1),
+                    p["party_group"] == "Independent",
+                    -p["seats"],
+                    p["party_group"],
+                ),
+            )
+        ],
+    )
+
+
+def _summaries(session: Session, state: str | None = None) -> tuple[list[Any], list[StateSummary]]:
+    where = " WHERE state = :state" if state else ""
+    params = {"state": state} if state else {}
+    governments = (
+        session.execute(text(GOVERNMENT_SQL + where + " ORDER BY state_name"), params)
+        .mappings()
+        .all()
+    )
+    chambers = (
+        session.execute(text(CHAMBER_SQL + where + " ORDER BY state, chamber_order"), params)
+        .mappings()
+        .all()
+    )
+    parties = session.execute(text(PARTY_SQL + where), params).mappings().all()
+
+    parties_by: dict[tuple[str, str], list[Any]] = defaultdict(list)
+    for p in parties:
+        parties_by[(p["state"], p["chamber"])].append(p)
+    chambers_by: dict[str, list[Chamber]] = defaultdict(list)
+    for c in chambers:
+        chambers_by[c["state"]].append(_chamber(c, parties_by[(c["state"], c["chamber"])]))
+
+    summaries = []
+    for g in governments:
+        governor = None
+        if g["governor_person_id"]:
+            governor = Governor(
+                person_id=g["governor_person_id"],
+                name=g["governor_name"],
+                title=g["executive_title"],
+                party=g["governor_party"],
+                party_label=g["governor_party_label"],
+                image_url=g["governor_image_url"],
+                website_url=g["governor_website_url"],
+                start_date=g["governor_start_date"],
+            )
+        summaries.append(
+            StateSummary(
+                state=g["state"],
+                name=g["state_name"],
+                control=g["control"],
+                governor=governor,
+                chambers=chambers_by[g["state"]],
+            )
+        )
+    return governments, summaries
+
+
+@router.get(
+    "",
+    response_model=StatesResponse,
+    summary="Every state's government: governor, chambers, and who controls them",
+)
+def states(session: Annotated[Session, Depends(get_session)]) -> StatesResponse:
+    """The 50 states, DC and Puerto Rico, for the national control map (ADR 0035)."""
+    governments, summaries = _summaries(session)
+    if not governments:
+        raise HTTPException(status_code=503, detail="The state marts are empty.")
+    return StatesResponse(
+        as_of=governments[0]["as_of"],
+        states=summaries,
+        generated_at=datetime.now(UTC),
+        sources=distinct_sources(governments),
+    )
+
+
+@router.get(
+    "/{state}",
+    response_model=StateDetail,
+    summary="One state's government and every legislator in it",
+)
+def state_detail(state: str, session: Annotated[Session, Depends(get_session)]) -> StateDetail:
+    abbr = state.upper()
+    governments, summaries = _summaries(session, abbr)
+    if not governments:
+        raise HTTPException(status_code=404, detail=f"No state {state!r}.")
+    rows = session.execute(LEGISLATOR_SQL, {"state": abbr}).mappings().all()
+    districts = session.execute(DISTRICT_SQL, {"state": abbr}).mappings().all()
+    return StateDetail(
+        as_of=governments[0]["as_of"],
+        state=summaries[0],
+        legislature_name=governments[0]["legislature_name"],
+        districts=[District(**d) for d in districts],
+        legislators=[Legislator(**{k: r[k] for k in Legislator.model_fields}) for r in rows],
+        generated_at=datetime.now(UTC),
+        sources=distinct_sources(governments),
+    )
