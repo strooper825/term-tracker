@@ -44,6 +44,7 @@ import type {
   StockTradesResponse,
   AnnualDisclosuresResponse,
   AnnualNetWorth,
+  CommitteeIndustriesResponse,
   MemberListItem,
   RaceKey,
 } from './types';
@@ -700,6 +701,10 @@ export interface StockTradeRow {
   /** The holding account or fund the report names ("Subholding of"), when it does. */
   heldIn: string | null;
   description: string | null;
+  /** The SEC's industry for the company (ADR 0032), null for a bond, a fund or an unlisted ticker. */
+  industry: string | null;
+  /** "In an industry the House Committee on Armed Services oversees", one per committee. */
+  overlaps: string[];
   /** The PDF, at the page the row is printed on. */
   url: string;
 }
@@ -747,6 +752,9 @@ export interface StockTradesModel {
   lastTrade: string | null;
   tradeRows: StockTradeRow[];
   filingRows: StockFilingRow[];
+  /** "4 of 31 trades are in an industry one of their committees oversees" (ADR 0032); null when
+   *  no trade has an industry, so nothing can be said either way. */
+  overlapSummary: string | null;
 }
 
 const FILING_STATUS_LABEL: Record<FilingStatus, string> = {
@@ -783,6 +791,8 @@ export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
     amount: t.amount_raw,
     heldIn: t.subholding_of,
     description: t.description,
+    industry: t.industry ?? null,
+    overlaps: (t.overlaps ?? []).map((o) => `In an industry the ${o.committee_name} oversees`),
     url: t.source_url,
   }));
   const filingRows = r.filings.map<StockFilingRow>((f) => ({
@@ -824,7 +834,17 @@ export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
     lastTrade: sum.last_trade_date ? formatDate(sum.last_trade_date) : null,
     tradeRows,
     filingRows,
+    overlapSummary: overlapSummary(tradeRows),
   };
+}
+
+/** How many trades with a known industry are in one the member's committees oversee. Counted over
+ *  the trades with an industry only: a bond or a fund cannot be in or out of one. */
+function overlapSummary(rows: StockTradeRow[]): string | null {
+  const known = rows.filter((t) => t.industry !== null).length;
+  if (known === 0) return null;
+  const overlapping = rows.filter((t) => t.overlaps.length > 0).length;
+  return `${formatNumber(overlapping)} of ${formatNumber(known)} trades with a known industry are in an industry one of this member’s committees oversees`;
 }
 
 export interface AnnualReportRow {
@@ -2027,5 +2047,39 @@ export function buildConstituency(
     boundaryCongress: views.length > 0 && c.congress ? `${ordinal(c.congress)} Congress` : null,
     demographics,
     sources,
+  };
+}
+
+export interface CommitteeIndustriesModel {
+  mapped: {
+    key: string;
+    name: string;
+    reason: string | null;
+    industries: { key: string; industry: string; codes: string; basis: string }[];
+  }[];
+  unmapped: { key: string; name: string; reason: string | null }[];
+}
+
+/** The committee-to-industry list behind the trade overlap notes (ADR 0032), as the methods page
+ *  shows it: SIC codes as four digits ("0100–0999"), mapped committees first. Formats only. */
+export function buildCommitteeIndustries(r: CommitteeIndustriesResponse): CommitteeIndustriesModel {
+  const sic = (n: number) => String(n).padStart(4, '0');
+  return {
+    mapped: r.committees
+      .filter((c) => c.mapped)
+      .map((c) => ({
+        key: c.thomas_id,
+        name: c.name,
+        reason: c.reason,
+        industries: c.industries.map((i) => ({
+          key: `${c.thomas_id}-${i.sic_from}`,
+          industry: i.industry,
+          codes: i.sic_from === i.sic_to ? sic(i.sic_from) : `${sic(i.sic_from)}–${sic(i.sic_to)}`,
+          basis: i.basis,
+        })),
+      })),
+    unmapped: r.committees
+      .filter((c) => !c.mapped)
+      .map((c) => ({ key: c.thomas_id, name: c.name, reason: c.reason })),
   };
 }

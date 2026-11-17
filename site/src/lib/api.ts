@@ -13,6 +13,7 @@ import type {
   FeedItem,
   FeedResponse,
   FreshnessResponse,
+  CommitteeIndustriesResponse,
   FundraisingResponse,
   ContactResponse,
   KeyDatesResponse,
@@ -87,6 +88,7 @@ export const api = {
   seats: () => getJson<SeatsResponse>('/api/v1/congress/seats'),
   sessions: () => getJson<SessionsResponse>('/api/v1/meta/sessions'),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
+  committeeIndustries: () => getJson<CommitteeIndustriesResponse>('/api/v1/meta/committee-industries'),
   bills: (limit: number, offset: number) =>
     getJson<BillsResponse>(`/api/v1/bills?limit=${limit}&offset=${offset}`),
   bill: (congress: number, billType: string, billNumber: string) =>

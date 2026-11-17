@@ -720,6 +720,18 @@ amendment number; House: null), `superseded_by` (the Senate amendment that repla
 restates. The dbt warning `assert_ptr_filings_parsed`
 names each `failed` filing with its reason. `scanned` filings are expected and not warned.
 
+### `mart.trade_committee_overlap`
+
+ADR 0032. One row per trade and committee where the traded company's SIC code falls in a range the
+`committee_industries` seed maps to a committee the member sat on in the Congress of the trade date (seats
+carry no dates within a Congress). Columns `bioguide_id`, `doc_id`, `row_number` (the trade's key in
+`stock_trade`), `trade_date`, `ticker`, `company`, `sic`, `committee_thomas_id`, `committee_name`,
+`industry` (the seed's industry name) and `basis`. A note of overlap, not a finding. `GET
+/api/v1/members/{id}/stock-trades` attaches them to each item as `overlaps`; `GET
+/api/v1/meta/committee-industries` publishes the seeds `committee_industries` (committee, SIC range,
+industry, basis) and `committee_industry_scope` (every committee, mapped or not, with the reason) whole.
+Raw source: `raw.sec_company` (ticker, CIK, company, SIC code, from `sec_industry`).
+
 ### `mart.stock_trade`
 
 One row per transaction on a tracked member's PTR, the trade list, both chambers; a Senate report an
@@ -732,7 +744,9 @@ row_number)` (`assert_stock_trade_key_unique`). Columns `bioguide_id`, `filing_d
 `asset_name`, `ticker`, `asset_type_code`/`asset_type_label`, `transaction_type_code`/
 `transaction_type_label`, `direction` (`purchase`, `sale`, `exchange`, `other`), `amount_raw` (as printed),
 `amount_kind`, `amount_low`, `amount_high`, the detail lines `filing_status`, `subholding_of`,
-`description`, `location`, `comments`, `has_unmapped_code`, `source` (`house_clerk_ptr`, `senate_efd`),
+`description`, `location`, `comments`, `has_unmapped_code`, `company`, `sic` and `industry` (the SEC's
+company, SIC code and its description for the ticker, ADR 0032; null without a ticker the SEC lists; the
+warning `assert_trade_tickers_matched` lists unmatched tickers), `source` (`house_clerk_ptr`, `senate_efd`),
 `source_url` (the PDF with `#page=N`, or the eFD page) and `fetched_at`. An unmapped code keeps its row, is labelled by its raw code and
 sets `has_unmapped_code`; the warning `assert_stock_trade_codes_mapped` counts each. The disclosed amount
 is a band, not a figure: a filer may instead enter one exact amount (`amount_kind` `exact`, low equal to

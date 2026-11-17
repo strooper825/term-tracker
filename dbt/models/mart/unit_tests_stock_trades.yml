@@ -104,6 +104,8 @@ unit_tests:
       - input: ref('efd_asset_types')
         rows:
           - {code: Stock, label: Stock}
+      - input: ref('stg_sec_companies')
+        rows: []
     expect:
       rows:
         - {doc_id: D1, row_number: 1, owner_label: Spouse, asset_type_label: Stocks (including ADRs), transaction_type_label: Sale, direction: sale, days_to_file: 34, has_unmapped_code: false, source: house_clerk_ptr}
@@ -180,3 +182,38 @@ unit_tests:
       rows:
         - {bioguide_id: S_FILED, chamber: senate, status: filed, filings: 2, filings_parsed: 2, filings_scanned: 0, filings_failed: 0, latest_filing_date: 2026-04-01, trades: 1, purchases: 0, sales: 1, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: "1001.00", sales_high: "15000.00", sales_high_is_open: false, first_trade_date: 2026-03-01, last_trade_date: 2026-03-01, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-11-16 18:10:00+00"}
         - {bioguide_id: S_NONE, chamber: senate, status: no_filings, filings: 0, filings_parsed: 0, filings_scanned: 0, filings_failed: 0, latest_filing_date: null, trades: 0, purchases: 0, sales: 0, exchanges: 0, purchases_low: 0, purchases_high: 0, purchases_high_is_open: false, sales_low: 0, sales_high: 0, sales_high_is_open: false, first_trade_date: null, last_trade_date: null, covers_from: 2025-01-03, lookup_url: "https://efdsearch.senate.gov/search/", source: senate_efd, checked_at: "2026-11-16 18:10:00+00"}
+
+  # ADR 0032: a trade in an industry one of the member's committees oversees.
+  - name: trade_committee_overlap_matches_seat_congress_and_sic_range
+    model: trade_committee_overlap
+    given:
+      - input: ref('stock_trade')
+        rows:
+          # On Armed Services, a missile maker: a note.
+          - {bioguide_id: M1, doc_id: D1, row_number: 1, trade_date: 2025-06-02, ticker: LMT, company: Lockheed, sic: 3760}
+          # On Armed Services, a computer maker (3571): outside every mapped range, no note.
+          - {bioguide_id: M1, doc_id: D1, row_number: 2, trade_date: 2025-06-02, ticker: AAPL, company: Apple, sic: 3571}
+          # A bank, but the member sits on no committee that oversees banks: no note.
+          - {bioguide_id: M1, doc_id: D1, row_number: 3, trade_date: 2025-06-02, ticker: JPM, company: JPMorgan, sic: 6021}
+          # A bond: no company, no industry, no note.
+          - {bioguide_id: M1, doc_id: D1, row_number: 4, trade_date: 2025-06-02, ticker: null, company: null, sic: null}
+          # 2 January 2025 is still the 118th Congress: the 119th seat does not count.
+          - {bioguide_id: M1, doc_id: D2, row_number: 1, trade_date: 2025-01-02, ticker: LMT, company: Lockheed, sic: 3760}
+          # On Ways and Means, which is not mapped: no note for a bank.
+          - {bioguide_id: M2, doc_id: D3, row_number: 1, trade_date: 2026-02-10, ticker: JPM, company: JPMorgan, sic: 6021}
+      - input: ref('committee_membership')
+        rows:
+          - {bioguide_id: M1, committee_thomas_id: HSAS, congress: 119}
+          - {bioguide_id: M2, committee_thomas_id: HSWM, congress: 119}
+      - input: ref('committee_industries')
+        rows:
+          - {committee_thomas_id: HSAS, sic_from: 3760, sic_to: 3769, industry: Guided missiles and space vehicles, basis: Military and defense}
+          - {committee_thomas_id: HSBA, sic_from: 6000, sic_to: 6299, industry: "Banks, lenders and securities firms", basis: The banking system}
+      - input: ref('committee')
+        rows:
+          - {thomas_id: HSAS, name: House Committee on Armed Services}
+          - {thomas_id: HSWM, name: House Committee on Ways and Means}
+          - {thomas_id: HSBA, name: House Committee on Financial Services}
+    expect:
+      rows:
+        - {bioguide_id: M1, doc_id: D1, row_number: 1, committee_thomas_id: HSAS, committee_name: House Committee on Armed Services, industry: Guided missiles and space vehicles}

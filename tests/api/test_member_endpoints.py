@@ -40,7 +40,15 @@ class _StubSession:
         for table, rows in self.by_table.items():
             if table in sql:
                 return _Result(rows)
-        if any(t in sql for t in ("mart.term_history", "mart.leadership_role", "mart.stock_trade")):
+        if any(
+            t in sql
+            for t in (
+                "mart.term_history",
+                "mart.leadership_role",
+                "mart.stock_trade",
+                "mart.trade_committee_overlap",
+            )
+        ):
             return _Result([])
         return _Result(self.rows)
 
@@ -553,6 +561,9 @@ def _trade_row(n: int, **overrides: object) -> dict:
         "location": None,
         "comments": None,
         "has_unmapped_code": False,
+        "company": None,
+        "sic": None,
+        "industry": None,
         "source_url": f"{PTR_URL}#page=1",
         **overrides,
     }
@@ -727,6 +738,46 @@ def test_stock_trades_for_a_senator_read_from_efd(client: TestClient) -> None:
     assert {f["source"] for f in body["filings"]} == {"senate_efd"}
     assert body["items"][0]["notification_date"] is None
     assert body["items"][0]["source_url"] == f"{EFD}/{amendment}/"
+
+
+def test_a_trade_carries_its_industry_and_committee_overlaps(client: TestClient) -> None:
+    trade = _trade_row(
+        1,
+        ticker="LMT",
+        company="LOCKHEED MARTIN CORP",
+        sic=3760,
+        industry="Guided Missiles & Space Vehicles & Parts",
+    )
+    plain = _trade_row(2, ticker="AAPL", company="Apple Inc.", sic=3571, industry="Computers")
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.member_stock_trades": [
+                _trades_summary("filed", filings=1, filings_parsed=1, trades=2, purchases=2)
+            ],
+            "mart.stock_trade_filing": [],
+            "mart.trade_committee_overlap": [
+                {
+                    "doc_id": trade["doc_id"],
+                    "row_number": 1,
+                    "committee_thomas_id": "HSAS",
+                    "committee_name": "House Committee on Armed Services",
+                    "industry": "Guided missiles and space vehicles",
+                }
+            ],
+            "ORDER BY trade_date DESC, doc_id DESC": [trade, plain],
+        },
+    )
+    items = client.get("/api/v1/members/S001213/stock-trades").json()["items"]
+    assert items[0]["industry"] == "Guided Missiles & Space Vehicles & Parts"
+    assert items[0]["overlaps"] == [
+        {
+            "committee_thomas_id": "HSAS",
+            "committee_name": "House Committee on Armed Services",
+            "industry": "Guided missiles and space vehicles",
+        }
+    ]
+    assert items[1]["sic"] == 3571 and items[1]["overlaps"] == []
 
 
 def test_stock_trades_without_a_mart_row_is_404(client: TestClient) -> None:

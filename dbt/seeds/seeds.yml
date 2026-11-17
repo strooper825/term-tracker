@@ -154,6 +154,46 @@ seeds:
         tests:
           - accepted_values: { arguments: { values: ["purchase", "sale", "exchange"] } }
 
+  - name: committee_industries
+    description: >
+      The narrow mapping from a committee to the industries it oversees (ADR 0032): one row per
+      committee and range of SIC codes, with a short industry name and the part of the
+      committee's jurisdiction the row rests on (a paraphrase of House Rule X, Senate Rule XXV
+      and the committee's own description, not a quotation). Core industries only; reviewed by
+      the owner line by line and again at each new Congress.
+    config:
+      column_types:
+        committee_thomas_id: text
+        sic_from: integer
+        sic_to: integer
+        industry: text
+        basis: text
+    columns:
+      - name: committee_thomas_id
+        tests:
+          - not_null
+          - relationships: { arguments: { to: ref('committee_industry_scope'), field: committee_thomas_id } }
+      - name: sic_from
+        tests: [not_null]
+      - name: sic_to
+        tests: [not_null]
+
+  - name: committee_industry_scope
+    description: >
+      Every committee and whether committee_industries maps it (ADR 0032), with the reason a
+      committee is not mapped (its remit is the whole economy, or it has no legislative
+      jurisdiction) or is mapped only in part. The methods page lists both.
+    config:
+      column_types:
+        committee_thomas_id: text
+        mapped: boolean
+        reason: text
+    columns:
+      - name: committee_thomas_id
+        tests: [unique, not_null]
+      - name: mapped
+        tests: [not_null]
+
   - name: ptr_owner_codes
     description: >
       Owner codes on a House PTR (ADR 0018). A blank owner cell is the filer; the staging model

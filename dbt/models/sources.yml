@@ -57,6 +57,8 @@ sources:
         description: One table row of a parsed annual-disclosure report, keyed by part and row; every cell as printed with its nested notes (ADR 0028).
       - name: senate_ptr_transaction
         description: One transaction row of a parsed Senate PTR, every cell as the eFD page prints it (ADR 0026).
+      - name: sec_company
+        description: A traded company's CIK, name and SIC industry code from the SEC, keyed by normalised ticker (ADR 0032).
 
   - name: meta
     description: Operational metadata about the pipeline itself (Alembic and ingest/).

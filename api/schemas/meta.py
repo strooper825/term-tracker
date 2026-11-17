@@ -46,3 +46,27 @@ class CongressSession(BaseModel):
 class SessionsResponse(BaseModel):
     sessions: list[CongressSession] = Field(description="Oldest first")
     sources: list[SourceRef]
+
+
+class CommitteeIndustry(BaseModel):
+    sic_from: int = Field(description="First SIC code of the range")
+    sic_to: int = Field(description="Last SIC code of the range")
+    industry: str
+    basis: str = Field(description="The part of the committee's jurisdiction the row rests on")
+
+
+class CommitteeIndustryScope(BaseModel):
+    thomas_id: str
+    name: str
+    chamber: str = Field(description="house, senate or joint")
+    mapped: bool = Field(description="Whether any industry is mapped to the committee")
+    reason: str | None = Field(
+        description="Why the committee is not mapped, or is mapped only in part"
+    )
+    industries: list[CommitteeIndustry]
+
+
+class CommitteeIndustriesResponse(BaseModel):
+    """The narrow committee-to-industry mapping behind the trade overlap notes (ADR 0032)."""
+
+    committees: list[CommitteeIndustryScope] = Field(description="Mapped first, then by name")

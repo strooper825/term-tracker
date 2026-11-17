@@ -278,6 +278,15 @@ StockTradesStatus = Literal["filed", "no_filings", "senate_unavailable"]
 PtrFilingStatus = Literal["parsed", "scanned", "failed"]
 
 
+class CommitteeOverlap(BaseModel):
+    committee_thomas_id: str
+    committee_name: str
+    industry: str = Field(
+        description="The industry under the narrow mapping (ADR 0032) that the company is in "
+        "and the committee oversees"
+    )
+
+
 class StockTradeItem(BaseModel):
     doc_id: str = Field(
         description="The report the trade is printed on: the Clerk's DocID (House) or eFD's "
@@ -312,6 +321,14 @@ class StockTradeItem(BaseModel):
     location: str | None
     comments: str | None
     has_unmapped_code: bool = Field(description="A code no seed maps; shown by its raw code")
+    company: str | None = Field(description="The SEC's name for the ticker's company (ADR 0032)")
+    sic: int | None = Field(description="The company's SIC industry code, from the SEC")
+    industry: str | None = Field(description="The SEC's description of that SIC code")
+    overlaps: list[CommitteeOverlap] = Field(
+        default_factory=list,
+        description="Committees the member sat on that oversee the company's industry under "
+        "the narrow mapping (ADR 0032). A note of overlap, not a finding.",
+    )
     source_url: str = Field(description="The House PDF with #page=N, or the eFD report page")
 
 

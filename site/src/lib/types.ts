@@ -335,7 +335,41 @@ export interface StockTradeItem {
   location: string | null;
   comments: string | null;
   has_unmapped_code: boolean;
+  /** ADR 0032: the SEC's company and industry for the ticker; null without one. Optional so
+   *  older fixtures still type-check. */
+  company?: string | null;
+  sic?: number | null;
+  industry?: string | null;
+  /** Committees the member sat on that oversee the company's industry (narrow mapping). */
+  overlaps?: CommitteeOverlap[];
   source_url: string;
+}
+
+export interface CommitteeOverlap {
+  committee_thomas_id: string;
+  committee_name: string;
+  industry: string;
+}
+
+/** GET /api/v1/meta/committee-industries (ADR 0032). */
+export interface CommitteeIndustry {
+  sic_from: number;
+  sic_to: number;
+  industry: string;
+  basis: string;
+}
+
+export interface CommitteeIndustryScope {
+  thomas_id: string;
+  name: string;
+  chamber: string;
+  mapped: boolean;
+  reason: string | null;
+  industries: CommitteeIndustry[];
+}
+
+export interface CommitteeIndustriesResponse {
+  committees: CommitteeIndustryScope[];
 }
 
 export interface StockTradeFiling {

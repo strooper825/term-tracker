@@ -29,6 +29,7 @@ from api.schemas.member import (
     AnnualTravel,
     BillItem,
     BillsResponse,
+    CommitteeOverlap,
     CommitteesResponse,
     ConstituencyDemographics,
     ConstituencyMap,
@@ -232,10 +233,20 @@ STOCK_TRADES_SQL = text(
            owner_code, owner_label, asset_name, ticker, asset_type_code, asset_type_label,
            transaction_type_code, transaction_type_label, direction, amount_raw, amount_kind,
            amount_low, amount_high, filing_status, subholding_of, description, location, comments,
-           has_unmapped_code, source_url
+           has_unmapped_code, company, sic, industry, source_url
     FROM mart.stock_trade
     WHERE bioguide_id = :bioguide
     ORDER BY trade_date DESC, doc_id DESC, row_number
+    """
+)
+
+# ADR 0032: a trade in an industry one of the member's committees oversees.
+TRADE_OVERLAPS_SQL = text(
+    """
+    SELECT doc_id, row_number, committee_thomas_id, committee_name, industry
+    FROM mart.trade_committee_overlap
+    WHERE bioguide_id = :bioguide
+    ORDER BY doc_id, row_number, committee_name
     """
 )
 
@@ -725,6 +736,12 @@ def member_stock_trades(
         )
     filings = session.execute(STOCK_TRADE_FILINGS_SQL, {"bioguide": bioguide}).mappings().all()
     trades = session.execute(STOCK_TRADES_SQL, {"bioguide": bioguide}).mappings().all()
+    overlaps: dict[tuple[str, int], list[CommitteeOverlap]] = {}
+    for o in session.execute(TRADE_OVERLAPS_SQL, {"bioguide": bioguide}).mappings().all():
+        overlaps.setdefault((o["doc_id"], o["row_number"]), []).append(
+            CommitteeOverlap(**{k: o[k] for k in CommitteeOverlap.model_fields})
+        )
+    item_fields = set(StockTradeItem.model_fields) - {"overlaps"}
     return StockTradesResponse(
         bioguide_id=bioguide,
         chamber=row["chamber"],
@@ -736,7 +753,13 @@ def member_stock_trades(
         filings=[
             StockTradeFiling(**{k: f[k] for k in StockTradeFiling.model_fields}) for f in filings
         ],
-        items=[StockTradeItem(**{k: t[k] for k in StockTradeItem.model_fields}) for t in trades],
+        items=[
+            StockTradeItem(
+                **{k: t[k] for k in item_fields},
+                overlaps=overlaps.get((t["doc_id"], t["row_number"]), []),
+            )
+            for t in trades
+        ],
         sources=distinct_sources([row]),
     )
 
