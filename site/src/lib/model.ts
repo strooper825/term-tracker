@@ -867,6 +867,25 @@ export interface DebtRow {
   detail: string | null;
 }
 
+/** One line of a section read from the rest of an annual report (ADR 0030). */
+export interface DisclosureRow {
+  key: string;
+  title: string;
+  /** "Pension · Self · Burlington, VT" */
+  meta: string | null;
+  /** The filer's own words: terms, comments, an itinerary. */
+  notes: string | null;
+  /** A dollar figure on the right, when the line has one. */
+  figure: string | null;
+}
+
+export interface DisclosureSection {
+  id: 'income' | 'positions' | 'agreements' | 'gifts' | 'travel';
+  title: string;
+  note: string | null;
+  rows: DisclosureRow[];
+}
+
 export interface NetWorthModel {
   year: number;
   /** "Annual report for 2025" */
@@ -881,6 +900,12 @@ export interface NetWorthModel {
   /** Largest first by the band's high end; accounts are not rows of their own. */
   holdings: HoldingRow[];
   debts: DebtRow[];
+  /** Income, positions, agreements, gifts and travel the filer listed, in that order; only
+   *  sections with lines. */
+  sections: DisclosureSection[];
+  /** "gifts or paid travel": sections read from the report in which the filer listed nothing.
+   *  Null when there are none, or when the report is not read that far (House, for now). */
+  noneReported: string | null;
 }
 
 export interface AnnualReportsModel {
@@ -899,6 +924,96 @@ function moneyRange(low: number | null, high: number | null, lowOpen = false): s
   if (high === null) return `${formatMoney(low as number)} or more`;
   if (low === null || lowOpen) return `Up to ${formatMoney(high)}`;
   return low === high ? formatMoney(low) : `${formatMoney(low)} \u2013 ${formatMoney(high)}`;
+}
+
+const SECTION_TITLES: Record<DisclosureSection['id'], [title: string, noneLabel: string]> = {
+  income: ['Outside income', 'outside income'],
+  positions: ['Outside positions', 'outside positions'],
+  agreements: ['Agreements', 'agreements'],
+  gifts: ['Gifts', 'gifts'],
+  travel: ['Paid travel', 'paid travel'],
+};
+
+function joined(parts: (string | null | undefined)[], sep = ' \u00b7 '): string | null {
+  return parts.filter(Boolean).join(sep) || null;
+}
+
+/** "Pension", "Book advance" (eFD's "Other" with the filer's words), "Royalties (Consulting)". */
+function incomeTypeLabel(type: string, detail: string | null): string {
+  if (!detail) return type;
+  return type === 'Other' ? detail : `${type} (${detail})`;
+}
+
+/** Income, positions, agreements, gifts and travel of a read report (ADR 0030). Only orders and
+ *  formats what the marts give. A null list (House, for now) is neither shown nor called none. */
+export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 'sections' | 'noneReported'> {
+  const lists: Record<DisclosureSection['id'], DisclosureRow[] | null> = {
+    income:
+      w.income?.map((i, n) => ({
+        key: `income-${n}`,
+        title: i.payer,
+        meta: joined([incomeTypeLabel(i.income_type, i.income_detail), i.owner_label, i.payer_location]),
+        notes: i.comments,
+        figure:
+          i.amount_kind === 'over' && i.amount_low !== null
+            ? `Over ${formatMoney(i.amount_low)}`
+            : i.amount_low !== null
+              ? formatMoney(i.amount_low)
+              : i.amount_raw,
+      })) ?? null,
+    positions:
+      w.positions?.map((p, n) => ({
+        key: `position-${n}`,
+        title: `${p.position_held}, ${p.entity}`,
+        meta: joined([p.entity_type, p.entity_location, p.position_dates]),
+        notes: p.comments,
+        figure: null,
+      })) ?? null,
+    agreements:
+      w.agreements?.map((a, n) => ({
+        key: `agreement-${n}`,
+        title: `${a.agreement_type} \u00b7 ${a.parties}`,
+        meta: joined([a.agreement_date, a.parties_location]),
+        notes: joined([a.terms, a.comments], ' '),
+        figure: null,
+      })) ?? null,
+    gifts:
+      w.gifts?.map((g, n) => ({
+        key: `gift-${n}`,
+        title: g.gift,
+        meta: joined([`From ${g.giver}`, g.giver_location, `to ${g.owner_label}`, formatDate(g.gift_date)]),
+        notes: g.comments,
+        figure: formatMoney(g.value),
+      })) ?? null,
+    travel:
+      w.travel?.map((t, n) => ({
+        key: `travel-${n}`,
+        title: `Paid by ${t.sponsor}`,
+        meta: joined([
+          t.departed === t.returned ? formatDate(t.departed) : `${formatDate(t.departed)} \u2013 ${formatDate(t.returned)}`,
+          t.travelers,
+          t.sponsor_location,
+        ]),
+        notes: joined([t.itinerary, t.reimbursed_for ? `Covered: ${t.reimbursed_for}` : null, t.comments], '. '),
+        figure: null,
+      })) ?? null,
+  };
+  const ids = Object.keys(SECTION_TITLES) as DisclosureSection['id'][];
+  const sections = ids
+    .filter((id) => (lists[id]?.length ?? 0) > 0)
+    .map<DisclosureSection>((id) => ({
+      id,
+      title: SECTION_TITLES[id][0],
+      note:
+        id === 'income'
+          ? 'Earned and other non-investment income. A spouse\u2019s is reported only as over $1,000; investment income is listed with each holding.'
+          : null,
+      rows: lists[id] as DisclosureRow[],
+    }));
+  const none = ids.filter((id) => lists[id] !== null && lists[id]!.length === 0).map((id) => SECTION_TITLES[id][1]);
+  const noneReported =
+    none.length > 1 ? `${none.slice(0, -1).join(', ')} or ${none[none.length - 1]}` : (none[0] ?? null);
+  return { sections, noneReported };
 }
 
 /** The net-worth figures, holdings and debts of the newest read report (ADR 0028). Every figure
@@ -943,6 +1058,7 @@ export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
     liabilitiesNote: `${formatNumber(w.liabilities)} debt${w.liabilities === 1 ? '' : 's'}`,
     holdings,
     debts,
+    ...buildDisclosureSections(w),
   };
 }
 

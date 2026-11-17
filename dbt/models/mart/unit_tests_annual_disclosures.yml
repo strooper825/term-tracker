@@ -174,3 +174,38 @@ unit_tests:
         - {row_index: 1, owner_code: SELF, creditor: "JOHNSON BANK, JANESVILLE, WI", incurred: OCTOBER 2014, liability_type: MORTGAGE ON PERSONAL RESIDENCE, amount_kind: band, amount_low: "15001.00", amount_high: "50000.00"}
         - {row_index: 2, owner_code: SP, creditor: United Bank, incurred: "2019", liability_type: Personal Loan, amount_kind: top_band, amount_low: "1000000.00", amount_high: null}
         - {row_index: 3, owner_code: JT, creditor: Credit Union, incurred: "2021", liability_type: Auto loan, amount_kind: exact, amount_low: "16508.00", amount_high: "16508.00"}
+
+  # ADR 0030: the rest of a Senate report.
+  - name: stg_annual_report_income_reads_amounts
+    model: stg_annual_report_income
+    given:
+      - input: source('raw', 'annual_report_row')
+        format: sql
+        rows: |
+          select 'senate_efd' as source, 'D1' as doc_id, '2' as part, 1 as row_index, 'S1' as bioguide_id, now() as fetched_at,
+                 '{"cells": [{"text": "", "notes": []}, {"text": "1", "notes": []}, {"text": "Self", "notes": []}, {"text": "Other", "notes": ["((Required Minimum Distribution))"]}, {"text": "Mitch IRA", "notes": ["Louisville, Kentucky"]}, {"text": "$12,476.28", "notes": []}, {"text": "", "notes": ["n/a"]}]}'::jsonb as payload
+          union all
+          select 'senate_efd', 'D1', '2', 2, 'S1', now(),
+                 '{"cells": [{"text": "", "notes": []}, {"text": "2", "notes": []}, {"text": "Spouse", "notes": []}, {"text": "Board Compensation", "notes": []}, {"text": "Kroger", "notes": ["Cincinnati, Ohio"]}, {"text": "> $1,000", "notes": []}, {"text": "", "notes": ["All deferred in 2025."]}]}'::jsonb
+          union all
+          select 'senate_efd', 'D1', '3', 1, 'S1', now(), '{"cells": []}'::jsonb
+    expect:
+      rows:
+        - {row_index: 1, owner_code: SELF, income_type: Other, income_detail: "(Required Minimum Distribution)", payer: Mitch IRA, payer_location: "Louisville, Kentucky", amount_kind: exact, amount_low: "12476.28", amount_high: "12476.28", comments: null}
+        - {row_index: 2, owner_code: SP, income_type: Board Compensation, income_detail: null, payer: Kroger, payer_location: "Cincinnati, Ohio", amount_kind: over, amount_low: "1000.00", amount_high: null, comments: All deferred in 2025.}
+
+  - name: stg_annual_report_positions_keeps_the_wording
+    model: stg_annual_report_positions
+    given:
+      - input: source('raw', 'annual_report_row')
+        format: sql
+        rows: |
+          select 'senate_efd' as source, 'D1' as doc_id, '8' as part, 1 as row_index, 'S1' as bioguide_id, now() as fetched_at,
+                 '{"cells": [{"text": "", "notes": []}, {"text": "1", "notes": []}, {"text": "Dec 1997 to present", "notes": []}, {"text": "Other (Member Manager)", "notes": []}, {"text": "Family LLC", "notes": ["Oshkosh, WI"]}, {"text": "Other (Limited Liability Company)", "notes": []}, {"text": "", "notes": ["n/a"]}]}'::jsonb as payload
+          union all
+          select 'senate_efd', 'D1', '8', 2, 'S1', now(),
+                 '{"cells": [{"text": "", "notes": []}, {"text": "2", "notes": []}, {"text": "Feb 2017 to May 2025", "notes": []}, {"text": "Officer", "notes": []}, {"text": "Pin Point", "notes": ["Holly, Michigan"]}, {"text": "Company", "notes": []}, {"text": "", "notes": ["Closed in May 2025."]}]}'::jsonb
+    expect:
+      rows:
+        - {row_index: 1, is_current: true, position_held: Member Manager, entity: Family LLC, entity_type: Limited Liability Company, comments: null}
+        - {row_index: 2, is_current: false, position_held: Officer, entity: Pin Point, entity_type: Company, comments: Closed in May 2025.}

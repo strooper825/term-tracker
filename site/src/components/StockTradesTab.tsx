@@ -13,6 +13,7 @@ import { useState } from 'react';
 import type {
   AnnualReportRow,
   AnnualReportsModel,
+  DisclosureSection,
   NetWorthModel,
   StockFilingRow,
   StockTradeRow,
@@ -420,6 +421,38 @@ function AnnualRow({ r }: { r: AnnualReportRow }) {
 
 const HOLDINGS_PAGE = 10;
 
+/* Income, positions, agreements, gifts or travel from a read report (ADR 0030). */
+function DisclosureList({ section }: { section: DisclosureSection }) {
+  const titleId = `annual-${section.id}-title`;
+  return (
+    <section aria-labelledby={titleId} className="border border-rule rounded-card">
+      <div className="px-[18px] pt-3 pb-2 flex flex-col gap-1">
+        <h3 id={titleId} className="text-base font-semibold text-ink m-0">
+          {section.title}
+        </h3>
+        {section.note && <p className="text-meta text-ink3 m-0 max-w-[68ch]">{section.note}</p>}
+      </div>
+      <ul className="list-none m-0 p-0">
+        {section.rows.map((r) => (
+          <li
+            key={r.key}
+            className="flex flex-col gap-1 px-[18px] py-2.5 border-t border-rule md:flex-row md:items-baseline md:justify-between md:gap-4"
+          >
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-base text-ink break-words">{r.title}</span>
+              {r.meta && <span className="text-meta text-ink3 break-words">{r.meta}</span>}
+              {r.notes && <span className="text-meta text-ink3 break-words max-w-[68ch]">{r.notes}</span>}
+            </div>
+            {r.figure && (
+              <span className="text-body text-ink font-semibold tnum whitespace-nowrap">{r.figure}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function NetWorth({ worth }: { worth: NetWorthModel }) {
   const [shown, setShown] = useState(HOLDINGS_PAGE);
   const visible = worth.holdings.slice(0, shown);
@@ -502,6 +535,14 @@ function NetWorth({ worth }: { worth: NetWorthModel }) {
             ))}
           </ul>
         </section>
+      )}
+      {worth.sections.map((section) => (
+        <DisclosureList key={section.id} section={section} />
+      ))}
+      {worth.noneReported && (
+        <p className="text-meta text-ink3 m-0">
+          The report lists no {worth.noneReported}.
+        </p>
       )}
     </div>
   );

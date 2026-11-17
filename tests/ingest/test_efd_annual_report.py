@@ -97,6 +97,37 @@ def test_changed_asset_headings_are_refused() -> None:
         parse_annual_report(page)
 
 
+def test_income_travel_positions_and_agreements_read_under_their_expected_headings() -> None:
+    parts = _report(SANDERS_2025).parts
+    pension = parts["2"].rows[0]
+    assert (pension[2].text, pension[3].text, pension[4].text, pension[4].notes) == (
+        "Self",
+        "Pension",
+        "City of Burlington Vermont",
+        ("Burlington, VT",),
+    )
+    assert pension[6].text == "" and pension[6].notes == ("n/a",)
+    assert parts["6"].rows[0][4].text == "Privately-Sponsored"
+    assert parts["8"].rows[0][3].text == "Trustee"
+    assert parts["9"].rows[0][4].text == "Royalty Agreement"
+
+
+@pytest.mark.parametrize(
+    ("heading", "renamed", "part"),
+    [
+        (">Who Was Paid<", ">Recipient of Income<", "2"),
+        (">Itinerary<", ">Route<", "6"),
+        (">Position Held<", ">Role<", "8"),
+        (">Status and Terms<", ">Terms<", "9"),
+    ],
+)
+def test_changed_headings_of_a_read_part_are_refused(heading: str, renamed: str, part: str) -> None:
+    page = read(ANNUAL_PAGES[SANDERS_2025])
+    assert heading in page
+    with pytest.raises(EfdParseError, match=f"part {part} headings"):
+        parse_annual_report(page.replace(heading, renamed, 1))
+
+
 def test_a_row_with_a_missing_cell_is_refused() -> None:
     page = read(ANNUAL_PAGES[SANDERS_2025]).replace("<td>Spouse</td>", "", 1)
     with pytest.raises(EfdParseError, match="cells under"):

@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -16,11 +17,16 @@ from api.provenance import distinct_sources
 from api.routers.members import COMMITTEES_SQL, member_ids, seat_label
 from api.schemas.member import (
     ActivityCounts,
+    AnnualAgreement,
     AnnualAsset,
     AnnualDisclosureItem,
     AnnualDisclosuresResponse,
+    AnnualGift,
+    AnnualIncome,
     AnnualLiability,
     AnnualNetWorth,
+    AnnualPosition,
+    AnnualTravel,
     BillItem,
     BillsResponse,
     CommitteesResponse,
@@ -280,6 +286,21 @@ ANNUAL_LIABILITIES_SQL = text(
     ORDER BY row_index
     """
 )
+
+# ADR 0030: the rest of a read report, one query per section, in the report's order.
+ANNUAL_SECTION_SQL = {
+    section: text(f"SELECT * FROM mart.{table} WHERE doc_id = :doc_id ORDER BY row_index")
+    for section, table in (
+        ("income", "annual_income"),
+        ("positions", "annual_position"),
+        ("agreements", "annual_agreement"),
+        ("gifts", "annual_gift"),
+        ("travel", "annual_travel"),
+    )
+}
+# Sources whose reports are read past assets and debts (ADR 0030). The House schedules C to H
+# are not read yet, so its sections are null rather than an empty "none reported".
+SECTIONS_READ_FOR = {"senate_efd"}
 
 KEY_DATES_SQL = text(
     """
@@ -738,9 +759,22 @@ def member_annual_disclosures(
         params = {"doc_id": worth["doc_id"]}
         assets = session.execute(ANNUAL_ASSETS_SQL, params).mappings().all()
         debts = session.execute(ANNUAL_LIABILITIES_SQL, params).mappings().all()
-        fields = set(AnnualNetWorth.model_fields) - {"assets", "liabilities_list"}
+        section_models: dict[str, type[BaseModel]] = {
+            "income": AnnualIncome,
+            "positions": AnnualPosition,
+            "agreements": AnnualAgreement,
+            "gifts": AnnualGift,
+            "travel": AnnualTravel,
+        }
+        sections: dict[str, list[Any] | None] = dict.fromkeys(section_models)
+        if worth["source"] in SECTIONS_READ_FOR:
+            for section, model in section_models.items():
+                rows = session.execute(ANNUAL_SECTION_SQL[section], params).mappings().all()
+                sections[section] = [model(**{k: x[k] for k in model.model_fields}) for x in rows]
+        fields = set(AnnualNetWorth.model_fields) - {"assets", "liabilities_list", *section_models}
         latest = AnnualNetWorth(
             **{k: worth[k] for k in fields},
+            **sections,
             assets=[AnnualAsset(**{k: a[k] for k in AnnualAsset.model_fields}) for a in assets],
             liabilities_list=[
                 AnnualLiability(**{k: d[k] for k in AnnualLiability.model_fields}) for d in debts
