@@ -2,6 +2,9 @@
 -- filed for one calendar year and this site read (ADR 0028), the one with the highest amendment
 -- number, then the latest filed. An amendment restates the report in full, so its figures replace
 -- the original's. One row per (member, source, year).
+-- `sections_read`: the report's income, positions, agreements, gifts and travel were read
+-- (ADR 0030, ADR 0031). Every eFD report is; a House report only by reader 2 or later, so a
+-- report not yet read again after the reader change is never shown as having none.
 select distinct on (d.bioguide_id, d.source, d.covers_year)
     d.bioguide_id,
     d.source,
@@ -10,7 +13,8 @@ select distinct on (d.bioguide_id, d.source, d.covers_year)
     d.kind,
     d.amendment,
     d.filing_date,
-    d.source_url
+    d.source_url,
+    d.source = 'senate_efd' or coalesce((p.payload ->> 'reader')::int, 1) >= 2 as sections_read
 from {{ ref('stg_annual_disclosures') }} as d
 inner join {{ source('raw', 'annual_report_page') }} as p
     on p.source = d.source and p.doc_id = d.doc_id

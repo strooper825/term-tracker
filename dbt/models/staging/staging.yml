@@ -229,6 +229,37 @@ models:
       - name: amount_kind
         tests:
           - accepted_values: { arguments: { values: ["band", "top_band", "exact"] } }
+  - name: stg_house_annual_income
+    columns:
+      - name: payer
+        tests: [not_null]
+      - name: amount_kind
+        tests:
+          - accepted_values: { arguments: { values: ["exact", "not_stated"] } }
+  - name: stg_house_annual_positions
+    columns:
+      - name: position_held
+        tests: [not_null]
+      - name: entity
+        tests: [not_null]
+  - name: stg_house_annual_agreements
+    columns:
+      - name: parties
+        tests: [not_null]
+  - name: stg_house_annual_gifts
+    columns:
+      - name: gift
+        tests: [not_null]
+      - name: value
+        tests: [not_null]
+  - name: stg_house_annual_travel
+    columns:
+      - name: departed
+        tests: [not_null]
+      - name: returned
+        tests: [not_null]
+      - name: sponsor
+        tests: [not_null]
   - name: stg_statements
     columns:
       - name: title

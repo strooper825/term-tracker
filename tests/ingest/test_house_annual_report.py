@@ -1,4 +1,5 @@
-"""Reading House annual report PDFs (Schedules A and D) and storing them (ADR 0029).
+"""Reading House annual report PDFs and storing them: Schedules A and D (ADR 0029), C and E to H
+(ADR 0031).
 
 Fixtures (tests/fixtures/house_annual/, real Clerk PDFs, kept whole):
 
@@ -9,6 +10,11 @@ Fixtures (tests/fixtures/house_annual/, real Clerk PDFs, kept whole):
   whose Schedule A has two income columns instead of "Tx. > $1,000?".
 * ``annual_10068065_page_spill.pdf``: an annual report for 2024, VA-03, where a whole row's income
   type spills onto the next page under the repeated header.
+* ``annual_10076090_sc06_2025_travel.pdf``: an annual report for 2025, SC-06, with income,
+  positions, an agreement and four trips; the second trip's source and itinerary run from page 2
+  onto page 3 under the repeated header.
+* ``annual_10076550_ny08_2025_gift.pdf``: an annual report for 2025, NY-08, with a gift and an
+  agreement whose parties wrap onto a second line.
 """
 
 from __future__ import annotations
@@ -33,6 +39,8 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "house_annual"
 STEIL = "annual_10075925_wi01_2025.pdf"
 NEW_MEMBER = "new_member_10067251_nd00_2024.pdf"
 SPILL = "annual_10068065_page_spill.pdf"
+TRAVEL = "annual_10076090_sc06_2025_travel.pdf"
+GIFT = "annual_10076550_ny08_2025_gift.pdf"
 
 
 def _read(name: str) -> bytes:
@@ -106,6 +114,89 @@ def test_a_whole_rows_spilled_income_type_joins_it_across_the_page() -> None:
     (domini,) = [r for r in rows if r.cells["asset"].startswith("Domini Impact Equity")]
     assert domini.cells["income_type"] == "Capital Gains, Dividends"
     assert domini.detail == {"description": "Domini Impact Social Equity Fund (DSEFX)"}
+
+
+def test_income_positions_and_agreements_read_as_rows() -> None:
+    report = parse_annual_report(_read(TRAVEL))
+    (pension,) = report.schedules["C"].rows
+    assert pension.cells == {
+        "source": "South Carolina Retirement System",
+        "type": "Retirement from State of South Carolina",
+        "amount": "$61,334.34",
+    }
+    positions = report.schedules["E"].rows
+    assert [p.cells for p in positions] == [
+        {"position": "Board Member (uncompensated)", "organization": "Allen University"},
+        {
+            "position": "Board Member (uncompensated)",
+            "organization": "Congressional Black Caucus Education & Leadership Institute",
+        },
+    ]
+    (pension_plan,) = report.schedules["F"].rows
+    assert pension_plan.cells == {
+        "date": "June 1992",
+        "parties": "Myself and South Carolina Retirement System",
+        "terms": "Retirement Pension",
+    }
+    assert report.schedules["G"].none_disclosed and not report.schedules["G"].rows
+
+
+def test_a_trip_runs_across_the_page_break_without_starting_a_new_one() -> None:
+    trips = parse_annual_report(_read(TRAVEL)).schedules["H"].rows
+    assert len(trips) == 4
+    # Starts at the foot of page 2; "Company" and "York NY - Washington, DC" are on page 3.
+    assert trips[1].page == 2
+    assert trips[1].cells == {
+        "source": "Little, Brown and Company",
+        "start_date": "11/09/2025",
+        "end_date": "11/12/2025",
+        "itinerary": "Columbia, SC - New York NY - Washington, DC",
+        "days_at_own_expense": "0",
+        "lodging": "",
+        "food": "",
+        "family": "",
+    }
+    assert trips[3].cells["itinerary"] == "Columbia, SC - Philadelphia, PA - Washington, DC"
+
+
+def test_a_gift_and_wrapped_agreement_parties() -> None:
+    report = parse_annual_report(_read(GIFT))
+    (gift,) = report.schedules["G"].rows
+    assert gift.cells == {
+        "source": "Catherine B. Davis (Durham, NC, US)",
+        "description": "Birthday Gift",
+        "value": "$500.00",
+    }
+    (agreement,) = report.schedules["F"].rows
+    assert agreement.cells["parties"] == "New York State Common Retirement Fund/ Hakeem S. Jeffries"
+    assert report.schedules["C"].rows[0].cells["amount"] == "N/A"
+
+
+def test_a_new_members_income_has_two_amounts_and_positions_keep_comments() -> None:
+    report = parse_annual_report(_read(NEW_MEMBER))
+    (salary,) = report.schedules["C"].rows
+    assert salary.cells == {
+        "source": "ND Public Service Commission",
+        "type": "Salary",
+        "amount": "N/A",
+        "amount_preceding": "$127,500.00",
+    }
+    president, *_ = report.schedules["E"].rows
+    assert president.cells == {"position": "President", "organization": "NARUC"}
+    assert president.detail["comments"].startswith("I Completed this term as president")
+    assert len(report.schedules["E"].rows) == 4
+
+
+def test_a_travel_row_without_an_end_date_is_refused() -> None:
+    from ingest.house_annual_report import ParsedAnnualReport, Row, Schedule, _validate
+
+    parsed = ParsedAnnualReport(pages=1, text_chars=1)
+    parsed.schedules["A"] = Schedule("A", none_disclosed=True)
+    parsed.schedules["H"] = Schedule(
+        "H", rows=[Row(1, {"source": "X", "start_date": "01/01/2025", "end_date": ""})]
+    )
+    with pytest.raises(AnnualReportParseError, match="Schedule H row 1 .*no end_date"):
+        _validate(parsed)
 
 
 def test_a_scanned_pdf_is_scanned_not_failed() -> None:
@@ -204,7 +295,8 @@ def test_each_report_pdf_is_read_once_and_its_schedules_stored(
     migrated_engine: Engine, clean: None
 ) -> None:
     assert _load(_files(_read(STEIL))) == 2  # the index and the report; the extension is not opened
-    assert _page(migrated_engine) == ("parsed", None, "26", 26 + 1)  # Schedules A and D
+    # Schedules A (26), D (1) and F (2); C, E, G and H are "None disclosed."
+    assert _page(migrated_engine) == ("parsed", None, "26", 26 + 1 + 2)
     with migrated_engine.connect() as conn:
         payload = conn.execute(
             text(
@@ -215,6 +307,27 @@ def test_each_report_pdf_is_read_once_and_its_schedules_stored(
         ).scalar_one()
     assert payload["cells"]["creditor"] == "JOHNSON BANK, JANESVILLE, WI"
     assert _load(_files(_read(STEIL))) == 1  # the next night reads only the index
+
+
+@pytest.mark.integration
+def test_a_report_read_by_an_older_reader_is_read_again(
+    migrated_engine: Engine, clean: None
+) -> None:
+    _load(_files(_read(STEIL)))
+    with migrated_engine.begin() as conn:
+        # As reader 1 stored it: no reader in the payload, no Schedule F rows.
+        conn.execute(
+            text(
+                "UPDATE raw.annual_report_page SET payload = payload - 'reader' WHERE doc_id = :d"
+            ),
+            {"d": DOC},
+        )
+        conn.execute(
+            text("DELETE FROM raw.annual_report_row WHERE doc_id = :d AND part = 'F'"), {"d": DOC}
+        )
+    assert _load(_files(_read(STEIL))) == 2  # the old report is opened again
+    assert _page(migrated_engine)[3] == 26 + 1 + 2
+    assert _load(_files(_read(STEIL))) == 1  # and then not again
 
 
 @pytest.mark.integration

@@ -298,9 +298,12 @@ ANNUAL_SECTION_SQL = {
         ("travel", "annual_travel"),
     )
 }
-# Sources whose reports are read past assets and debts (ADR 0030). The House schedules C to H
-# are not read yet, so its sections are null rather than an empty "none reported".
-SECTIONS_READ_FOR = {"senate_efd"}
+# Whether the report's income, positions, agreements, gifts and travel were read (ADR 0031): a
+# House report read before the reader learnt Schedules C to H has none stored, and its sections
+# are null rather than an empty "none reported".
+SECTIONS_READ_SQL = text(
+    "SELECT sections_read FROM mart.annual_report_version WHERE doc_id = :doc_id"
+)
 
 KEY_DATES_SQL = text(
     """
@@ -767,7 +770,8 @@ def member_annual_disclosures(
             "travel": AnnualTravel,
         }
         sections: dict[str, list[Any] | None] = dict.fromkeys(section_models)
-        if worth["source"] in SECTIONS_READ_FOR:
+        version = session.execute(SECTIONS_READ_SQL, params).mappings().first()
+        if version is not None and version["sections_read"]:
             for section, model in section_models.items():
                 rows = session.execute(ANNUAL_SECTION_SQL[section], params).mappings().all()
                 sections[section] = [model(**{k: x[k] for k in model.model_fields}) for x in rows]

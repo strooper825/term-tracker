@@ -261,7 +261,7 @@ models:
 
   - name: annual_income
     description: >
-      Earned and non-investment income lines of the report that stands for each member's year (ADR 0030). Senate only for now.
+      Earned and non-investment income lines of the report that stands for each member's year (ADR 0030, ADR 0031). Both chambers.
     columns:
       - name: bioguide_id
         tests:
@@ -270,7 +270,7 @@ models:
 
   - name: annual_position
     description: >
-      Outside positions of the report that stands for each member's year (ADR 0030). Senate only for now.
+      Outside positions of the report that stands for each member's year (ADR 0030, ADR 0031). Both chambers.
     columns:
       - name: bioguide_id
         tests:
@@ -279,7 +279,7 @@ models:
 
   - name: annual_agreement
     description: >
-      Agreements and arrangements of the report that stands for each member's year (ADR 0030). Senate only for now.
+      Agreements and arrangements of the report that stands for each member's year (ADR 0030, ADR 0031). Both chambers.
     columns:
       - name: bioguide_id
         tests:
@@ -288,7 +288,7 @@ models:
 
   - name: annual_gift
     description: >
-      Gifts of the report that stands for each member's year (ADR 0030). Senate only for now.
+      Gifts of the report that stands for each member's year (ADR 0030, ADR 0031). Both chambers.
     columns:
       - name: bioguide_id
         tests:
@@ -297,7 +297,7 @@ models:
 
   - name: annual_travel
     description: >
-      Privately paid travel of the report that stands for each member's year (ADR 0030). Senate only for now.
+      Privately paid travel of the report that stands for each member's year (ADR 0030, ADR 0031). Both chambers.
     columns:
       - name: bioguide_id
         tests:

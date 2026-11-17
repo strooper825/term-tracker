@@ -1807,7 +1807,7 @@ export const HOUSE_READ_ANNUAL: AnnualDisclosuresResponse = {
       }),
     ],
     liabilities_list: [],
-    // Schedules C to H are not read yet (ADR 0030): null, not "none".
+    // Read before the reader learnt Schedules C to H (ADR 0031): null, not "none".
     income: null,
     positions: null,
     agreements: null,

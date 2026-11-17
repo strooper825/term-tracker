@@ -209,3 +209,30 @@ unit_tests:
       rows:
         - {row_index: 1, is_current: true, position_held: Member Manager, entity: Family LLC, entity_type: Limited Liability Company, comments: null}
         - {row_index: 2, is_current: false, position_held: Officer, entity: Pin Point, entity_type: Company, comments: Closed in May 2025.}
+
+  # ADR 0031: House Schedule C.
+  - name: stg_house_annual_income_picks_the_stated_amount
+    model: stg_house_annual_income
+    given:
+      - input: source('raw', 'annual_report_row')
+        format: sql
+        rows: |
+          select 'house_clerk' as source, 'H1' as doc_id, 'C' as part, 1 as row_index, 'X1' as bioguide_id, now() as fetched_at,
+                 '{"page": 4, "cells": {"source": "State Pension", "type": "Pension", "amount": "$11,424.00"}, "detail": {}}'::jsonb as payload
+          union all
+          select 'house_clerk', 'H1', 'C', 2, 'X1', now(),
+                 '{"page": 4, "cells": {"source": "Hospital", "type": "Spouse Salary", "amount": "N/A"}, "detail": {"comments": "Ended in May"}}'::jsonb
+          union all
+          select 'house_clerk', 'H2', 'C', 1, 'X2', now(),
+                 '{"page": 4, "cells": {"source": "Commission", "type": "Salary", "amount": "N/A", "amount_preceding": "$127,500.00"}, "detail": {}}'::jsonb
+          union all
+          select 'house_clerk', 'H2', 'C', 2, 'X2', now(),
+                 '{"page": 4, "cells": {"source": "Clinic", "type": "Spouse salary", "amount": "N/A", "amount_preceding": "N/A"}, "detail": {}}'::jsonb
+          union all
+          select 'house_clerk', 'H1', 'A', 1, 'X1', now(), '{"page": 1, "cells": {}, "detail": {}}'::jsonb
+    expect:
+      rows:
+        - {doc_id: H1, row_index: 1, owner_code: null, payer: State Pension, amount_raw: "$11,424.00", amount_kind: exact, amount_low: "11424.00", amount_period: null, comments: null}
+        - {doc_id: H1, row_index: 2, owner_code: null, payer: Hospital, amount_raw: N/A, amount_kind: not_stated, amount_low: null, amount_period: null, comments: Ended in May}
+        - {doc_id: H2, row_index: 1, owner_code: null, payer: Commission, amount_raw: "$127,500.00", amount_kind: exact, amount_low: "127500.00", amount_period: Preceding year, comments: null}
+        - {doc_id: H2, row_index: 2, owner_code: null, payer: Clinic, amount_raw: N/A, amount_kind: not_stated, amount_low: null, amount_period: null, comments: null}

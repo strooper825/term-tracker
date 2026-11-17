@@ -658,7 +658,8 @@ site shows it: "Annual report for 2025", "New member report for 2024", "Amended 
 
 ADR 0028, ADR 0029; both chambers. `annual_report_version`: one row per (member, source, year) with a
 parsed annual, new member or amended report, the one that stands for the year (highest amendment
-number, then latest filed). `annual_asset`:
+number, then latest filed), with `sections_read` (ADR 0031: its income, positions, agreements, gifts
+and travel were read; every Senate report, a House report read by reader 2 or later). `annual_asset`:
 each Part 3 line of that report in order, with `row_label` ("1", "1.1"), `parent_label`, `is_account`
 (a line holding other lines; counts in no total), `asset_name`, `asset_notes`, `asset_category`,
 `asset_subtype`, `asset_code` (House), `held_in` (the account or plan holding the line: the House text
@@ -678,21 +679,24 @@ asset has no upper end). Reported net worth only: a home that earns no income ne
 
 ### `mart.annual_income`, `mart.annual_position`, `mart.annual_agreement`, `mart.annual_gift`, `mart.annual_travel`
 
-ADR 0030; Senate only for now (Parts 2, 8, 9, 5 and 6 of eFD's report). Each has one row per line of
+ADR 0030, ADR 0031; both chambers (Senate Parts 2, 8, 9, 5 and 6; House Schedules C, E, F, G and H).
+Fields the House does not print are null: an income or gift owner, a position's dates and `is_current`,
+an agreement's type, a gift's date, travelers, locations other than a gift giver's. Each has one row per line of
 the report that stands for the year (`annual_report_version`), with `bioguide_id`, `covers_year`,
 `doc_id`, `row_index` (the report's order), `source` and `source_url`. eFD's "Other (X)" is kept as X.
 `annual_income`: `owner_code`/`owner_label` (who was paid), `income_type`, `income_detail` (the filer's
 description, e.g. "Book advance"), `payer`, `payer_location`, `amount_raw`, `amount_kind` (`exact`, to
-the cent; `over`, "> $1,000", how a spouse's income is reported), `amount_low`, `amount_high` (null for
-`over`), `comments`. Never summed. `annual_position`: `position_dates` ("Mar 2008 to present"),
+the cent; `over`, Senate "> $1,000", how a spouse's income is reported; `not_stated`, House "N/A", a source
+listed without its amount), `amount_low`, `amount_high` (null unless `exact`), `amount_period` (House new
+member reports: "Current year to filing" or "Preceding year", whichever amount was stated), `comments`. Never summed. `annual_position`: `position_dates` ("Mar 2008 to present"),
 `is_current`, `position_held`, `entity`, `entity_location`, `entity_type`, `comments`.
 `annual_agreement`: `agreement_date` ("Aug 2020"), `parties`, `parties_location`, `agreement_type`,
 `terms`, `comments`. `annual_gift`: `gift_date`, `owner_code`/`owner_label` (recipient), `gift`,
 `value_raw`, `value`, `giver`, `giver_location`, `comments`. `annual_travel`: `departed`, `returned`,
 `travelers`, `travel_type`, `itinerary`, `reimbursed_for`, `sponsor` (who paid), `sponsor_location`,
-`comments`. `GET /api/v1/members/{id}/annual-disclosures` adds them to `latest` as `income`,
-`positions`, `agreements`, `gifts` and `travel`: null for a House report (not read that far yet), an
-empty list when the filer listed none.
+`days_at_own_expense` (House only), `comments`. `GET /api/v1/members/{id}/annual-disclosures` adds them to `latest` as `income`,
+`positions`, `agreements`, `gifts` and `travel`: null unless `annual_report_version.sections_read` (every
+Senate report; a House report read by reader 2 or later), an empty list when the filer listed none.
 
 ### `mart.member_annual_disclosures`
 

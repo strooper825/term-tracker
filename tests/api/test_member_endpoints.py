@@ -857,6 +857,7 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
         "amount_kind": "exact",
         "amount_low": 6408.12,
         "amount_high": 6408.12,
+        "amount_period": None,
         "comments": None,
     }
     position = {
@@ -877,8 +878,10 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
         "reimbursed_for": "Airfare",
         "sponsor": "Robert Tressell Organizing Committee",
         "sponsor_location": "Dublin, Ireland",
+        "days_at_own_expense": None,
         "comments": None,
     }
+    sections_read = [{"sections_read": True}]
     _use_rows(
         [_summary_row()],
         {
@@ -891,6 +894,7 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
             "mart.annual_agreement": [],
             "mart.annual_gift": [],
             "mart.annual_travel": [trip],
+            "mart.annual_report_version": sections_read,
             "mart.member_annual_disclosures": [
                 _annual_summary(chamber="senate", source="senate_efd")
             ],
@@ -909,7 +913,91 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
     assert latest["agreements"] == [] and latest["gifts"] == []
     assert latest["travel"][0]["departed"] == "2025-05-22"
 
-    # A House report is not read past Schedules A and D yet: its sections are null, not empty.
-    worth["source"] = "house_clerk"
+    # A report read before its sections were (a House report not yet read again by reader 2):
+    # its sections are null, not empty.
+    sections_read[0] = {"sections_read": False}
     latest = client.get("/api/v1/members/S001213/annual-disclosures").json()["latest"]
     assert latest["assets"] and latest["income"] is None and latest["travel"] is None
+
+
+def test_annual_disclosures_carry_house_sections_without_owner_or_dates(
+    client: TestClient,
+) -> None:
+    url = "https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025/10076090.pdf"
+    worth = {
+        "bioguide_id": "C000537",
+        "covers_year": 2025,
+        "doc_id": "10076090",
+        "label": "Annual report for 2025",
+        "filing_date": date(2026, 5, 15),
+        "holdings": 0,
+        "unascertainable": 0,
+        "assets_low": 0,
+        "assets_high": 0,
+        "assets_high_is_open": False,
+        "liabilities": 0,
+        "liabilities_low": 0,
+        "liabilities_high": 0,
+        "liabilities_high_is_open": False,
+        "net_low": 0,
+        "net_high": 0,
+        "source": "house_clerk",
+        "source_url": url,
+    }
+    income = {
+        "owner_label": None,
+        "income_type": "Spouse Salary",
+        "income_detail": None,
+        "payer": "Example Clinic",
+        "payer_location": None,
+        "amount_raw": "N/A",
+        "amount_kind": "not_stated",
+        "amount_low": None,
+        "amount_high": None,
+        "amount_period": None,
+        "comments": None,
+    }
+    trip = {
+        "departed": date(2025, 11, 9),
+        "returned": date(2025, 11, 12),
+        "travelers": None,
+        "travel_type": None,
+        "itinerary": "Columbia, SC - New York NY - Washington, DC",
+        "reimbursed_for": None,
+        "sponsor": "Little, Brown and Company",
+        "sponsor_location": None,
+        "days_at_own_expense": 0,
+        "comments": None,
+    }
+    _use_rows(
+        [_summary_row()],
+        {
+            "mart.annual_net_worth": [worth],
+            "mart.annual_asset": [],
+            "mart.annual_liability": [],
+            "mart.annual_income": [income],
+            "mart.annual_position": [
+                {
+                    "position_dates": None,
+                    "is_current": None,
+                    "position_held": "Board Member (uncompensated)",
+                    "entity": "Allen University",
+                    "entity_location": None,
+                    "entity_type": None,
+                    "comments": None,
+                }
+            ],
+            "mart.annual_agreement": [],
+            "mart.annual_gift": [],
+            "mart.annual_travel": [trip],
+            "mart.annual_report_version": [{"sections_read": True}],
+            "mart.member_annual_disclosures": [_annual_summary()],
+            "mart.annual_disclosure": [],
+        },
+    )
+    latest = client.get("/api/v1/members/C000537/annual-disclosures").json()["latest"]
+    assert latest["income"][0]["amount_kind"] == "not_stated"
+    assert latest["income"][0]["owner_label"] is None
+    assert latest["positions"][0]["is_current"] is None
+    assert latest["travel"][0]["days_at_own_expense"] == 0
+    assert latest["gifts"] == []

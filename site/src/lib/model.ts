@@ -904,7 +904,7 @@ export interface NetWorthModel {
    *  sections with lines. */
   sections: DisclosureSection[];
   /** "gifts or paid travel": sections read from the report in which the filer listed nothing.
-   *  Null when there are none, or when the report is not read that far (House, for now). */
+   *  Null when there are none, or when the report has not been read that far. */
   noneReported: string | null;
 }
 
@@ -944,7 +944,21 @@ function incomeTypeLabel(type: string, detail: string | null): string {
   return type === 'Other' ? detail : `${type} (${detail})`;
 }
 
-/** Income, positions, agreements, gifts and travel of a read report (ADR 0030). Only orders and
+/** What the income amounts mean, naming only the reporting rules the lines shown follow: the
+ *  Senate prints a spouse's income as over $1,000, the House often lists a source with "N/A". */
+function incomeNote(income: NonNullable<AnnualNetWorth['income']>): string {
+  return [
+    'Earned and other non-investment income; investment income is listed with each holding.',
+    income.some((i) => i.amount_kind === 'over') ? 'A spouse’s is reported only as over $1,000.' : null,
+    income.some((i) => i.amount_kind === 'not_stated')
+      ? 'A spouse’s earned income can be listed by source alone, without an amount.'
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** Income, positions, agreements, gifts and travel of a read report (ADR 0030, ADR 0031). Only orders and
  *  formats what the marts give. A null list (House, for now) is neither shown nor called none. */
 export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 'sections' | 'noneReported'> {
   const lists: Record<DisclosureSection['id'], DisclosureRow[] | null> = {
@@ -952,14 +966,21 @@ export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 
       w.income?.map((i, n) => ({
         key: `income-${n}`,
         title: i.payer,
-        meta: joined([incomeTypeLabel(i.income_type, i.income_detail), i.owner_label, i.payer_location]),
+        meta: joined([
+          incomeTypeLabel(i.income_type, i.income_detail),
+          i.owner_label,
+          i.payer_location,
+          i.amount_period,
+        ]),
         notes: i.comments,
         figure:
-          i.amount_kind === 'over' && i.amount_low !== null
-            ? `Over ${formatMoney(i.amount_low)}`
-            : i.amount_low !== null
-              ? formatMoney(i.amount_low)
-              : i.amount_raw,
+          i.amount_kind === 'not_stated'
+            ? 'No amount given'
+            : i.amount_kind === 'over' && i.amount_low !== null
+              ? `Over ${formatMoney(i.amount_low)}`
+              : i.amount_low !== null
+                ? formatMoney(i.amount_low)
+                : i.amount_raw,
       })) ?? null,
     positions:
       w.positions?.map((p, n) => ({
@@ -972,7 +993,7 @@ export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 
     agreements:
       w.agreements?.map((a, n) => ({
         key: `agreement-${n}`,
-        title: `${a.agreement_type} \u00b7 ${a.parties}`,
+        title: a.agreement_type ? `${a.agreement_type} \u00b7 ${a.parties}` : a.parties,
         meta: joined([a.agreement_date, a.parties_location]),
         notes: joined([a.terms, a.comments], ' '),
         figure: null,
@@ -981,7 +1002,12 @@ export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 
       w.gifts?.map((g, n) => ({
         key: `gift-${n}`,
         title: g.gift,
-        meta: joined([`From ${g.giver}`, g.giver_location, `to ${g.owner_label}`, formatDate(g.gift_date)]),
+        meta: joined([
+          `From ${g.giver}`,
+          g.giver_location,
+          g.owner_label ? `to ${g.owner_label}` : null,
+          g.gift_date ? formatDate(g.gift_date) : null,
+        ]),
         notes: g.comments,
         figure: formatMoney(g.value),
       })) ?? null,
@@ -993,6 +1019,9 @@ export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 
           t.departed === t.returned ? formatDate(t.departed) : `${formatDate(t.departed)} \u2013 ${formatDate(t.returned)}`,
           t.travelers,
           t.sponsor_location,
+          t.days_at_own_expense
+            ? `${t.days_at_own_expense} day${t.days_at_own_expense === 1 ? '' : 's'} at own expense`
+            : null,
         ]),
         notes: joined([t.itinerary, t.reimbursed_for ? `Covered: ${t.reimbursed_for}` : null, t.comments], '. '),
         figure: null,
@@ -1004,10 +1033,7 @@ export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 
     .map<DisclosureSection>((id) => ({
       id,
       title: SECTION_TITLES[id][0],
-      note:
-        id === 'income'
-          ? 'Earned and other non-investment income. A spouse\u2019s is reported only as over $1,000; investment income is listed with each holding.'
-          : null,
+      note: id === 'income' ? incomeNote(w.income ?? []) : null,
       rows: lists[id] as DisclosureRow[],
     }));
   const none = ids.filter((id) => lists[id] !== null && lists[id]!.length === 0).map((id) => SECTION_TITLES[id][1]);

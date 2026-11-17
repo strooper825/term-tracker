@@ -35,6 +35,7 @@ also recorded here once made.
 - [0028. Reading Senate annual reports: holdings, liabilities, a reported net-worth range](0028-senate-annual-report-contents.md)
 - [0029. Reading House annual reports: Schedules A and D from the Clerk's PDFs](0029-house-annual-report-contents.md)
 - [0030. The rest of a Senate annual report: income, positions, agreements, gifts and travel](0030-senate-annual-income-positions-agreements.md)
+- [0031. The rest of a House annual report: Schedules C and E to H from the Clerk's PDFs](0031-house-annual-income-positions-agreements.md)
 
 ## Format
 
