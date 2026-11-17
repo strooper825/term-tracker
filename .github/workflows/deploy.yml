@@ -211,6 +211,9 @@ jobs:
       - name: Start the API against the runner's Postgres
         env:
           DATABASE_URL: postgresql+psycopg://term:term@127.0.0.1:5432/term_tracker
+          # The refresh path exports Neon's PGSSLMODE=require to the whole job (ingest.dbt_env);
+          # libpq reads it, and the runner's Postgres has no SSL.
+          PGSSLMODE: disable
         run: |
           nohup uvicorn api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
           for i in $(seq 1 30); do
