@@ -325,20 +325,21 @@ describe('roll call votes', () => {
 });
 
 describe('member tabs', () => {
-  it('five tabs in order, the first selected, and the other panels hidden', () => {
+  it('the tabs in order, the first selected, and the other panels hidden', () => {
     render(dashboard());
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual([
       'Congress activity',
       'Election',
       'Contact',
-      'Financial disclosures',
+      'Stock trades',
+      'Annual disclosure',
       'Public statements' + 'Soon',
       'Constituency',
     ]);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'panel-activity');
-    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(6);
+    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(7);
   });
 
   it('Congress activity holds the votes, committees and record, and no current-term card', () => {
@@ -658,10 +659,21 @@ describe('fundraising card: given a mart.member_fundraising row, this text rende
 });
 
 
-describe('member dashboard: stock trades tab', () => {
-  it('is a live tab, not a locked placeholder', () => {
+describe('member dashboard: annual disclosure tab', () => {
+  it('is its own tab beside the trades, not a section inside them', () => {
     render(dashboard());
-    const tab = screen.getByRole('tab', { name: /Financial disclosures/ });
+    fireEvent.click(screen.getByRole('tab', { name: 'Annual disclosure' }));
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', 'panel-annual-disclosure');
+    expect(within(panel).getByRole('heading', { name: 'Annual disclosure' })).toBeInTheDocument();
+    expect(within(panel).queryByRole('heading', { name: 'Stock trades' })).not.toBeInTheDocument();
+  });
+});
+
+describe('member dashboard: stock trades tab', () => {
+  it('is a live tab, not a locked placeholder, keeping the stock-trades id for old links', () => {
+    render(dashboard());
+    const tab = screen.getByRole('tab', { name: 'Stock trades' });
     expect(tab).not.toHaveTextContent('Soon');
     fireEvent.click(tab);
     const panel = screen.getByRole('tabpanel');
@@ -671,19 +683,18 @@ describe('member dashboard: stock trades tab', () => {
 
   it('a House member with no reports on file gets the empty-record message', () => {
     render(dashboard());
-    fireEvent.click(screen.getByRole('tab', { name: /Financial disclosures/ }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Stock trades' }));
     const panel = screen.getByRole('tabpanel');
-    expect(panel).toHaveTextContent('No reports on file');
-    expect(panel).toHaveTextContent('since Jan 3, 2025');
+    expect(panel).toHaveTextContent('No trade reports since Jan 3, 2025');
   });
 
   it('a senator gets the not-available-for-the-Senate message, not the same empty record', () => {
     render(dashboard(COTTON));
-    fireEvent.click(screen.getByRole('tab', { name: /Financial disclosures/ }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Stock trades' }));
     const panel = screen.getByRole('tabpanel');
-    expect(panel).toHaveTextContent('Not available for the Senate');
-    expect(panel).not.toHaveTextContent('No reports on file');
-    expect(within(panel).getByRole('link', { name: /Senate disclosure site/ })).toHaveAttribute(
+    expect(panel).toHaveTextContent('Not collected for the Senate yet');
+    expect(panel).not.toHaveTextContent('No trade reports since');
+    expect(within(panel).getByRole('link', { name: /Search the Senate’s eFD/ })).toHaveAttribute(
       'href',
       'https://efdsearch.senate.gov/search/',
     );

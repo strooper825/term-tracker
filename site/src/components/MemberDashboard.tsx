@@ -30,6 +30,7 @@ import { CommitteesCard, KeyDatesCard, LockedTabPanel, NextElectionCard } from '
 import { Breadcrumb } from './SiteChrome';
 import { PageShell } from './SiteFrame';
 import { StatementsTab } from './StatementsTab';
+import { AnnualDisclosureTab } from './AnnualDisclosureTab';
 import { StockTradesTab } from './StockTradesTab';
 import { RecordCard } from './TermCards';
 
@@ -129,13 +130,17 @@ export function memberTabs(props: DashboardProps): TabSpec[] {
             />
           ),
         },
+    // ADR 0033: two tabs, not one with sub-tabs. The trades keep the old id, so #stock-trades links
+    // (from when the one tab held both) still land on the trades.
     {
       id: 'stock-trades',
-      // Renamed when the annual reports' contents arrived (ADR 0028); the id keeps old links working.
-      label: 'Financial disclosures',
-      content: (
-        <StockTradesTab model={props.stockTrades} annual={props.annualReports} name={props.member.name} />
-      ),
+      label: 'Stock trades',
+      content: <StockTradesTab model={props.stockTrades} name={props.member.name} />,
+    },
+    {
+      id: 'annual-disclosure',
+      label: 'Annual disclosure',
+      content: <AnnualDisclosureTab annual={props.annualReports} name={props.member.name} />,
     },
     props.statements
       ? {

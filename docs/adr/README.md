@@ -37,6 +37,7 @@ also recorded here once made.
 - [0030. The rest of a Senate annual report: income, positions, agreements, gifts and travel](0030-senate-annual-income-positions-agreements.md)
 - [0031. The rest of a House annual report: Schedules C and E to H from the Clerk's PDFs](0031-house-annual-income-positions-agreements.md)
 - [0032. Trades in industries a member's committees oversee](0032-trades-in-industries-a-members-committees-oversee.md)
+- [0033. Stock trades and the annual disclosure as two member tabs](0033-stock-trades-and-annual-disclosure-tabs.md)
 
 ## Format
 

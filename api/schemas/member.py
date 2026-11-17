@@ -555,6 +555,10 @@ class AnnualDisclosuresResponse(BaseModel):
     latest: AnnualNetWorth | None = Field(
         description="What the newest read report adds up to (ADR 0028); null until one is read"
     )
+    years: list[AnnualNetWorth] = Field(
+        default_factory=list,
+        description="Every read report, one per year, newest first; the first is `latest`",
+    )
     sources: list[SourceRef]
 
 

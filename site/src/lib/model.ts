@@ -703,8 +703,10 @@ export interface StockTradeRow {
   description: string | null;
   /** The SEC's industry for the company (ADR 0032), null for a bond, a fund or an unlisted ticker. */
   industry: string | null;
-  /** "In an industry the House Committee on Armed Services oversees", one per committee. */
+  /** Committees the member sits on that oversee the company's industry (ADR 0032), by name. */
   overlaps: string[];
+  /** "2026": the year traded, for the year filter. */
+  year: string;
   /** The PDF, at the page the row is printed on. */
   url: string;
 }
@@ -752,9 +754,8 @@ export interface StockTradesModel {
   lastTrade: string | null;
   tradeRows: StockTradeRow[];
   filingRows: StockFilingRow[];
-  /** "4 of 31 trades are in an industry one of their committees oversees" (ADR 0032); null when
-   *  no trade has an industry, so nothing can be said either way. */
-  overlapSummary: string | null;
+  /** Trades in an industry one of the member's committees oversees (ADR 0032). */
+  overlapTrades: number;
 }
 
 const FILING_STATUS_LABEL: Record<FilingStatus, string> = {
@@ -788,11 +789,12 @@ export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
     owner: t.owner_label,
     transaction: t.transaction_type_label,
     direction: t.direction,
-    amount: t.amount_raw,
+    amount: t.amount_raw.replace(' - ', ' – '),
     heldIn: t.subholding_of,
     description: t.description,
     industry: t.industry ?? null,
-    overlaps: (t.overlaps ?? []).map((o) => `In an industry the ${o.committee_name} oversees`),
+    overlaps: (t.overlaps ?? []).map((o) => o.committee_name),
+    year: t.trade_date.slice(0, 4),
     url: t.source_url,
   }));
   const filingRows = r.filings.map<StockFilingRow>((f) => ({
@@ -834,17 +836,8 @@ export function buildStockTrades(r: StockTradesResponse): StockTradesModel {
     lastTrade: sum.last_trade_date ? formatDate(sum.last_trade_date) : null,
     tradeRows,
     filingRows,
-    overlapSummary: overlapSummary(tradeRows),
+    overlapTrades: tradeRows.filter((t) => t.overlaps.length > 0).length,
   };
-}
-
-/** How many trades with a known industry are in one the member's committees oversee. Counted over
- *  the trades with an industry only: a bond or a fund cannot be in or out of one. */
-function overlapSummary(rows: StockTradeRow[]): string | null {
-  const known = rows.filter((t) => t.industry !== null).length;
-  if (known === 0) return null;
-  const overlapping = rows.filter((t) => t.overlaps.length > 0).length;
-  return `${formatNumber(overlapping)} of ${formatNumber(known)} trades with a known industry are in an industry one of this member’s committees oversees`;
 }
 
 export interface AnnualReportRow {
@@ -926,6 +919,13 @@ export interface NetWorthModel {
   /** "gifts or paid travel": sections read from the report in which the filer listed nothing.
    *  Null when there are none, or when the report has not been read that far. */
   noneReported: string | null;
+  /** Outside income stated to the dollar, summed: "$345,000"; null when none is stated or the
+   *  report is not read that far. Never adds a range or an "over $1,000". */
+  incomeStated: string | null;
+  /** "1 more without an exact amount"; null when every line has one. */
+  incomeNote: string | null;
+  /** Report link and date for the heading: "Filed May 15, 2026". */
+  filedOn: string;
 }
 
 export interface AnnualReportsModel {
@@ -937,6 +937,8 @@ export interface AnnualReportsModel {
   rows: AnnualReportRow[];
   /** What the newest read report adds up to; null until one is read (House reports for now). */
   worth: NetWorthModel | null;
+  /** Every read report, newest first; `worth` is the first. The year switch picks among them. */
+  years: NetWorthModel[];
 }
 
 function moneyRange(low: number | null, high: number | null, lowOpen = false): string {
@@ -1064,6 +1066,19 @@ export function buildDisclosureSections(w: AnnualNetWorth): Pick<NetWorthModel, 
 
 /** The net-worth figures, holdings and debts of the newest read report (ADR 0028). Every figure
  *  is a mart column; this only orders and formats. */
+/** The outside-income figure: the lines stated to the dollar, added up, and how many lines have
+ *  no exact amount (a spouse's "over $1,000", the House's "N/A"). Those are counted, never added. */
+function incomeFigure(w: AnnualNetWorth): Pick<NetWorthModel, 'incomeStated' | 'incomeNote'> {
+  const lines = w.income ?? [];
+  const exact = lines.filter((i) => i.amount_kind === 'exact' && i.amount_low !== null);
+  if (exact.length === 0) return { incomeStated: null, incomeNote: null };
+  const rest = lines.length - exact.length;
+  return {
+    incomeStated: formatMoney(exact.reduce((n, i) => n + (i.amount_low as number), 0)),
+    incomeNote: rest ? `${formatNumber(rest)} more without an exact amount` : null,
+  };
+}
+
 export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
   const holdings = w.assets
     .filter((a) => !a.is_account)
@@ -1105,6 +1120,8 @@ export function buildNetWorth(w: AnnualNetWorth): NetWorthModel {
     holdings,
     debts,
     ...buildDisclosureSections(w),
+    ...incomeFigure(w),
+    filedOn: `Filed ${formatDate(w.filing_date)}`,
   };
 }
 
@@ -1118,6 +1135,7 @@ export function buildAnnualReports(r: AnnualDisclosuresResponse): AnnualReportsM
     checkedAt: r.checked_at ? formatTimestampUtc(r.checked_at) : null,
     lookupUrl: r.lookup_url,
     worth: r.latest ? buildNetWorth(r.latest) : null,
+    years: (r.years?.length ? r.years : r.latest ? [r.latest] : []).map(buildNetWorth),
     rows: r.items.map((i) => {
       const pending = i.kind === 'extension';
       return {

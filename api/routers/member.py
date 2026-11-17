@@ -274,7 +274,6 @@ NET_WORTH_SQL = text(
     JOIN mart.annual_disclosure AS d ON d.source = n.source AND d.doc_id = n.doc_id
     WHERE n.bioguide_id = :bioguide
     ORDER BY n.covers_year DESC
-    LIMIT 1
     """
 )
 
@@ -764,6 +763,37 @@ def member_stock_trades(
     )
 
 
+SECTION_MODELS: dict[str, type[BaseModel]] = {
+    "income": AnnualIncome,
+    "positions": AnnualPosition,
+    "agreements": AnnualAgreement,
+    "gifts": AnnualGift,
+    "travel": AnnualTravel,
+}
+
+
+def _read_report(session: Session, worth: Any) -> AnnualNetWorth:
+    """One read report: its figures, holdings, debts and, when read that far, the rest."""
+    params = {"doc_id": worth["doc_id"]}
+    assets = session.execute(ANNUAL_ASSETS_SQL, params).mappings().all()
+    debts = session.execute(ANNUAL_LIABILITIES_SQL, params).mappings().all()
+    sections: dict[str, list[Any] | None] = dict.fromkeys(SECTION_MODELS)
+    version = session.execute(SECTIONS_READ_SQL, params).mappings().first()
+    if version is not None and version["sections_read"]:
+        for section, model in SECTION_MODELS.items():
+            rows = session.execute(ANNUAL_SECTION_SQL[section], params).mappings().all()
+            sections[section] = [model(**{k: x[k] for k in model.model_fields}) for x in rows]
+    fields = set(AnnualNetWorth.model_fields) - {"assets", "liabilities_list", *SECTION_MODELS}
+    return AnnualNetWorth(
+        **{k: worth[k] for k in fields},
+        **sections,
+        assets=[AnnualAsset(**{k: a[k] for k in AnnualAsset.model_fields}) for a in assets],
+        liabilities_list=[
+            AnnualLiability(**{k: d[k] for k in AnnualLiability.model_fields}) for d in debts
+        ],
+    )
+
+
 @router.get(
     "/annual-disclosures",
     response_model=AnnualDisclosuresResponse,
@@ -779,34 +809,8 @@ def member_annual_disclosures(
             status_code=404, detail=f"No annual disclosure status for {bioguide}; rebuild the mart"
         )
     items = session.execute(ANNUAL_DISCLOSURES_SQL, {"bioguide": bioguide}).mappings().all()
-    worth = session.execute(NET_WORTH_SQL, {"bioguide": bioguide}).mappings().first()
-    latest = None
-    if worth is not None:
-        params = {"doc_id": worth["doc_id"]}
-        assets = session.execute(ANNUAL_ASSETS_SQL, params).mappings().all()
-        debts = session.execute(ANNUAL_LIABILITIES_SQL, params).mappings().all()
-        section_models: dict[str, type[BaseModel]] = {
-            "income": AnnualIncome,
-            "positions": AnnualPosition,
-            "agreements": AnnualAgreement,
-            "gifts": AnnualGift,
-            "travel": AnnualTravel,
-        }
-        sections: dict[str, list[Any] | None] = dict.fromkeys(section_models)
-        version = session.execute(SECTIONS_READ_SQL, params).mappings().first()
-        if version is not None and version["sections_read"]:
-            for section, model in section_models.items():
-                rows = session.execute(ANNUAL_SECTION_SQL[section], params).mappings().all()
-                sections[section] = [model(**{k: x[k] for k in model.model_fields}) for x in rows]
-        fields = set(AnnualNetWorth.model_fields) - {"assets", "liabilities_list", *section_models}
-        latest = AnnualNetWorth(
-            **{k: worth[k] for k in fields},
-            **sections,
-            assets=[AnnualAsset(**{k: a[k] for k in AnnualAsset.model_fields}) for a in assets],
-            liabilities_list=[
-                AnnualLiability(**{k: d[k] for k in AnnualLiability.model_fields}) for d in debts
-            ],
-        )
+    worths = session.execute(NET_WORTH_SQL, {"bioguide": bioguide}).mappings().all()
+    years = [_read_report(session, worth) for worth in worths]
     return AnnualDisclosuresResponse(
         bioguide_id=bioguide,
         chamber=row["chamber"],
@@ -818,7 +822,8 @@ def member_annual_disclosures(
             AnnualDisclosureItem(**{k: i[k] for k in AnnualDisclosureItem.model_fields})
             for i in items
         ],
-        latest=latest,
+        latest=years[0] if years else None,
+        years=years,
         sources=distinct_sources([row]),
     )
 

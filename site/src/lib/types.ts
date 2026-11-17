@@ -548,6 +548,8 @@ export interface AnnualDisclosuresResponse {
   items: AnnualDisclosureItem[];
   /** What the newest read report adds up to (ADR 0028); null until one is read. */
   latest?: AnnualNetWorth | null;
+  /** Every read report, newest first (the first is `latest`). Optional for older fixtures. */
+  years?: AnnualNetWorth[];
   sources: SourceRef[];
 }
 
