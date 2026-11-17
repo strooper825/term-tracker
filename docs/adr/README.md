@@ -34,6 +34,7 @@ also recorded here once made.
 - [0027. Annual financial disclosures, listed and linked](0027-annual-disclosures-listed.md)
 - [0028. Reading Senate annual reports: holdings, liabilities, a reported net-worth range](0028-senate-annual-report-contents.md)
 - [0029. Reading House annual reports: Schedules A and D from the Clerk's PDFs](0029-house-annual-report-contents.md)
+- [0030. The rest of a Senate annual report: income, positions, agreements, gifts and travel](0030-senate-annual-income-positions-agreements.md)
 
 ## Format
 

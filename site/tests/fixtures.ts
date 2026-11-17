@@ -1708,6 +1708,59 @@ export const SENATE_READ_ANNUAL: AnnualDisclosuresResponse = {
         comments: null,
       },
     ],
+    // ADR 0030: the rest of the report. Agreements and gifts read, none listed.
+    income: [
+      {
+        owner_label: 'Self',
+        income_type: 'Other',
+        income_detail: 'Book advance',
+        payer: 'Example Publishing House',
+        payer_location: 'New York, NY',
+        amount_raw: '$172,500.00',
+        amount_kind: 'exact',
+        amount_low: 172500,
+        amount_high: 172500,
+        comments: null,
+      },
+      {
+        owner_label: 'Spouse',
+        income_type: 'Salary',
+        income_detail: null,
+        payer: 'Example Hospital',
+        payer_location: 'Atlanta, GA',
+        amount_raw: '> $1,000',
+        amount_kind: 'over',
+        amount_low: 1000,
+        amount_high: null,
+        comments: null,
+      },
+    ],
+    positions: [
+      {
+        position_dates: 'Aug 2016 to present',
+        is_current: true,
+        position_held: 'Trustee',
+        entity: 'Example Family Trust',
+        entity_location: 'Burlington, VT',
+        entity_type: 'Trust',
+        comments: 'A co-trustee of a family trust.',
+      },
+    ],
+    agreements: [],
+    gifts: [],
+    travel: [
+      {
+        departed: '2025-05-22',
+        returned: '2025-05-28',
+        travelers: 'Self, Spouse',
+        travel_type: 'Privately-Sponsored',
+        itinerary: 'DC to Dublin and return; give a lecture',
+        reimbursed_for: 'Airfare and lodging',
+        sponsor: 'Example Lecture Committee',
+        sponsor_location: 'Dublin, Ireland',
+        comments: null,
+      },
+    ],
   },
 };
 
@@ -1754,6 +1807,12 @@ export const HOUSE_READ_ANNUAL: AnnualDisclosuresResponse = {
       }),
     ],
     liabilities_list: [],
+    // Schedules C to H are not read yet (ADR 0030): null, not "none".
+    income: null,
+    positions: null,
+    agreements: null,
+    gifts: null,
+    travel: null,
   },
 };
 

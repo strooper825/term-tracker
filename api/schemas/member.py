@@ -424,6 +424,61 @@ class AnnualLiability(BaseModel):
     comments: str | None
 
 
+class AnnualIncome(BaseModel):
+    owner_label: str = Field(description="Who was paid: Self, Spouse, Joint, Dependent child")
+    income_type: str = Field(description='As printed, e.g. "Salary", "Royalties", "Other"')
+    income_detail: str | None = Field(description='Described by the filer, e.g. "Book advance"')
+    payer: str
+    payer_location: str | None
+    amount_raw: str = Field(description='As printed: "$193,400.00", or "> $1,000" for a spouse')
+    amount_kind: Literal["exact", "over"]
+    amount_low: float | None
+    amount_high: float | None = Field(description="Null when the amount is only over a threshold")
+    comments: str | None
+
+
+class AnnualPosition(BaseModel):
+    position_dates: str | None = Field(description='As printed, e.g. "Mar 2008 to present"')
+    is_current: bool = Field(description='The dates run "to present"')
+    position_held: str
+    entity: str
+    entity_location: str | None
+    entity_type: str | None
+    comments: str | None
+
+
+class AnnualAgreement(BaseModel):
+    agreement_date: str | None = Field(description='As printed, e.g. "Aug 2020"')
+    parties: str
+    parties_location: str | None
+    agreement_type: str
+    terms: str | None
+    comments: str | None
+
+
+class AnnualGift(BaseModel):
+    gift_date: dt.date
+    owner_label: str = Field(description="Who received it")
+    gift: str
+    value_raw: str
+    value: float
+    giver: str
+    giver_location: str | None
+    comments: str | None
+
+
+class AnnualTravel(BaseModel):
+    departed: dt.date
+    returned: dt.date
+    travelers: str
+    travel_type: str | None
+    itinerary: str | None
+    reimbursed_for: str | None
+    sponsor: str = Field(description="Who paid")
+    sponsor_location: str | None
+    comments: str | None
+
+
 class AnnualNetWorth(BaseModel):
     covers_year: int
     doc_id: str
@@ -443,6 +498,17 @@ class AnnualNetWorth(BaseModel):
     source_url: str
     assets: list[AnnualAsset] = Field(description="In the report's order")
     liabilities_list: list[AnnualLiability] = Field(description="In the report's order")
+    # ADR 0030: the rest of the report. Null where the chamber's report is not read that far
+    # (House, for now); an empty list where it is read and the filer reported none.
+    income: list[AnnualIncome] | None = Field(
+        description="Earned and non-investment income, in the report's order"
+    )
+    positions: list[AnnualPosition] | None = Field(description="Outside positions held")
+    agreements: list[AnnualAgreement] | None = Field(
+        description="Agreements and arrangements (royalties, pensions, future employment)"
+    )
+    gifts: list[AnnualGift] | None
+    travel: list[AnnualTravel] | None = Field(description="Travel paid for by someone else")
 
 
 class AnnualDisclosuresResponse(BaseModel):

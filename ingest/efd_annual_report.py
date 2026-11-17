@@ -12,11 +12,10 @@ part's question:
 
 Every part with a table is stored: its column headings, and per row each cell's main text plus
 the notes eFD nests under it (a filer's comment under an asset, a subtype under an asset type, a
-city under a creditor). The site reads Parts 3 and 7 today; storing the rest means income,
-positions and gifts need no second fetch later.
+city under a creditor). The site reads Parts 2, 3, 5, 6, 7, 8 and 9 (ADR 0028, ADR 0030).
 
-Parts 3 and 7 are what the net-worth figures rest on, so their headings must be exactly the ones
-seen on all 35 tracked senators' reports of 2025 and 2026 (checked 2026-11-16), and a report
+The staging models read those parts' cells by position, so their headings must be exactly the
+ones seen on all 35 tracked senators' reports of 2025 and 2026 (checked 2026-11-16), and a report
 without a Part 3 is refused. A row whose cell count differs from its part's headings is refused
 in any part. A refused report raises :class:`ingest.senate_efd.EfdParseError`.
 """
@@ -35,7 +34,27 @@ from ingest.senate_efd import FILED_RE, EfdParseError
 READER_VERSION = 2
 ASSETS = "3"
 LIABILITIES = "7"
+INCOME = "2"
+GIFTS = "5"
+TRAVEL = "6"
+POSITIONS = "8"
+AGREEMENTS = "9"
 EXPECTED_COLUMNS = {
+    INCOME: ("", "#", "Who Was Paid", "Type", "Who Paid", "Amount Paid", "Comments"),
+    GIFTS: ("", "#", "Date", "Recipient", "Gift", "Value", "From", "Comments"),
+    TRAVEL: (
+        "",
+        "#",
+        "Date(s)",
+        "Traveler(s)",
+        "Travel Type",
+        "Itinerary",
+        "Reimbursed For",
+        "Who Paid",
+        "Comments",
+    ),
+    POSITIONS: ("", "#", "Position Dates", "Position Held", "Entity", "Entity Type", "Comments"),
+    AGREEMENTS: ("", "#", "Date", "Parties Involved", "Type", "Status and Terms", "Comments"),
     ASSETS: ("", "Asset", "Asset Type", "Owner", "Value", "Income Type", "Income"),
     LIABILITIES: (
         "",

@@ -817,6 +817,7 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
         "liabilities_high_is_open": False,
         "net_low": 162029,
         "net_high": 1629998,
+        "source": "senate_efd",
         "source_url": url,
     }
     asset = {
@@ -846,6 +847,38 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
         "creditor": "Quicken Loans/Rocket Mortgage",
         "comments": None,
     }
+    income = {
+        "owner_label": "Self",
+        "income_type": "Pension",
+        "income_detail": None,
+        "payer": "City of Burlington Vermont",
+        "payer_location": "Burlington, VT",
+        "amount_raw": "$6,408.12",
+        "amount_kind": "exact",
+        "amount_low": 6408.12,
+        "amount_high": 6408.12,
+        "comments": None,
+    }
+    position = {
+        "position_dates": "Aug 2016 to present",
+        "is_current": True,
+        "position_held": "Trustee",
+        "entity": "Islands Family Trust",
+        "entity_location": "North Hero, Vermont",
+        "entity_type": "Trust",
+        "comments": None,
+    }
+    trip = {
+        "departed": date(2025, 5, 22),
+        "returned": date(2025, 5, 28),
+        "travelers": "Self, Spouse",
+        "travel_type": "Privately-Sponsored",
+        "itinerary": "DC to Dublin & return",
+        "reimbursed_for": "Airfare",
+        "sponsor": "Robert Tressell Organizing Committee",
+        "sponsor_location": "Dublin, Ireland",
+        "comments": None,
+    }
     _use_rows(
         [_summary_row()],
         {
@@ -853,6 +886,11 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
             "mart.annual_net_worth": [worth],
             "mart.annual_asset": [asset],
             "mart.annual_liability": [debt],
+            "mart.annual_income": [income],
+            "mart.annual_position": [position],
+            "mart.annual_agreement": [],
+            "mart.annual_gift": [],
+            "mart.annual_travel": [trip],
             "mart.member_annual_disclosures": [
                 _annual_summary(chamber="senate", source="senate_efd")
             ],
@@ -864,3 +902,14 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
     assert latest["assets"][0]["asset_name"] == "CREF Stock Account - R1"
     assert latest["liabilities_list"][0]["creditor"] == "Quicken Loans/Rocket Mortgage"
     assert latest["source_url"] == url
+    # ADR 0030: the rest of a Senate report; a part with no rows is an empty list.
+    assert latest["income"][0]["payer"] == "City of Burlington Vermont"
+    assert latest["income"][0]["amount_kind"] == "exact"
+    assert latest["positions"][0]["is_current"] is True
+    assert latest["agreements"] == [] and latest["gifts"] == []
+    assert latest["travel"][0]["departed"] == "2025-05-22"
+
+    # A House report is not read past Schedules A and D yet: its sections are null, not empty.
+    worth["source"] = "house_clerk"
+    latest = client.get("/api/v1/members/S001213/annual-disclosures").json()["latest"]
+    assert latest["assets"] and latest["income"] is None and latest["travel"] is None

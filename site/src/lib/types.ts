@@ -417,6 +417,62 @@ export interface AnnualLiability {
   comments: string | null;
 }
 
+/** ADR 0030: the rest of a read report (Senate only for now). */
+export interface AnnualIncome {
+  owner_label: string;
+  income_type: string;
+  income_detail: string | null;
+  payer: string;
+  payer_location: string | null;
+  amount_raw: string;
+  amount_kind: 'exact' | 'over';
+  amount_low: number | null;
+  amount_high: number | null;
+  comments: string | null;
+}
+
+export interface AnnualPosition {
+  position_dates: string | null;
+  is_current: boolean;
+  position_held: string;
+  entity: string;
+  entity_location: string | null;
+  entity_type: string | null;
+  comments: string | null;
+}
+
+export interface AnnualAgreement {
+  agreement_date: string | null;
+  parties: string;
+  parties_location: string | null;
+  agreement_type: string;
+  terms: string | null;
+  comments: string | null;
+}
+
+export interface AnnualGift {
+  gift_date: string;
+  owner_label: string;
+  gift: string;
+  value_raw: string;
+  value: number;
+  giver: string;
+  giver_location: string | null;
+  comments: string | null;
+}
+
+export interface AnnualTravel {
+  departed: string;
+  returned: string;
+  travelers: string;
+  travel_type: string | null;
+  itinerary: string | null;
+  reimbursed_for: string | null;
+  sponsor: string;
+  sponsor_location: string | null;
+  comments: string | null;
+}
+
 export interface AnnualNetWorth {
   covers_year: number;
   doc_id: string;
@@ -436,6 +492,13 @@ export interface AnnualNetWorth {
   source_url: string;
   assets: AnnualAsset[];
   liabilities_list: AnnualLiability[];
+  /** Null where the chamber's report is not read that far (House, for now); empty when the
+   *  filer reported none. Optional so older fixtures still type-check. */
+  income?: AnnualIncome[] | null;
+  positions?: AnnualPosition[] | null;
+  agreements?: AnnualAgreement[] | null;
+  gifts?: AnnualGift[] | null;
+  travel?: AnnualTravel[] | null;
 }
 
 export interface AnnualDisclosuresResponse {

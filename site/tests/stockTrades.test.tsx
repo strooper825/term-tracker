@@ -148,7 +148,66 @@ describe('annual financial disclosures: a read report', () => {
   });
 });
 
+describe('annual financial disclosures: the rest of a Senate report (ADR 0030)', () => {
+  it('lists outside income, an exact figure rounded and a spouse’s as over $1,000', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+    const list = screen.getByRole('region', { name: 'Outside income' });
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Example Publishing House');
+    expect(within(items[0]).getByText('Book advance · Self · New York, NY')).toBeInTheDocument();
+    expect(within(items[0]).getByText('$172,500')).toBeInTheDocument();
+    expect(within(items[1]).getByText('Over $1,000')).toBeInTheDocument();
+    expect(within(list).getByText(/investment income is listed with each holding/)).toBeInTheDocument();
+  });
+
+  it('lists positions and paid travel with the filer’s words', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+    const positions = screen.getByRole('region', { name: 'Outside positions' });
+    expect(within(positions).getByText('Trustee, Example Family Trust')).toBeInTheDocument();
+    expect(within(positions).getByText('Trust · Burlington, VT · Aug 2016 to present')).toBeInTheDocument();
+    expect(within(positions).getByText('A co-trustee of a family trust.')).toBeInTheDocument();
+    const travel = screen.getByRole('region', { name: 'Paid travel' });
+    expect(within(travel).getByText('Paid by Example Lecture Committee')).toBeInTheDocument();
+    expect(within(travel).getByText(/May 22, 2025 – May 28, 2025 · Self, Spouse/)).toBeInTheDocument();
+  });
+
+  it('says which read parts list nothing, and shows no empty section', () => {
+    tab(EXAMPLE_SENATE, 'Sen. Example', SENATE_READ_ANNUAL);
+    expect(within(annualSection()).getByText('The report lists no agreements or gifts.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Gifts' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Agreements' })).not.toBeInTheDocument();
+  });
+
+  it('shows a gift with its giver, date and value', () => {
+    const read = structuredClone(SENATE_READ_ANNUAL);
+    read.latest!.gifts = [
+      {
+        gift_date: '2025-09-21',
+        owner_label: 'Self',
+        gift: 'Ticket to a football game',
+        value_raw: '$772.31',
+        value: 772.31,
+        giver: 'A friend',
+        giver_location: 'St. Louis, MO',
+        comments: 'Approved by the Ethics Committee.',
+      },
+    ];
+    tab(EXAMPLE_SENATE, 'Sen. Example', read);
+    const gifts = screen.getByRole('region', { name: 'Gifts' });
+    expect(within(gifts).getByText('From A friend · St. Louis, MO · to Self · Sep 21, 2025')).toBeInTheDocument();
+    expect(within(gifts).getByText('$772')).toBeInTheDocument();
+    expect(within(annualSection()).getByText('The report lists no agreements.')).toBeInTheDocument();
+  });
+});
+
 describe('annual financial disclosures: a read House report', () => {
+  it('shows no income or positions sections and calls nothing none while they are unread', () => {
+    tab(STEIL_NO_FILINGS, 'Rep. Example', HOUSE_READ_ANNUAL);
+    expect(screen.queryByRole('region', { name: 'Outside income' })).not.toBeInTheDocument();
+    expect(within(annualSection()).queryByText(/The report lists no/)).not.toBeInTheDocument();
+  });
+
   it('names each holding\u2019s account and keeps an exact figure as printed', () => {
     tab(STEIL_NO_FILINGS, 'Rep. Example', HOUSE_READ_ANNUAL);
     const list = screen.getByRole('region', { name: 'Holdings' });
