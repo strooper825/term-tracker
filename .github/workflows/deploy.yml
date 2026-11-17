@@ -52,14 +52,32 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+# actions: read lets the snapshot step find and download the mart snapshot an ingest run left.
+# Both callers (ingest.yml, archive.yml) grant it too, as a called workflow may not ask for more.
 permissions:
   contents: read
+  actions: read
 
 jobs:
   deploy:
     name: build site -> static check -> deploy
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The site is built from this Postgres in the runner, not from Neon (ADR 0034). One build
+    # made about 1,560 connections and read 119 MB through the API; on the Free plan's 5 GB of
+    # public transfer a month that ran out on 2026-11-17. Loading a mart snapshot here costs
+    # Neon nothing when an ingest run left one, and one 78 MB dump when it must be refreshed.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: term
+          POSTGRES_PASSWORD: term
+          POSTGRES_DB: term_tracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U term" --health-interval 2s --health-timeout 5s --health-retries 30
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -116,22 +134,83 @@ jobs:
             echo "::error::an archive is built from main only"; exit 1
           fi
 
+      # Where the mart comes from (ADR 0034). Called from ingest.yml, the ingest job of the same
+      # run has just left a snapshot built by this commit's models. Otherwise take the newest
+      # snapshot a run of ingest.yml on main left, and use it unless this commit changes dbt/ or
+      # migrations/ since that run: then the snapshot's mart is not this commit's models.
+      - name: Find the mart snapshot
+        id: snap
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          run_id=""; sha=""
+          if [ "$GITHUB_WORKFLOW" = "Nightly ingest" ]; then
+            run_id="$GITHUB_RUN_ID"; sha="$GITHUB_SHA"
+          else
+            for id in $(gh api "repos/$GH_REPO/actions/workflows/ingest.yml/runs?branch=main&status=completed&per_page=30" --jq '.workflow_runs[].id'); do
+              found=$(gh api "repos/$GH_REPO/actions/runs/$id/artifacts" --jq '[.artifacts[] | select(.name == "mart-snapshot" and (.expired | not))] | length')
+              if [ "$found" -gt 0 ]; then
+                run_id="$id"; sha=$(gh api "repos/$GH_REPO/actions/runs/$id" --jq .head_sha); break
+              fi
+            done
+          fi
+          mode=snapshot
+          if [ -z "$run_id" ]; then
+            mode=refresh; why="no snapshot from an ingest run on main"
+          elif [ "$sha" != "$GITHUB_SHA" ]; then
+            git fetch -q --depth=1 origin "$sha"
+            if ! git diff --quiet "$sha" HEAD -- dbt migrations; then
+              mode=refresh; why="dbt/ or migrations/ changed since the snapshot (${sha:0:7})"
+            fi
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "## Data" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$mode" = snapshot ]; then
+            echo "- Built from the mart snapshot of run $run_id (${sha:0:7}); nothing read from Neon" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Rebuilt the mart on Neon and dumped it: $why" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Download the mart snapshot
+        if: steps.snap.outputs.mode == 'snapshot'
+        uses: actions/download-artifact@v4
+        with:
+          name: mart-snapshot
+          run-id: ${{ steps.snap.outputs.run_id }}
+          github-token: ${{ github.token }}
+
       # The API served here is this commit's code, so the mart it reads has to be this
-      # commit's models. Without these two steps a branch that adds a mart column and selects
-      # it renders against whatever the last nightly built, and every request touching the new
+      # commit's models. Without a rebuild a branch that adds a mart column and selects it
+      # renders against whatever the last nightly built, and every request touching the new
       # column answers 500: that is how policy_area broke the feed endpoint on 2026-09-13.
       # No ingest happens, so this only re-derives the mart from the raw data already there:
-      # about 23 s against Neon, and idempotent when the nightly has just done it.
+      # about 23 s against Neon. dbt's work stays inside Neon; only the dump leaves it.
       - name: Export dbt connection settings from DATABASE_URL
+        if: steps.snap.outputs.mode == 'refresh'
         run: python -m ingest.dbt_env >> "$GITHUB_ENV"
 
       - name: Migrate
+        if: steps.snap.outputs.mode == 'refresh'
         run: alembic upgrade head
 
       - name: dbt build (rebuild the mart from this commit's models)
+        if: steps.snap.outputs.mode == 'refresh'
         run: dbt build --project-dir dbt --profiles-dir dbt --no-use-colors
 
-      - name: Start the API against the managed database
+      - name: Dump the mart from Neon
+        if: steps.snap.outputs.mode == 'refresh'
+        run: scripts/mart-snapshot.sh dump "$DATABASE_URL" mart-snapshot.dump
+
+      - name: Load the mart into the runner's Postgres
+        run: scripts/mart-snapshot.sh restore "$LOCAL_DATABASE_URL" mart-snapshot.dump
+        env:
+          LOCAL_DATABASE_URL: postgresql://term:term@127.0.0.1:5432/term_tracker
+
+      - name: Start the API against the runner's Postgres
+        env:
+          DATABASE_URL: postgresql+psycopg://term:term@127.0.0.1:5432/term_tracker
         run: |
           nohup uvicorn api.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
           for i in $(seq 1 30); do
@@ -254,12 +333,12 @@ jobs:
         if: always()
         run: pkill -f "uvicorn api.main:app" || true
 
-      # The Migrate step above moved the managed database to this branch's head. Called from
-      # ingest.yml (whose workflow name the github context then carries), the caller restores
-      # main's schema after the whole run; dispatched on its own from a branch, this does it
-      # (ADR 0019).
+      # The Migrate step above (refresh mode only) moved the managed database to this branch's
+      # head. Called from ingest.yml (whose workflow name the github context then carries), the
+      # caller restores main's schema after the whole run; dispatched on its own from a branch,
+      # this does it (ADR 0019).
       - name: Put the database back at main's schema
-        if: always() && github.ref_name != 'main' && github.workflow == 'Deploy site'
+        if: always() && steps.snap.outputs.mode == 'refresh' && github.ref_name != 'main' && github.workflow == 'Deploy site'
         run: |
           git fetch --depth=1 origin main
           python -m ingest.schema restore --main-ref FETCH_HEAD

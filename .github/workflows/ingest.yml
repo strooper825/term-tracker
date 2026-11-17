@@ -19,10 +19,9 @@ name: Nightly ingest
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC nightly (plan section 3)
-    # 18:00 UTC, a second run a day since 2026-11-14: each incremental run reads one request
-    # budget of queued bills (ADR 0023), so two runs drain a backlog twice as fast. The
-    # concurrency group below makes a run wait for the one before it.
-    - cron: "0 18 * * *"
+    # A second run at 18:00 UTC (2026-11-14 to 11-17) drained the bill queue twice as fast but
+    # doubled the reads from Neon, and the Free plan's 5 GB of public transfer ran out on
+    # 2026-11-17. A backlog is drained by dispatching with a larger bill_request_budget instead.
   workflow_dispatch:
     inputs:
       full_refresh:
@@ -57,6 +56,8 @@ concurrency:
 permissions:
   contents: read
   issues: write
+  # deploy.yml downloads the mart snapshot this run leaves (ADR 0034).
+  actions: read
 
 jobs:
   ingest:
@@ -120,6 +121,18 @@ jobs:
       - name: Freshness check and size report
         id: freshness
         run: python -m ingest.freshness --max-age-hours ${{ inputs.max_age_hours || 26 }}
+
+      # The one read of the mart from Neon per run (ADR 0034): about 78 MB over the wire, 7 MB
+      # kept. The deploy below, and every deploy until the next run, builds from this file.
+      - name: Snapshot the mart for the deploy
+        run: scripts/mart-snapshot.sh dump "$DATABASE_URL" mart-snapshot.dump
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mart-snapshot
+          path: mart-snapshot.dump
+          retention-days: 14
+          compression-level: 0
 
   # Same run, so a deploy failure fails this run and the alert job below sees it. The schedule
   # always deploys; a manual dispatch can opt out with the `deploy` input. deploy.yml resolves

@@ -29,6 +29,8 @@ concurrency:
 
 permissions:
   contents: read
+  # deploy.yml downloads the newest mart snapshot (ADR 0034).
+  actions: read
 
 jobs:
   site:
