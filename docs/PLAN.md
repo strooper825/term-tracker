@@ -124,6 +124,7 @@ Phase 2 adds `fec_committee`, `fec_summary`, `fec_contribution_agg`. Phase 3 add
 | House Clerk | Periodic transaction reports | None (the yearly filing index zip and the PTR PDFs) | Done for the House (ADR 0018): electronic PTRs are parsed, paper ones are scans with no text layer and are listed and linked, not read |
 | Senate eFD | Periodic transaction reports | None (agree to the statement on use each run) | Done (ADR 0026): electronic reports are parsed, paper ones are listed and linked. It refused automated access in September 2026 and answered GitHub runners again by 2026-11-16 |
 | USAspending API | Awards by district/state | None | Phase 3 |
+| Open States `openstates/people` (GitHub, public domain) | Every state governor and legislator, party history, dated roles | None (one GitHub API request for the newest commit, then its tarball) | Done for the States section (ADR 0035). District seat counts come from the openstates-core metadata (MIT) and shapes from the Census state legislative district files, both by hand when lines change (`python -m ingest.state_maps`) |
 
 **Zach's setup tasks before Phase 1 starts:**
 
@@ -254,6 +255,7 @@ term-tracker/
 - All 535 members (ingestion is already N-member; this is a seed change plus a runtime check).
 - Election results panel. Comparison view (member vs member).
 - Begin Wisconsin state-legislature sourcing.
+- States section (ADR 0035, 2026-11-17): who controls each state government, every governor and state legislator, a chamber map per state. Archived with the 119th as of 2026-11-02.
 
 ---
 

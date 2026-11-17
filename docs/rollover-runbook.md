@@ -29,6 +29,11 @@ so the archive should be built from the last nightly that ran before that happen
 
 4. **Disable the schedule** of `ingest.yml` once that nightly has finished, so nothing changes
    under the archive.
+   **Then merge a one-line pull request** setting `states_as_of: '2026-11-02'` in
+   `dbt/dbt_project.yml` (ADR 0035). The States section then describes each state as it stood
+   the day before the 2026 elections, the legislatures that served alongside the 119th. The
+   deploy that merge triggers rebuilds the mart (dbt/ changed), so the live site shows the same
+   day until step 6. Check `/states` says "As of Nov 2, 2026" before step 5.
 5. **Dispatch `archive.yml` on `main`** with `archive_congress` = `119` and `archive_live_url` =
    the live site's address. It builds the site with the archive banner, deploys it to the
    archive project, and attaches `term-tracker-119.dump` to the release `archive-119`. It stops
@@ -45,6 +50,10 @@ so the archive should be built from the last nightly that ran before that happen
      party counts. Until this is edited `/congress` shows the old Congress's seats under the
      new Congress's name.
    - `senate_vp_party` in `dbt_project.yml` only if the Vice President changed.
+   - `states_as_of` in `dbt_project.yml` back to `null`, so the States section shows today
+     again (ADR 0035). Open States records most new legislators within a few weeks of their
+     swearing-in; until then a seat whose new holder is missing shows as vacant, and a state
+     whose new governor is missing says so (warning `assert_state_governors_recorded`).
    - `dbt/seeds/key_dates.csv`: the new Congress's convening and end, and the next general
      election.
    - `dbt/seeds/election_dates.csv`: the 2028 rows for all 50 states (filing deadline, primary,

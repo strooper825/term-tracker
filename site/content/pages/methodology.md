@@ -13,6 +13,7 @@ Every number on Term is read from a public record and links back to it. The site
 - **The unitedstates/congress-legislators project**: who holds each seat, party, terms, committee assignments and office contact details.
 - **The Census Bureau**: state and district boundaries for the maps, and district demographics from the American Community Survey.
 - **Members' own press offices**: public statements, from each office's published feed where it has one.
+- **Open States (Plural Open)**: every state's governor and legislators, their parties and districts, from its public-domain [openstates/people](https://github.com/openstates/people) data. The States section counts a party as controlling a chamber when it holds more than half of all its seats, vacant ones included, and as controlling a state when it also holds the governorship. A supermajority is the share of seats needed to override a veto.
 - **The Securities and Exchange Commission**: the industry of each company a member trades. A trade in an industry one of the member's committees oversees is noted; [how that is decided](/methodology/committee-industries).
 
 ## Refreshed nightly
@@ -21,7 +22,7 @@ The data is reloaded every night. When a source is temporarily unavailable, the 
 
 ## Entered by hand
 
-Two things have no machine-readable source and are maintained by hand: the party breakdown of each chamber on the Congress overview (no source lists vacancies), and a few key dates such as election day.
+A few things have no machine-readable source and are maintained by hand: the party breakdown of each chamber on the Congress overview (no source lists vacancies), a few key dates such as election day, each state's supermajority threshold, and the state chambers run by a cross-party coalition.
 
 ## Full technical documentation
 

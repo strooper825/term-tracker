@@ -767,3 +767,50 @@ models:
         tests: [not_null]
       - name: has_map
         tests: [not_null]
+
+  - name: state_seat_holder
+    description: >
+      Who held each state legislative seat on the States section's day (ADR 0035), one row per
+      person in a legislative role that day, party reduced to R, D, I (independent or other) or
+      N (nonpartisan). is_seated is false for a person beyond the district's seat count.
+    columns:
+      - name: person_id
+        tests: [unique, not_null]
+      - name: party
+        tests:
+          - accepted_values: { arguments: { values: ["R", "D", "I", "N"] } }
+      - name: chamber
+        tests:
+          - accepted_values: { arguments: { values: ["upper", "lower", "legislature"] } }
+
+  - name: state_chamber
+    description: >
+      Each state legislative chamber on the States section's day (ADR 0035): seats, party counts,
+      vacancies, the majority and supermajority thresholds, and who controls it.
+    columns:
+      - name: state
+        tests: [not_null]
+      - name: control_kind
+        tests:
+          - accepted_values:
+              arguments: { values: ["supermajority", "majority", "coalition", "nonpartisan", "none"] }
+
+  - name: state_government
+    description: >
+      Each state's government on the States section's day (ADR 0035): the governor (DC's mayor)
+      and who controls it, R, D, I, N or split.
+    columns:
+      - name: state
+        tests: [unique, not_null]
+      - name: control
+        tests:
+          - accepted_values: { arguments: { values: ["R", "D", "I", "N", "split"] } }
+
+  - name: state_chamber_party
+    description: >
+      Seats each party group holds in each state legislative chamber on the States section's day
+      (ADR 0035); the segments of the chamber's bar on the site.
+    columns:
+      - name: party
+        tests:
+          - accepted_values: { arguments: { values: ["R", "D", "I", "N"] } }

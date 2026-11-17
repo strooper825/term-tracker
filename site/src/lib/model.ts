@@ -1184,6 +1184,7 @@ export function buildElection(dates: KeyDate[], detail: MemberDetail, today: Dat
 /** What a reader calls the rows of a source that can go unavailable (ADR 0020). */
 const SOURCE_LABELS: Record<string, string> = {
   senate_votes: 'Senate roll call votes',
+  openstates_people: 'State legislators',
 };
 
 /** The footer's "Last updated" stamp: the newest successful read of any source. A source that

@@ -59,6 +59,8 @@ sources:
         description: One transaction row of a parsed Senate PTR, every cell as the eFD page prints it (ADR 0026).
       - name: sec_company
         description: A traded company's CIK, name and SIC industry code from the SEC, keyed by normalised ticker (ADR 0032).
+      - name: state_person
+        description: A state legislator or governor from openstates/people, the YAML file as JSON, keyed by Open States person id (ADR 0035).
 
   - name: meta
     description: Operational metadata about the pipeline itself (Alembic and ingest/).

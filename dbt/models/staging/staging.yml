@@ -352,3 +352,18 @@ models:
       - name: kind
         tests:
           - accepted_values: { arguments: { values: ["state", "district"] } }
+
+  - name: stg_state_people
+    description: One row per state legislator or governor from openstates/people (ADR 0035).
+    columns:
+      - name: person_id
+        tests: [unique, not_null]
+
+  - name: stg_state_parties
+    description: One row per party a state legislator or governor has had, oldest first (ADR 0035).
+
+  - name: stg_state_roles
+    description: One row per legislative or governor role in openstates/people (ADR 0035).
+    columns:
+      - name: state
+        tests: [not_null]
