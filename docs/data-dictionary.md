@@ -674,7 +674,8 @@ accounts excluded), `unascertainable`, `assets_low`/`assets_high`/`assets_high_i
 `liabilities_low`/`liabilities_high`/`liabilities_high_is_open`, `net_low` (assets low minus liabilities
 high; null when a debt has no upper end) and `net_high` (assets high minus liabilities low; null when an
 asset has no upper end). Reported net worth only: a home that earns no income need not be reported.
-`GET /api/v1/members/{id}/annual-disclosures` returns the newest year's row as `latest`, with its
+`GET /api/v1/members/{id}/annual-disclosures` returns every read year as `years`, newest first (ADR 0033),
+and the newest again as `latest`, each with its
 `assets` and `liabilities_list`.
 
 ### `mart.annual_income`, `mart.annual_position`, `mart.annual_agreement`, `mart.annual_gift`, `mart.annual_travel`

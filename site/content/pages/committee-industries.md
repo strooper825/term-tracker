@@ -3,7 +3,7 @@ title: Trades and committee industries
 description: How Term notes a stock trade in an industry one of the member's committees oversees, and the full list of what each committee is taken to oversee.
 ---
 
-Some trades on a member's Financial disclosures tab carry a note: **"In an industry the House Committee on Armed Services oversees"**. This page explains what that note means and what it does not.
+Some trades on a member's Stock trades tab carry a note: **"In an industry the House Committee on Armed Services oversees, a committee this member sits on."** The tab can also be filtered to just those trades. This page explains what that note means and what it does not.
 
 ## What the note means
 

@@ -954,6 +954,8 @@ def test_annual_disclosures_carry_the_newest_read_report(client: TestClient) -> 
     )
     latest = client.get("/api/v1/members/S001213/annual-disclosures").json()["latest"]
     assert latest["covers_year"] == 2025 and latest["net_low"] == 162029
+    years = client.get("/api/v1/members/S001213/annual-disclosures").json()["years"]
+    assert [y["doc_id"] for y in years] == [latest["doc_id"]]
     assert latest["assets"][0]["asset_name"] == "CREF Stock Account - R1"
     assert latest["liabilities_list"][0]["creditor"] == "Quicken Loans/Rocket Mortgage"
     assert latest["source_url"] == url
