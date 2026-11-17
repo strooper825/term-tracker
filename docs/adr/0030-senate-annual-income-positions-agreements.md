@@ -73,4 +73,5 @@ Senate. House Schedules C, E, F, G and H can stack into the same marts later.
   its assets, on any of seven parts instead of two. The run logs a warning for it and counts it as
   `failed`. Reports already stored are not opened again, so they keep their rows.
 - **House:** Schedules C, E, F, G and H still have to be read from the PDFs. That is the next stage
-  and needs a House reader version, so stored reports are read again.
+  and needs a House reader version, so stored reports are read again. Done in ADR 0031, which
+  also replaces the chamber test in the API with `annual_report_version.sections_read`.

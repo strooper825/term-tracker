@@ -417,23 +417,25 @@ export interface AnnualLiability {
   comments: string | null;
 }
 
-/** ADR 0030: the rest of a read report (Senate only for now). */
+/** ADR 0030, ADR 0031: the rest of a read report. Fields the House does not print are null. */
 export interface AnnualIncome {
-  owner_label: string;
+  owner_label: string | null;
   income_type: string;
   income_detail: string | null;
   payer: string;
   payer_location: string | null;
   amount_raw: string;
-  amount_kind: 'exact' | 'over';
+  amount_kind: 'exact' | 'over' | 'not_stated';
   amount_low: number | null;
   amount_high: number | null;
+  /** House new member reports: "Current year to filing" or "Preceding year". */
+  amount_period?: string | null;
   comments: string | null;
 }
 
 export interface AnnualPosition {
   position_dates: string | null;
-  is_current: boolean;
+  is_current: boolean | null;
   position_held: string;
   entity: string;
   entity_location: string | null;
@@ -445,14 +447,14 @@ export interface AnnualAgreement {
   agreement_date: string | null;
   parties: string;
   parties_location: string | null;
-  agreement_type: string;
+  agreement_type: string | null;
   terms: string | null;
   comments: string | null;
 }
 
 export interface AnnualGift {
-  gift_date: string;
-  owner_label: string;
+  gift_date: string | null;
+  owner_label: string | null;
   gift: string;
   value_raw: string;
   value: number;
@@ -464,12 +466,13 @@ export interface AnnualGift {
 export interface AnnualTravel {
   departed: string;
   returned: string;
-  travelers: string;
+  travelers: string | null;
   travel_type: string | null;
   itinerary: string | null;
   reimbursed_for: string | null;
   sponsor: string;
   sponsor_location: string | null;
+  days_at_own_expense?: number | null;
   comments: string | null;
 }
 
@@ -492,8 +495,8 @@ export interface AnnualNetWorth {
   source_url: string;
   assets: AnnualAsset[];
   liabilities_list: AnnualLiability[];
-  /** Null where the chamber's report is not read that far (House, for now); empty when the
-   *  filer reported none. Optional so older fixtures still type-check. */
+  /** Null where the report has not been read that far (a House report not yet read again
+   *  after ADR 0031); empty when the filer reported none. Optional so older fixtures type-check. */
   income?: AnnualIncome[] | null;
   positions?: AnnualPosition[] | null;
   agreements?: AnnualAgreement[] | null;

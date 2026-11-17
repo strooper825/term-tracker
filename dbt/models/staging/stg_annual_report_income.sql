@@ -40,6 +40,7 @@ select
         as amount_kind,
     coalesce(replace(exact[1], ',', ''), replace(over[1], ',', ''))::numeric(16, 2) as amount_low,
     replace(exact[1], ',', '')::numeric(16, 2) as amount_high,
+    null::text as amount_period,
     nullif(nullif(trim(concat_ws(' ',
         c -> 6 ->> 'text',
         array_to_string(array(select jsonb_array_elements_text(c -> 6 -> 'notes')), '; ')

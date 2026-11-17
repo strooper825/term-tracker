@@ -8,18 +8,26 @@ opened by a bold 12pt heading whose readable part is its letter ("S........ A: A
 "Schedule A: Assets and 'Unearned' Income"). Seen on 2026-11-16 across the tracked members' 2024
 and 2025 reports.
 
-Two schedules are read, the two the net-worth figures need:
+Seven schedules are read. A and D give the holdings and debts (ADR 0029); C and E to H the
+rest of the report (ADR 0031):
 
 * **A, Assets and "Unearned" Income**: Asset, Owner, Value of Asset, Income Type(s), Income,
   Tx. > $1,000?. An asset ends with its two-character type code in brackets; one held in an
   account is printed "ACCOUNT NAME ⇒ asset name [XX]".
+* **C, Earned Income**: Source, Type, Amount (a new member's report: two amounts).
 * **D, Liabilities**: Owner, Creditor, Date Incurred, Type, Amount of Liability.
+* **E, Positions**: Position, Name of Organization.
+* **F, Agreements**: Date, Parties To, Terms of Agreement.
+* **G, Gifts**: Source, Description, Value.
+* **H, Travel**: Source, Start Date, End Date, Itinerary, Days at Own Exp., and three check-mark
+  columns drawn as graphics, which read empty.
 
 Rows are found by spacing: lines of one row sit about 10.5pt apart, rows 20pt or more. A row may
 run from the foot of one page onto the head of the next, so a page's first line continues the
-open row when that row is not yet whole (an asset without its code, a value band printed only
-to its dash). Every cell is kept as printed; dbt reads values, codes and accounts from the
-strings, as it does for the Senate (ADR 0028).
+open row when it does not start a row (Schedules C to H: no amount, organization, date, value or
+start date) or when the open row is not yet whole (an asset without its code, a value band
+printed only to its dash). Every cell is kept as printed; dbt reads values, codes and accounts
+from the strings, as it does for the Senate (ADR 0028).
 
 Failure is explicit, as in the PTR reader: a PDF with no text layer is ``scanned``; text whose
 schedules do not read back as whole rows raises :class:`AnnualReportParseError`. Schedule A must
@@ -39,11 +47,48 @@ import pdfplumber
 from ingest.house_ptr import FILING_ID_RE
 
 ASSETS = "A"
+INCOME = "C"
 LIABILITIES = "D"
+POSITIONS = "E"
+AGREEMENTS = "F"
+GIFTS = "G"
+TRAVEL = "H"
+# Bumped when a change alters what the reader stores; reports read by an older version are read
+# again (ingest.sources.house_annual.stored_pages). 1: Schedules A and D (ADR 0029). 2: also
+# C, E, F, G and H (ADR 0031).
+READER_VERSION = 2
 # Header words (bold 9.4pt) that open each column, left to right, and the cell each fills. An
 # annual report's Schedule A ends with "Tx. > $1,000?"; a new member's report (filing type H) has
-# two income columns instead, the current year to filing and the preceding year.
+# two income columns instead, the current year to filing and the preceding year, and its
+# Schedule C two amount columns the same way. Schedule H's Lodging?, Food? and Family? columns
+# are check marks drawn as graphics, so their cells are always empty; they are kept so the
+# columns to their left end where the Clerk's do.
 LAYOUTS: dict[str, list[tuple[tuple[str, ...], tuple[str, ...]]]] = {
+    INCOME: [
+        (("Source", "Type", "Amount"), ("source", "type", "amount")),
+        (
+            ("Source", "Type", "Amount", "Amount"),
+            ("source", "type", "amount", "amount_preceding"),
+        ),
+    ],
+    POSITIONS: [(("Position", "Name"), ("position", "organization"))],
+    AGREEMENTS: [(("Date", "Parties", "Terms"), ("date", "parties", "terms"))],
+    GIFTS: [(("Source", "Description", "Value"), ("source", "description", "value"))],
+    TRAVEL: [
+        (
+            ("Source", "Start", "End", "Itinerary", "Days", "Lodging?", "Food?", "Family?"),
+            (
+                "source",
+                "start_date",
+                "end_date",
+                "itinerary",
+                "days_at_own_expense",
+                "lodging",
+                "food",
+                "family",
+            ),
+        ),
+    ],
     ASSETS: [
         (
             ("Asset", "Owner", "Value", "Income", "Income", "Tx."),
@@ -156,8 +201,9 @@ def _header_columns(line: _Line, letter: str) -> tuple[list[float], tuple[str, .
             if wanted and text == wanted[0]:
                 xs.append(w["x0"])
                 wanted.pop(0)
-        # Every heading word found, and no further "Income" left over (the other layout).
-        if not wanted and texts.count("Income") == heads.count("Income"):
+        # Every heading word found, and no further "Income" or "Amount" left over (the other
+        # layout of the same schedule).
+        if not wanted and all(texts.count(w) == heads.count(w) for w in ("Income", "Amount")):
             return xs, names
     return None
 
@@ -169,6 +215,35 @@ def _split(line: _Line, xs: list[float], names: tuple[str, ...]) -> dict[str, st
         low, high = bounds[i] - X_TOLERANCE, bounds[i + 1] - X_TOLERANCE
         cells[name] = _join(w for w in line.words if low <= w["x0"] < high)
     return cells
+
+
+# Schedules C to H: the cell printed only on a row's first line. Their first column (a source,
+# a position) wraps onto a row's later lines and onto the next page ("Little, Brown and" /
+# "Company"), so it cannot say where a row starts the way an asset's name does.
+ROW_STARTS = {
+    INCOME: ("amount", "amount_preceding"),
+    POSITIONS: ("organization",),
+    AGREEMENTS: ("date",),
+    GIFTS: ("value",),
+    TRAVEL: ("start_date",),
+}
+# Cells a row of each schedule cannot be without.
+REQUIRED = {
+    ASSETS: ("value",),
+    INCOME: ("source",),
+    LIABILITIES: ("amount",),
+    POSITIONS: ("position", "organization"),
+    AGREEMENTS: ("date", "parties"),
+    GIFTS: ("source", "value"),
+    TRAVEL: ("source", "start_date", "end_date"),
+}
+
+
+def _starts_row(letter: str, cells: dict[str, str]) -> bool:
+    if letter in ROW_STARTS:
+        return any(cells.get(name) for name in ROW_STARTS[letter])
+    # A row starts with its name (the asset; for a liability, the creditor).
+    return bool(cells.get("asset") or cells.get("creditor"))
 
 
 def _whole(letter: str, row: Row) -> bool:
@@ -250,7 +325,7 @@ def _read(pdf: Any, parsed: ParsedAnnualReport) -> None:
                 schedule.none_disclosed = True
                 continue
             if letter not in LAYOUTS:
-                continue  # a schedule this reader does not read (B, C, E to I)
+                continue  # a schedule this reader does not read (B, I, J)
             header = _header_columns(line, letter)
             if header:
                 xs, names = header
@@ -262,12 +337,12 @@ def _read(pdf: Any, parsed: ParsedAnnualReport) -> None:
             if line.size >= 8.9:
                 body_size = body_size or line.size
                 cells = _split(line, xs, names)
-                # A row starts with its name (the asset; for a liability, the creditor). A line
-                # without one carries on the row above, even across a page break, where a whole
-                # row can still spill a wrapped income type onto the next page.
-                named = bool(cells.get("asset") or cells.get("creditor"))
+                # A line that does not start a row (_starts_row) carries on the row above, even
+                # across a page break, where a whole row can still spill a wrapped income type
+                # or a travel source's second line onto the next page.
+                starts = _starts_row(letter, cells)
                 continues = current is not None and (
-                    not named
+                    not starts
                     or (page_start and not _whole(letter, current))
                     or (not page_start and line.top - last_top < ROW_GAP)
                 )
@@ -306,16 +381,12 @@ def _validate(parsed: ParsedAnnualReport) -> None:
     if not assets.rows and not assets.none_disclosed:
         raise AnnualReportParseError("Schedule A has neither rows nor 'None disclosed.'")
     problems = []
-    for letter in (ASSETS, LIABILITIES):
+    for letter, required in REQUIRED.items():
         schedule = parsed.schedules.get(letter)
         for i, row in enumerate(schedule.rows if schedule else [], start=1):
             where = f"Schedule {letter} row {i} (page {row.page})"
-            if letter == ASSETS:
-                if not CODE_RE.search(row.cells["asset"]):
-                    problems.append(f"{where}: asset {row.cells['asset'][-40:]!r} has no [code]")
-                if not row.cells["value"]:
-                    problems.append(f"{where}: no value")
-            elif not row.cells["amount"]:
-                problems.append(f"{where}: no amount")
+            if letter == ASSETS and not CODE_RE.search(row.cells["asset"]):
+                problems.append(f"{where}: asset {row.cells['asset'][-40:]!r} has no [code]")
+            problems.extend(f"{where}: no {name}" for name in required if not row.cells[name])
     if problems:
         raise AnnualReportParseError("; ".join(problems[:5]))

@@ -92,4 +92,5 @@ transaction reports (ADR 0018):
   range as "-$23,522,930 or more".
 - **Paper filers** (Khanna, among others) stay as links until OCR is decided (PLAN section 12).
 - **Schedules B, C and E to I** (transactions, earned income, positions, agreements, gifts,
-  travel) are not read. A "None disclosed." answer is recorded for each schedule.
+  travel) are not read. A "None disclosed." answer is recorded for each schedule. ADR 0031 reads
+  C and E to H.

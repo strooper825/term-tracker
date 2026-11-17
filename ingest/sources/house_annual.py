@@ -11,11 +11,14 @@ A year's index the Clerk has not published yet is skipped while that year is cur
 missing index fails the run.
 
 Each annual, amendment, new member or termination report is then opened once (ADR 0029): a filed
-PDF never changes. :mod:`ingest.house_annual_report` reads Schedules A (assets) and D
-(liabilities) into ``raw.annual_report_page`` and ``raw.annual_report_row``. A PDF with no text
-is stored as ``paper``. One that does not read, or whose own state-district or filing year
-differs from the index row, is ``failed`` with no rows and is tried again each night. A PDF that
-cannot be fetched is skipped tonight; the run fails if every attempted fetch failed.
+PDF never changes. :mod:`ingest.house_annual_report` reads Schedules A (assets), C (earned
+income), D (liabilities), E (positions), F (agreements), G (gifts) and H (travel) into
+``raw.annual_report_page`` and ``raw.annual_report_row``. A report read by an older reader
+(``READER_VERSION``, kept in the page's payload) is fetched and read again (ADR 0031). A PDF
+with no text is stored as ``paper``. One that does not read, or whose own state-district or
+filing year differs from the index row, is ``failed`` with no rows and is tried again each
+night. A PDF that cannot be fetched is skipped tonight; the run fails if every attempted fetch
+failed.
 """
 
 from __future__ import annotations
@@ -32,7 +35,11 @@ from psycopg.types.json import Jsonb
 from api.config import get_settings
 from ingest.annual_disclosures import HOUSE_KINDS, house_report_url
 from ingest.db import connect
-from ingest.house_annual_report import AnnualReportParseError, parse_annual_report
+from ingest.house_annual_report import (
+    READER_VERSION,
+    AnnualReportParseError,
+    parse_annual_report,
+)
 from ingest.house_ptr import BASE_URL, ClerkClient, index_url, parse_index
 from ingest.load import record_run, upsert
 from ingest.models.house_ptr import IndexRow
@@ -55,12 +62,15 @@ READ_KINDS = ("annual", "amendment", "new_filer", "termination")
 
 
 def stored_pages(conn: Connection) -> set[str]:
-    """Reports that need no second fetch: a filed PDF never changes."""
+    """Reports that need no second fetch: a filed PDF never changes. A report read by an older
+    reader (``READER_VERSION``; version 1 stored none) is read again, so the reader's new
+    schedules reach stored reports. A scan stays ``paper``: no reader change gives it text."""
     with conn.cursor() as cur:
         cur.execute(
             "SELECT doc_id FROM raw.annual_report_page "
-            "WHERE source = %s AND status IN ('parsed', 'paper')",
-            (RAW_SOURCE,),
+            "WHERE source = %s AND (status = 'paper' OR (status = 'parsed' "
+            "AND coalesce((payload ->> 'reader')::int, 1) >= %s))",
+            (RAW_SOURCE, READER_VERSION),
         )
         return {r[0] for r in cur.fetchall()}
 
@@ -73,7 +83,7 @@ def read_reports(
     *,
     full_refresh: bool = False,
 ) -> tuple[int, Counter[str]]:
-    """Open each listed report not read yet; store Schedules A and D. Returns rows and outcomes."""
+    """Open each listed report not read yet; store its schedules. Returns rows and outcomes."""
     already = set() if full_refresh else stored_pages(conn)
     outcome: Counter[str] = Counter()
     total = attempted = 0
@@ -91,6 +101,7 @@ def read_reports(
         try:
             parsed = parse_annual_report(data)
             header = {
+                "reader": READER_VERSION,
                 "pages": parsed.pages,
                 "text_chars": parsed.text_chars,
                 "filer_name": parsed.filer_name,

@@ -29,6 +29,7 @@ select
     nullif(c -> 6 ->> 'text', '') as reimbursed_for,
     c -> 7 ->> 'text' as sponsor,
     c -> 7 -> 'notes' ->> 0 as sponsor_location,
+    null::int as days_at_own_expense,
     nullif(nullif(trim(concat_ws(' ',
         c -> 8 ->> 'text',
         array_to_string(array(select jsonb_array_elements_text(c -> 8 -> 'notes')), '; ')

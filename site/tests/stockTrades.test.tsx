@@ -201,8 +201,117 @@ describe('annual financial disclosures: the rest of a Senate report (ADR 0030)',
   });
 });
 
+describe('annual financial disclosures: the rest of a House report (ADR 0031)', () => {
+  function houseWithSections(): AnnualDisclosuresResponse {
+    const read = structuredClone(HOUSE_READ_ANNUAL);
+    Object.assign(read.latest!, {
+      income: [
+        {
+          owner_label: null,
+          income_type: 'Spouse Salary',
+          income_detail: null,
+          payer: 'Example Clinic',
+          payer_location: null,
+          amount_raw: 'N/A',
+          amount_kind: 'not_stated',
+          amount_low: null,
+          amount_high: null,
+          amount_period: null,
+          comments: null,
+        },
+        {
+          owner_label: null,
+          income_type: 'Salary',
+          income_detail: null,
+          payer: 'Example Commission',
+          payer_location: null,
+          amount_raw: '$127,500.00',
+          amount_kind: 'exact',
+          amount_low: 127500,
+          amount_high: 127500,
+          amount_period: 'Preceding year',
+          comments: null,
+        },
+      ],
+      positions: [
+        {
+          position_dates: null,
+          is_current: null,
+          position_held: 'Board Member (uncompensated)',
+          entity: 'Example University',
+          entity_location: null,
+          entity_type: null,
+          comments: null,
+        },
+      ],
+      agreements: [
+        {
+          agreement_date: 'June 1992',
+          parties: 'Myself and Example Retirement System',
+          parties_location: null,
+          agreement_type: null,
+          terms: 'Retirement Pension',
+          comments: null,
+        },
+      ],
+      gifts: [
+        {
+          gift_date: null,
+          owner_label: null,
+          gift: 'Birthday Gift',
+          value_raw: '$500.00',
+          value: 500,
+          giver: 'A friend',
+          giver_location: 'Durham, NC, US',
+          comments: null,
+        },
+      ],
+      travel: [
+        {
+          departed: '2025-04-12',
+          returned: '2025-04-24',
+          travelers: null,
+          travel_type: null,
+          itinerary: 'New York - Tokyo - New York',
+          reimbursed_for: null,
+          sponsor: 'Example Foundation',
+          sponsor_location: null,
+          days_at_own_expense: 6,
+          comments: null,
+        },
+      ],
+    });
+    return read;
+  }
+
+  it('shows income without an owner, and a source listed without its amount', () => {
+    tab(STEIL_NO_FILINGS, 'Rep. Example', houseWithSections());
+    const items = within(screen.getByRole('region', { name: 'Outside income' })).getAllByRole('listitem');
+    expect(within(items[0]).getByText('Spouse Salary')).toBeInTheDocument();
+    expect(within(items[0]).getByText('No amount given')).toBeInTheDocument();
+    expect(within(items[1]).getByText('Salary · Preceding year')).toBeInTheDocument();
+    expect(within(items[1]).getByText('$127,500')).toBeInTheDocument();
+    const note = within(screen.getByRole('region', { name: 'Outside income' }));
+    expect(note.getByText(/listed by source alone, without an amount/)).toBeInTheDocument();
+    expect(note.queryByText(/over \$1,000/)).not.toBeInTheDocument();
+  });
+
+  it('shows what the House prints and leaves out what it does not', () => {
+    tab(STEIL_NO_FILINGS, 'Rep. Example', houseWithSections());
+    const positions = screen.getByRole('region', { name: 'Outside positions' });
+    expect(within(positions).getByText('Board Member (uncompensated), Example University')).toBeInTheDocument();
+    const agreements = screen.getByRole('region', { name: 'Agreements' });
+    expect(within(agreements).getByText('Myself and Example Retirement System')).toBeInTheDocument();
+    const gifts = screen.getByRole('region', { name: 'Gifts' });
+    expect(within(gifts).getByText('From A friend · Durham, NC, US')).toBeInTheDocument();
+    const travel = screen.getByRole('region', { name: 'Paid travel' });
+    expect(within(travel).getByText('Apr 12, 2025 – Apr 24, 2025 · 6 days at own expense')).toBeInTheDocument();
+    expect(within(annualSection()).queryByText(/The report lists no/)).not.toBeInTheDocument();
+  });
+});
+
 describe('annual financial disclosures: a read House report', () => {
-  it('shows no income or positions sections and calls nothing none while they are unread', () => {
+  it('shows no sections and calls nothing none for a report not yet read past A and D', () => {
     tab(STEIL_NO_FILINGS, 'Rep. Example', HOUSE_READ_ANNUAL);
     expect(screen.queryByRole('region', { name: 'Outside income' })).not.toBeInTheDocument();
     expect(within(annualSection()).queryByText(/The report lists no/)).not.toBeInTheDocument();
