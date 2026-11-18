@@ -9,6 +9,25 @@ from pydantic import BaseModel, Field
 from api.schemas.members import SourceRef
 
 
+class Office(BaseModel):
+    address: str | None
+    phone: str | None
+
+
+class Social(BaseModel):
+    twitter: str | None
+    facebook: str | None
+    instagram: str | None
+    youtube: str | None
+
+
+class PriorRole(BaseModel):
+    chamber: str
+    chamber_name: str | None
+    start_date: date | None
+    end_date: date | None
+
+
 class Governor(BaseModel):
     person_id: str
     name: str
@@ -17,7 +36,16 @@ class Governor(BaseModel):
     party_label: str | None = Field(description="The party as Open States names it")
     image_url: str | None
     website_url: str | None
-    start_date: date | None
+    start_date: date | None = Field(description="Start of the role held on the day")
+    since: date | None = Field(description="Start of the governor's unbroken time in office")
+    term_end: date | None = Field(description="End of the current term as Open States records it")
+    email: str | None
+    office: Office | None
+    contact_form_url: str | None
+    social: Social
+    prior_service: list[PriorRole] = Field(
+        description="Legislative service on record before taking office, one row per chamber"
+    )
 
 
 class PartySeats(BaseModel):
@@ -93,11 +121,6 @@ class Legislator(BaseModel):
     website_url: str | None
 
 
-class Office(BaseModel):
-    address: str | None
-    phone: str | None
-
-
 class Term(BaseModel):
     chamber: str
     chamber_name: str | None
@@ -110,13 +133,6 @@ class CommitteeSeat(BaseModel):
     name: str
     chamber: str = Field(description="upper, lower, or legislature (joint)")
     role: str | None = Field(description='"Chair", "vice chair", ...; null for a plain member')
-
-
-class Social(BaseModel):
-    twitter: str | None
-    facebook: str | None
-    instagram: str | None
-    youtube: str | None
 
 
 class LegislatorProfile(BaseModel):

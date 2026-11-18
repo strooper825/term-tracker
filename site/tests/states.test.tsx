@@ -86,6 +86,13 @@ const SUMMARY: StateSummary = {
     image_url: null,
     website_url: 'https://governor.example',
     start_date: '2023-01-02',
+    since: '2019-01-07',
+    term_end: '2027-01-04',
+    email: null,
+    office: { address: '1 Capitol Sq., Example', phone: '555-555-0100' },
+    contact_form_url: 'https://governor.example/contact',
+    social: { twitter: 'GovExample', facebook: null, instagram: null, youtube: null },
+    prior_service: [{ chamber: 'upper', chamber_name: 'Senate', start_date: '2009-01-01', end_date: '2016-12-31' }],
   },
   chambers: [SENATE, HOUSE],
 };
@@ -216,6 +223,12 @@ describe('state page', () => {
     const governor = screen.getByRole('region', { name: 'Governor' });
     expect(governor).toHaveTextContent('Pat Example');
     expect(governor).toHaveTextContent('Republican');
+    // whole time in office, not the current role's start, and when the term ends
+    expect(governor).toHaveTextContent('Governor since Jan 7, 2019 · Term ends Jan 4, 2027');
+    expect(governor).toHaveTextContent('Earlier: State Senate, 2009–2016');
+    expect(within(governor).getByRole('link', { name: '555-555-0100' })).toHaveAttribute('href', 'tel:5555550100');
+    expect(within(governor).getByRole('link', { name: /Contact form/ })).toHaveAttribute('href', 'https://governor.example/contact');
+    expect(within(governor).getByRole('link', { name: /^X/ })).toHaveAttribute('href', 'https://x.com/GovExample');
     expect(screen.getByText('As of Nov 2, 2026')).toBeInTheDocument();
     expect(screen.getByText('Republican supermajority')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Senate: Democratic 8, Vacant 1, Republican 21 of 30 seats/ })).toBeInTheDocument();

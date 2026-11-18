@@ -1328,6 +1328,12 @@ addresses are never used) and `twitter`, `facebook`, `instagram`, `youtube` (acc
 recorded). On 2026-11-18, of 7,417 seated: 7,372 capitol addresses, 3,058 district addresses,
 7,406 emails, 698 X accounts.
 
+### `mart.state_governor_prior_role`
+
+Legislative service on record for each governor before taking office: `state`, `person_id`,
+`chamber`, `chamber_name`, `start_date` (first), `end_date` (last); one row per chamber. 10 rows
+for 9 governors on 2026-11-18.
+
 ### `mart.state_legislator_term`
 
 Service on record for each seated legislator: one row per unbroken span in one chamber and
@@ -1364,6 +1370,11 @@ share), `supermajority_numerator`/`_denominator`/`_basis`, `control_party`, `con
 One row per state, DC and Puerto Rico: `state_name`, `legislature_name`, the governor
 (`governor_person_id`, `governor_name`, `governor_party`, `governor_party_label`,
 `governor_image_url`, `governor_website_url`, `governor_start_date`; DC's mayor, with
-`executive_title` `Mayor`), and `control`: the governor's party when the same party group
+`executive_title` `Mayor`), the governor card's details (`governor_since`, the start of their
+unbroken time in office, joining roles that follow within a week, since Open States records most
+governors' consecutive terms as one role and 8 of 52 as one role per term; `governor_term_end`,
+the current role's end date; `governor_email`, `governor_office_address`,
+`governor_office_phone`, the first capitol office; `governor_contact_form_url`, the first link
+noted as a form, 28 of 52; `governor_twitter`, `_facebook`, `_instagram`, `_youtube`), and `control`: the governor's party when the same party group
 controls every chamber with a majority or more, `N` for Nebraska, `split` otherwise. On
 2026-11-17: 22 R, 16 D, 12 split, Nebraska N, Puerto Rico I (PNP).

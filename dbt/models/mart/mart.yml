@@ -806,6 +806,11 @@ models:
         tests:
           - accepted_values: { arguments: { values: ["R", "D", "I", "N", "split"] } }
 
+  - name: state_governor_prior_role
+    description: >
+      Legislative service on record for each governor before taking office (ADR 0035), one row
+      per chamber with its first start and last end. Often incomplete.
+
   - name: state_legislator_term
     description: >
       The legislative service on record for each seated state legislator (ADR 0035): one row per

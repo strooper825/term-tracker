@@ -17,7 +17,18 @@ export interface StateGovernor {
   party_label: string | null;
   image_url: string | null;
   website_url: string | null;
+  /** start of the role held on the day */
   start_date: string | null;
+  /** start of the governor's unbroken time in office */
+  since: string | null;
+  /** end of the current term as Open States records it */
+  term_end: string | null;
+  email: string | null;
+  office: { address: string | null; phone: string | null } | null;
+  contact_form_url: string | null;
+  social: { twitter: string | null; facebook: string | null; instagram: string | null; youtube: string | null };
+  /** legislative service on record before taking office, one row per chamber */
+  prior_service: { chamber: string; chamber_name: string | null; start_date: string | null; end_date: string | null }[];
 }
 
 export interface StatePartySeats {
@@ -571,4 +582,13 @@ export function initials(name: string): string {
 /** "District 7" for a numbered district, the name as written otherwise ("2nd Berkshire", "Ward 1"). */
 export function districtName(district: string): string {
   return /^\d+[A-Z]?$/i.test(district) ? `District ${district}` : district;
+}
+
+/** An address as one line: Open States separates lines with semicolons ("Room 1; Capitol;"). */
+export function addressLine(address: string): string {
+  return address
+    .split(';')
+    .map((part) => part.trim().replace(/,$/, ''))
+    .filter(Boolean)
+    .join(', ');
 }

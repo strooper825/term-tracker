@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { StateRoster } from '@/components/StateRoster';
 import {
+  addressLine,
   committeeLine,
   districtName,
   initials,
@@ -106,6 +107,9 @@ describe('roster helpers', () => {
       'Rules (ranking Democratic member)',
     );
     expect(initials('Paul W. Mark')).toBe('PM');
+    expect(addressLine('Office of the Governor; State House; Concord, NH 03301;')).toBe(
+      'Office of the Governor, State House, Concord, NH 03301',
+    );
   });
 
   it('keeps only usable social accounts', () => {
