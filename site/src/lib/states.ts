@@ -44,6 +44,8 @@ export interface StateChamber {
   control_group: string | null;
   control_kind: ControlKind;
   control_note: string | null;
+  /** Parties are members' voter registration in an officially nonpartisan legislature. */
+  by_registration: boolean;
   parties: StatePartySeats[];
 }
 
@@ -51,6 +53,8 @@ export interface StateSummary {
   state: string;
   name: string;
   control: Control;
+  /** Control is read from members' party registration (Nebraska). */
+  by_registration: boolean;
   governor: StateGovernor | null;
   chambers: StateChamber[];
 }
@@ -130,6 +134,33 @@ export function partyFill(party: StateParty | 'V'): string {
   return party === 'N' ? NONPARTISAN_FILL : PARTY_FILL[party as PartyLetter];
 }
 
+/** Colours for parties other than the two national ones, by name (ADR 0035). Puerto Rico's are
+ *  deliberately not their traditional colours: the PNP's blue and the PPD's red would read as
+ *  Democratic and Republican everywhere else on the site. Anyone not listed (independents,
+ *  minor parties) is the site's purple. */
+export const GROUP_FILL: Record<string, string> = {
+  'Partido Nuevo Progresista': '#0F7C78',
+  'Partido Popular Democrático': '#D2731C',
+  'Partido Independentista Puertorriqueño': '#3E8A3A',
+  'Proyecto Dignidad': '#8A5A2B',
+  'Movimiento Victoria Ciudadana': '#B03A7A',
+};
+
+/** The party group a member belongs to, by the same rule as the mart (state_seat_holder): R, D
+ *  or N, "Independent", or a smaller party's own name. */
+export function groupOf(party: StateParty, partyLabel: string | null): string {
+  if (party === 'R' || party === 'D' || party === 'N') return party;
+  const first = (partyLabel ?? '').split('/')[0].trim();
+  if (!first || /^independent/i.test(first) || /^nonpartisan$/i.test(first)) return 'Independent';
+  return first;
+}
+
+/** The colour of a party group; 'V' is an empty seat. */
+export function groupFill(group: string): string {
+  if (group === 'R' || group === 'D' || group === 'N' || group === 'V') return partyFill(group);
+  return GROUP_FILL[group] ?? PARTY_FILL.I;
+}
+
 const PARTY_NAME: Record<StateParty, string> = {
   R: 'Republican',
   D: 'Democratic',
@@ -144,7 +175,14 @@ export function groupName(group: string | null, party: StateParty | null): strin
 }
 
 /** The line that says who runs a state. */
-export function controlLabel(summary: Pick<StateSummary, 'control' | 'governor' | 'chambers'>): string {
+export function controlLabel(
+  summary: Pick<StateSummary, 'control' | 'governor' | 'chambers'> & { by_registration?: boolean },
+): string {
+  const label = baseControlLabel(summary);
+  return summary.by_registration ? `${label} (by party registration)` : label;
+}
+
+function baseControlLabel(summary: Pick<StateSummary, 'control' | 'governor' | 'chambers'>): string {
   switch (summary.control) {
     case 'R':
       return 'Republican control';
@@ -191,6 +229,8 @@ export function chamberHeadline(c: StateChamber): string {
 export interface BarSegment {
   key: string;
   party: StateParty | 'V';
+  /** The segment's colour: its party group's. */
+  fill: string;
   seats: number;
   widthPct: number;
   /** The words in the legend: "Republican 58", "Vacant 1". */
@@ -205,6 +245,10 @@ export interface ChamberBarModel {
   seatsLine: string;
   headline: string;
   headlineParty: StateParty | null;
+  /** The controlling group's colour, for a party other than R, D or N; null otherwise. */
+  headlineFill: string | null;
+  /** "Officially nonpartisan; shown by members' party registration", or null. */
+  basisNote: string | null;
   detail: string;
   /** Where the lines fall along the bar, from its left edge. */
   majorityPct: number;
@@ -225,6 +269,7 @@ export function buildChamberBar(c: StateChamber): ChamberBarModel {
     .map((p) => ({
       key: `${p.party}-${p.party_group}`,
       party: p.party,
+      fill: groupFill(p.party_group),
       seats: p.seats,
       widthPct: pct(p.seats, c.seats),
       legend: `${groupName(p.party_group, p.party)} ${p.seats}`,
@@ -236,6 +281,7 @@ export function buildChamberBar(c: StateChamber): ChamberBarModel {
     const vacant: BarSegment = {
       key: 'vacant',
       party: 'V',
+      fill: groupFill('V'),
       seats: c.vacant,
       widthPct: pct(c.vacant, c.seats),
       legend: `Vacant ${c.vacant}`,
@@ -267,6 +313,10 @@ export function buildChamberBar(c: StateChamber): ChamberBarModel {
     seatsLine: `${c.seats} seats`,
     headline: chamberHeadline(c),
     headlineParty: lead ? c.control_party : c.control_kind === 'nonpartisan' ? 'N' : null,
+    headlineFill: lead && c.control_party === 'I' && c.control_group ? groupFill(c.control_group) : null,
+    basisNote: c.by_registration
+      ? "Officially nonpartisan. Members are shown by their party registration."
+      : null,
     detail: c.control_note ?? detailParts.join(' · '),
     majorityPct: linePct(c.majority_seats),
     supermajorityPct: linePct(c.supermajority_seats),
@@ -366,4 +416,12 @@ export function seatLetters(seat: DistrictSeat): (StateParty | 'V')[] {
   const letters: (StateParty | 'V')[] = seat.members.map((m) => m.party);
   for (let i = seat.members.length; i < seat.seats; i += 1) letters.push('V');
   return letters;
+}
+
+/** The party groups filling a shape, one per seat, vacancies as 'V': ['D', 'Partido Nuevo
+ *  Progresista', 'V']. What the map colours by, so Puerto Rico's parties are told apart. */
+export function seatGroups(seat: DistrictSeat): string[] {
+  const groups = seat.members.map((m) => groupOf(m.party, m.partyLabel));
+  for (let i = seat.members.length; i < seat.seats; i += 1) groups.push('V');
+  return groups;
 }

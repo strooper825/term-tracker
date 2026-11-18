@@ -11,10 +11,11 @@
 // The map never scrolls: zoom with the buttons or a pinch, then drag to move.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  groupFill,
   groupName,
+  groupOf,
   indexDistricts,
-  partyFill,
-  seatLetters,
+  seatGroups,
   type DistrictMember,
   type DistrictSeat,
   type ShapelessSeat,
@@ -24,7 +25,6 @@ import {
   type StateParty,
 } from '@/lib/states';
 
-type Letter = StateParty | 'V';
 type Point = { x: number; y: number };
 
 export interface MapChamber {
@@ -35,24 +35,31 @@ export interface MapChamber {
 
 const MAX_ZOOM = 12;
 const VACANT = '#ECEEF3';
-const LETTERS: Letter[] = ['D', 'I', 'N', 'R', 'V'];
-const PAIRS: Letter[][] = LETTERS.flatMap((a, i) => LETTERS.slice(i + 1).map((b) => [a, b]));
-const stripeId = (pair: Letter[]) => `st-stripe-${pair.join('-')}`;
-const fillOfLetter = (l: Letter) => (l === 'V' ? VACANT : partyFill(l));
+/** Groups sort Democrats first, other parties by name, then nonpartisan, Republicans, vacant: a
+ *  stripe pair is always written the same way round. */
+const RANK: Record<string, number> = { D: 0, N: 2, R: 3, V: 4 };
+const byRank = (a: string, b: string) => (RANK[a] ?? 1) - (RANK[b] ?? 1) || a.localeCompare(b);
+const slug = (g: string) => (g.length === 1 ? g : g.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_'));
+const stripeId = (pair: string[]) => `st-stripe-${pair.map(slug).join('-')}`;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /** One colour for a single party, stripes of the two commonest parties when the members split,
  *  grey only when every seat is empty: one empty seat of four does not change the colour (the
  *  card says so). */
-export function districtFill(letters: Letter[]): string {
-  const held = letters.filter((l) => l !== 'V');
-  const counts = new Map<Letter, number>();
-  for (const l of held.length ? held : letters) counts.set(l, (counts.get(l) ?? 0) + 1);
-  const top = [...counts.entries()].sort((a, b) => b[1] - a[1] || LETTERS.indexOf(a[0]) - LETTERS.indexOf(b[0]));
-  if (top.length === 0) return VACANT;
-  if (top.length === 1) return fillOfLetter(top[0][0]);
-  const pair = [top[0][0], top[1][0]].sort((a, b) => LETTERS.indexOf(a) - LETTERS.indexOf(b));
-  return `url(#${stripeId(pair)})`;
+export function stripePair(groups: string[]): string[] | null {
+  const held = groups.filter((g) => g !== 'V');
+  const counts = new Map<string, number>();
+  for (const g of held.length ? held : groups) counts.set(g, (counts.get(g) ?? 0) + 1);
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1] || byRank(a[0], b[0]));
+  if (top.length < 2) return null;
+  return [top[0][0], top[1][0]].sort(byRank);
+}
+
+export function districtFill(groups: string[]): string {
+  const pair = stripePair(groups);
+  if (pair) return `url(#${stripeId(pair)})`;
+  const held = groups.filter((g) => g !== 'V');
+  return held.length ? groupFill(held[0]) : VACANT;
 }
 
 export function partyWord(m: Pick<DistrictMember, 'party' | 'partyLabel'>): string {
@@ -72,7 +79,7 @@ function Badge({ member }: { member: DistrictMember }) {
   return (
     <span
       className="flex-none text-label font-semibold uppercase text-white px-[7px] py-0.5 rounded-chip max-w-[140px] truncate"
-      style={{ background: partyFill(member.party) }}
+      style={{ background: groupFill(groupOf(member.party, member.partyLabel)) }}
     >
       {partyWord(member)}
     </span>
@@ -186,24 +193,26 @@ export function StateLegislatureMap({ abbr, chambers }: { abbr: string; chambers
     const out = new Map<string, string>();
     for (const [code] of shapes) {
       const seat = index?.byShape.get(`${chamber}|${code}`);
-      out.set(code, seat ? districtFill(seatLetters(seat)) : VACANT);
+      out.set(code, seat ? districtFill(seatGroups(seat)) : VACANT);
     }
     return out;
   }, [shapes, index, chamber]);
-  const shapeless: ShapelessSeat[] = (index?.shapeless ?? []).filter((s) => s.chamber === chamber);
-  const lettersUsed = useMemo(() => {
-    const used = new Set<Letter>();
-    let striped = false;
+  // the stripe patterns the map uses, and the groups for the legend
+  const used = useMemo(() => {
+    const groups = new Set<string>();
+    const pairs = new Map<string, string[]>();
     for (const [code] of shapes) {
       const seat = index?.byShape.get(`${chamber}|${code}`);
       if (!seat) continue;
-      const letters = seatLetters(seat);
-      const held = letters.filter((l) => l !== 'V');
-      (held.length ? held : letters).forEach((l) => used.add(l));
-      if (new Set(held).size > 1) striped = true;
+      const all = seatGroups(seat);
+      const held = all.filter((g) => g !== 'V');
+      (held.length ? held : all).forEach((g) => groups.add(g));
+      const pair = stripePair(all);
+      if (pair) pairs.set(stripeId(pair), pair);
     }
-    return { used, striped };
+    return { groups: [...groups].sort(byRank), pairs: [...pairs.entries()] };
   }, [shapes, index, chamber]);
+  const shapeless: ShapelessSeat[] = (index?.shapeless ?? []).filter((s) => s.chamber === chamber);
 
   // ---- zoom and drag --------------------------------------------------------------------------
   const vpOf = (z: number, c: Point | null) => {
@@ -335,11 +344,15 @@ export function StateLegislatureMap({ abbr, chambers }: { abbr: string; chambers
   );
 
   const legend: { key: string; label: string; background: string }[] = [
-    ...(['R', 'D', 'I', 'N'] as StateParty[])
-      .filter((l) => lettersUsed.used.has(l))
-      .map((l) => ({ key: l, label: groupName(null, l) === 'Independent' ? 'Independent or other' : groupName(null, l), background: partyFill(l) })),
-    ...(lettersUsed.striped
-      ? [{ key: 'split', label: 'District split between parties', background: `repeating-linear-gradient(135deg, ${partyFill('R')} 0 3px, ${partyFill('D')} 3px 6px)` }]
+    ...used.groups
+      .filter((g) => g !== 'V')
+      .map((g) => ({
+        key: g,
+        label: g === 'Independent' ? 'Independent or other' : groupName(g, g.length === 1 ? (g as StateParty) : 'I'),
+        background: groupFill(g),
+      })),
+    ...(used.pairs.length
+      ? [{ key: 'split', label: 'District split between parties', background: `repeating-linear-gradient(135deg, ${groupFill(used.pairs[0][1][1])} 0 3px, ${groupFill(used.pairs[0][1][0])} 3px 6px)` }]
       : []),
     { key: 'V', label: 'Vacant', background: VACANT },
   ];
@@ -381,10 +394,10 @@ export function StateLegislatureMap({ abbr, chambers }: { abbr: string; chambers
             className="block w-full h-full"
           >
             <defs>
-              {PAIRS.map((pair) => (
-                <pattern key={stripeId(pair)} id={stripeId(pair)} patternUnits="userSpaceOnUse" width={W / 120} height={W / 120} patternTransform="rotate(45)">
-                  <rect width={W / 120} height={W / 120} fill={fillOfLetter(pair[1])} />
-                  <rect width={W / 240} height={W / 120} fill={fillOfLetter(pair[0])} />
+              {used.pairs.map(([id, pair]) => (
+                <pattern key={id} id={id} patternUnits="userSpaceOnUse" width={W / 120} height={W / 120} patternTransform="rotate(45)">
+                  <rect width={W / 120} height={W / 120} fill={groupFill(pair[1])} />
+                  <rect width={W / 240} height={W / 120} fill={groupFill(pair[0])} />
                 </pattern>
               ))}
             </defs>

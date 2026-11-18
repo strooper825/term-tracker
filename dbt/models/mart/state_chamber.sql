@@ -20,7 +20,8 @@ counts as (
         sum(seats) filter (where party = 'D') as democratic,
         sum(seats) filter (where party = 'I') as other,
         sum(seats) filter (where party = 'N') as nonpartisan,
-        sum(seats) as filled
+        sum(seats) as filled,
+        bool_or(by_registration) as by_registration
     from {{ ref('state_chamber_party') }}
     group by state, chamber
 ),
@@ -58,6 +59,7 @@ sized as (
         coalesce(n.other, 0)::int as other,
         coalesce(n.nonpartisan, 0)::int as nonpartisan,
         coalesce(n.filled, 0)::int as filled,
+        coalesce(n.by_registration, false) as by_registration,
         c.seats / 2 + 1 as majority_seats,
         ceil(c.seats::numeric * s.numerator / s.denominator)::int as supermajority_seats,
         s.numerator as supermajority_numerator,
@@ -88,6 +90,7 @@ select
     nonpartisan,
     filled,
     seats - filled as vacant,
+    by_registration,
     majority_seats,
     supermajority_seats,
     supermajority_numerator,

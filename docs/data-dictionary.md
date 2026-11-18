@@ -1293,6 +1293,14 @@ state legislative district files. `state_chambers`: `state`, `chamber` (`upper`,
 `shape` (Census code in `site/public/maps/states/{abbr}.json`, blank when none), `note`
 (`at-large`, `floterial`, `non-voting`); 6,911 rows.
 
+### `seed.state_party_registration`
+
+Hand-kept: `state`, `chamber`, `district`, `family_name`, `party_label` (Republican, Democratic,
+Independent), `source_url`, `checked`. The voter registration of members of an officially
+nonpartisan legislature (Nebraska, 49 rows), applied when the seated member's family name
+matches; `party_basis` on `state_seat_holder` and `by_registration` on `state_chamber` and
+`state_government` say so.
+
 ### `seed.state_supermajority`, `seed.state_control_overrides`
 
 Hand-kept. `state_supermajority`: `state`, `numerator`, `denominator`, `basis`, `checked` (the

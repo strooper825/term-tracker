@@ -45,6 +45,7 @@ chambers as (
         min(c.legislature_name) as legislature_name,
         count(*) as n_chambers,
         count(*) filter (where c.control_kind = 'nonpartisan') as n_nonpartisan,
+        bool_or(c.by_registration) as by_registration,
         count(*) filter (where c.control_group = gp.party_group) as n_with_governor
     from {{ ref('state_chamber') }} as c
     left join governor as g on g.state = c.state
@@ -69,6 +70,9 @@ select
         when gp.party_group <> 'Independent' and c.n_with_governor = c.n_chambers then gp.party
         else 'split'
     end as control,
+    -- true when control is read from members' party registration in an officially nonpartisan
+    -- legislature (Nebraska)
+    c.by_registration,
     (select day from as_of) as as_of,
     p.source_url,
     p.fetched_at

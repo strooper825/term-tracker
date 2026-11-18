@@ -46,6 +46,10 @@ class Chamber(BaseModel):
         description="supermajority, majority, coalition, nonpartisan, or none"
     )
     control_note: str | None
+    by_registration: bool = Field(
+        description="Parties are members' voter registration in an officially nonpartisan "
+        "legislature (Nebraska)"
+    )
     parties: list[PartySeats]
 
 
@@ -53,6 +57,9 @@ class StateSummary(BaseModel):
     state: str = Field(description="Two-letter postal code")
     name: str
     control: str = Field(description="R, D, I, N (nonpartisan legislature) or split")
+    by_registration: bool = Field(
+        description="Control is read from members' party registration (Nebraska)"
+    )
     governor: Governor | None
     chambers: list[Chamber]
 

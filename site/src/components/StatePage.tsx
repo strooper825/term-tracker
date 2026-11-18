@@ -2,7 +2,7 @@
 // seats as a bar, and the legislature map. Server component; the map is the client
 // StateLegislatureMap, which loads its rows from /states/data/{abbr}.json.
 import { formatDate } from '@/lib/format';
-import { controlLabel, groupName, partyFill, type StateSummary } from '@/lib/states';
+import { controlLabel, groupFill, groupName, groupOf, type StateSummary } from '@/lib/states';
 import { PageShell } from './SiteFrame';
 import { StateChamberBar } from './StateChamberBar';
 import { StateLegislatureMap } from './StateLegislatureMap';
@@ -30,7 +30,7 @@ function GovernorCard({ summary }: { summary: StateSummary }) {
           {party && (
             <span
               className="text-label font-semibold uppercase text-white px-[7px] py-0.5 rounded-chip"
-              style={{ background: partyFill(party) }}
+              style={{ background: groupFill(groupOf(party, g.party_label)) }}
             >
               {party === 'I' ? groupName(g.party_label?.split('/')[0] ?? null, 'I') : groupName(null, party)}
             </span>

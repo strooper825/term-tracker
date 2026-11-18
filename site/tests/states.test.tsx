@@ -35,6 +35,7 @@ function chamber(over: Partial<StateChamber>): StateChamber {
     control_group: null,
     control_kind: 'none',
     control_note: null,
+    by_registration: false,
     parties: [],
     ...over,
   };
@@ -74,6 +75,7 @@ const SUMMARY: StateSummary = {
   state: 'XX',
   name: 'Example',
   control: 'split',
+  by_registration: false,
   governor: {
     person_id: 'ocd-person/1',
     name: 'Pat Example',
@@ -267,5 +269,69 @@ describe('state page', () => {
     const card = screen.getByRole('dialog', { name: 'Senate: District 1' });
     expect(within(card).getByRole('link', { name: /Ann Senator/ })).toHaveAttribute('href', 'https://leg.example/ann');
     expect(card).toHaveTextContent('Republican');
+  });
+});
+
+describe('parties other than the national two, and nonpartisan legislatures', () => {
+  it('gives each Puerto Rico party its own colour and keeps independents purple', async () => {
+    const { groupFill, groupOf } = await import('@/lib/states');
+    expect(groupOf('I', 'Partido Nuevo Progresista')).toBe('Partido Nuevo Progresista');
+    expect(groupOf('I', 'Independent')).toBe('Independent');
+    expect(groupOf('D', 'Democratic-Farmer-Labor')).toBe('D');
+    const fills = ['Partido Nuevo Progresista', 'Partido Popular Democrático', 'Partido Independentista Puertorriqueño', 'Proyecto Dignidad', 'Independent'].map(groupFill);
+    expect(new Set(fills).size).toBe(5);
+    expect(groupFill('Independent')).toBe('#6B3FA0');
+    // a split between two PR parties stripes in their colours
+    expect(districtFill(['Partido Nuevo Progresista', 'Partido Popular Democrático'])).toBe(
+      'url(#st-stripe-partido_nuevo_progresista-partido_popular_democratico)',
+    );
+  });
+
+  it('colours a PNP-controlled chamber bar and pill in the PNP colour', () => {
+    const pr = chamber({
+      seats: 28,
+      majority_seats: 15,
+      supermajority_seats: 19,
+      control_party: 'I',
+      control_group: 'Partido Nuevo Progresista',
+      control_kind: 'majority',
+      parties: [
+        { party: 'I', party_group: 'Partido Nuevo Progresista', seats: 18 },
+        { party: 'I', party_group: 'Partido Popular Democrático', seats: 10 },
+      ],
+    });
+    const bar = buildChamberBar(pr);
+    expect(bar.headline).toBe('Partido Nuevo Progresista majority');
+    expect(bar.headlineFill).toBe('#0F7C78');
+    expect(bar.segments.map((s) => s.fill)).toEqual(['#0F7C78', '#D2731C']);
+  });
+
+  it('says when parties are read from registration (Nebraska)', () => {
+    const ne = chamber({
+      chamber: 'legislature',
+      name: 'Nebraska Legislature',
+      seats: 49,
+      majority_seats: 25,
+      supermajority_seats: 30,
+      supermajority_fraction: '3/5',
+      republican: 33,
+      democratic: 15,
+      other: 1,
+      control_party: 'R',
+      control_group: 'R',
+      control_kind: 'supermajority',
+      by_registration: true,
+      parties: [
+        { party: 'D', party_group: 'D', seats: 15 },
+        { party: 'I', party_group: 'Independent', seats: 1 },
+        { party: 'R', party_group: 'R', seats: 33 },
+      ],
+    });
+    expect(buildChamberBar(ne).basisNote).toMatch(/Officially nonpartisan/);
+    expect(controlLabel({ ...SUMMARY, control: 'R', by_registration: true, chambers: [ne] })).toBe(
+      'Republican control (by party registration)',
+    );
+    render(<StateChamberBar chamber={ne} />);
+    expect(screen.getByText(/Officially nonpartisan/)).toBeInTheDocument();
   });
 });
