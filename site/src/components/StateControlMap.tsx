@@ -144,7 +144,7 @@ export function StateControlMap({ states }: { states: ControlMapState[] }) {
 
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <ul aria-label="Legend" className="m-0 p-0 list-none flex flex-wrap gap-x-[18px] gap-y-1.5 text-[13px] text-ink2">
-          {CONTROL_LEGEND.map((l) => (
+          {CONTROL_LEGEND.filter((l) => states.some((s) => s.control === l.key)).map((l) => (
             <li key={l.key} className="flex items-center gap-1.5">
               <Swatch control={l.key} />
               {l.label}

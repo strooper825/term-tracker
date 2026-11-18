@@ -31,7 +31,7 @@ from api.schemas.states import (
 router = APIRouter(prefix="/states", tags=["states"])
 
 GOVERNMENT_SQL = """
-    SELECT state, state_name, legislature_name, control, as_of, executive_title,
+    SELECT state, state_name, legislature_name, control, by_registration, as_of, executive_title,
            governor_person_id, governor_name, governor_party, governor_party_label,
            governor_image_url, governor_website_url, governor_start_date,
            'openstates_people' AS source, source_url, fetched_at
@@ -42,7 +42,7 @@ CHAMBER_SQL = """
     SELECT state, chamber, chamber_name, title, seats, republican, democratic, other, nonpartisan,
            vacant, majority_seats, supermajority_seats, supermajority_numerator,
            supermajority_denominator, supermajority_basis, control_party, control_group,
-           control_kind, control_note
+           control_kind, control_note, by_registration
     FROM mart.state_chamber
 """
 
@@ -93,6 +93,7 @@ def _chamber(row: Any, parties: list[Any]) -> Chamber:
         control_group=row["control_group"],
         control_kind=row["control_kind"],
         control_note=row["control_note"],
+        by_registration=row["by_registration"],
         parties=[
             PartySeats(party=p["party"], party_group=p["party_group"], seats=p["seats"])
             for p in sorted(
@@ -149,6 +150,7 @@ def _summaries(session: Session, state: str | None = None) -> tuple[list[Any], l
                 state=g["state"],
                 name=g["state_name"],
                 control=g["control"],
+                by_registration=g["by_registration"],
                 governor=governor,
                 chambers=chambers_by[g["state"]],
             )

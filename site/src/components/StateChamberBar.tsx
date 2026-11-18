@@ -1,15 +1,26 @@
 // One state legislative chamber as a bar of seats (ADR 0035): who controls it in words, then the
 // seats by party with the majority and supermajority lines marked. Server component; the model
 // is buildChamberBar in src/lib/states.ts.
-import { buildChamberBar, partyFill, type StateChamber, type StateParty } from '@/lib/states';
+import { buildChamberBar, type StateChamber, type StateParty } from '@/lib/states';
 
 /* A seat nobody holds: hatched, so it reads as absent rather than as a third party. */
 const VACANT_FILL = 'repeating-linear-gradient(135deg, #CCD1D5 0 2px, #ECEEF3 2px 5px)';
 
-const fillOf = (party: StateParty | 'V') =>
-  party === 'V' ? { background: VACANT_FILL } : { background: partyFill(party) };
+const fillOf = (seg: { party: StateParty | 'V'; fill: string }) =>
+  seg.party === 'V' ? { background: VACANT_FILL } : { background: seg.fill };
 
-function Pill({ text, party }: { text: string; party: StateParty | null }) {
+function Pill({ text, party, fill }: { text: string; party: StateParty | null; fill: string | null }) {
+  if (fill) {
+    // a party other than the national two: its own colour (Puerto Rico's PNP)
+    return (
+      <span
+        className="inline-block text-base font-semibold border rounded-ctl px-2.5 py-1 leading-snug bg-card"
+        style={{ color: fill, borderColor: fill }}
+      >
+        {text}
+      </span>
+    );
+  }
   const tone =
     party === 'R'
       ? 'bg-partyTint-r text-party-r border-party-r/40'
@@ -49,7 +60,8 @@ export function StateChamberBar({ chamber }: { chamber: StateChamber }) {
         <span className="text-meta text-ink2 tnum">{bar.seatsLine}</span>
       </div>
       <div className="flex flex-col gap-1.5 items-start">
-        <Pill text={bar.headline} party={bar.headlineParty} />
+        <Pill text={bar.headline} party={bar.headlineParty} fill={bar.headlineFill} />
+        {bar.basisNote && <p className="text-meta text-ink m-0">{bar.basisNote}</p>}
         <p className="text-meta text-ink2 m-0 tnum">{bar.detail}</p>
       </div>
       <div className="relative pt-6 pb-1">
@@ -73,7 +85,7 @@ export function StateChamberBar({ chamber }: { chamber: StateChamber }) {
               title={seg.legend}
               data-segment={seg.party}
               className="h-full flex-none flex items-center text-base font-semibold text-white tnum overflow-hidden whitespace-nowrap"
-              style={{ width: `${seg.widthPct}%`, ...fillOf(seg.party) }}
+              style={{ width: `${seg.widthPct}%`, ...fillOf(seg) }}
             >
               {seg.barLabel && <span className="px-3">{seg.barLabel}</span>}
             </div>
@@ -83,7 +95,7 @@ export function StateChamberBar({ chamber }: { chamber: StateChamber }) {
       <ul className="m-0 p-0 list-none flex flex-wrap gap-x-5 gap-y-1.5">
         {bar.segments.map((seg) => (
           <li key={seg.key} className="flex items-center gap-1.5 text-meta text-ink2 tnum">
-            <i aria-hidden className="w-2.5 h-2.5 flex-none rounded-[2px]" style={fillOf(seg.party)} />
+            <i aria-hidden className="w-2.5 h-2.5 flex-none rounded-[2px]" style={fillOf(seg)} />
             {seg.legend}
           </li>
         ))}

@@ -7,7 +7,8 @@ select
     chamber,
     party_group,
     min(party) as party,
-    count(*) as seats
+    count(*) as seats,
+    bool_or(party_basis = 'registration') as by_registration
 from {{ ref('state_seat_holder') }}
 where is_seated and not is_non_voting
 group by state, chamber, party_group

@@ -339,3 +339,25 @@ seeds:
       - name: control
         tests:
           - accepted_values: { arguments: { values: ["coalition"] } }
+
+  - name: state_party_registration
+    description: >
+      Hand-kept (ADR 0035): the party registration of members of an officially nonpartisan
+      legislature (Nebraska), which Open States records as Nonpartisan. A row applies to the
+      member seated in that district whose family name matches; anyone else in the seat stays
+      nonpartisan and the warning assert_state_registration_matched names them. Drafted
+      2026-11-17 from the Wikipedia member table (33 R, 15 D, 1 registered nonpartisan, shown as
+      Independent); checked is the day the owner confirmed a row.
+    config:
+      column_types:
+        state: text
+        chamber: text
+        district: text
+        family_name: text
+        party_label: text
+        source_url: text
+        checked: date
+    columns:
+      - name: party_label
+        tests:
+          - accepted_values: { arguments: { values: ["Republican", "Democratic", "Independent"] } }

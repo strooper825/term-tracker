@@ -6,7 +6,8 @@
 -- A role without a start date counts as held since before the day. When that puts more people in
 -- a district than it has seats (a newcomer's role open, a predecessor's not yet closed), the
 -- people with the latest known start dates are seated and the rest have is_seated false;
--- assert_state_seats_not_overfilled lists them.
+-- assert_state_seats_not_overfilled lists them. party_basis is 'registration' when the party
+-- shown is the member's voter registration in an officially nonpartisan legislature (Nebraska).
 with as_of as (
     select {{ states_as_of() }} as day
 ),
@@ -54,12 +55,17 @@ placed as (
         p.image_url,
         p.email,
         p.website_url,
-        pa.party_label,
-        -- Nonpartisan is Nebraska's legislature; anyone else so labelled is an independent.
+        -- An officially nonpartisan legislature's members are shown by their party
+        -- registration where seeds/state_party_registration.csv has the seat's holder.
+        coalesce(reg.party_label, pa.party_label) as party_label,
         case
+            when reg.party_label is not null then {{ state_party_letter('reg.party_label') }}
+            -- Nonpartisan is Nebraska's legislature; anyone else so labelled is an independent.
             when pa.party = 'N' and a.state <> 'NE' then 'I'
             else coalesce(pa.party, 'I')
         end as party,
+        case when reg.party_label is not null then 'registration' else 'party' end
+            as party_basis,
         a.start_date,
         a.end_date,
         row_number() over (
@@ -71,6 +77,11 @@ placed as (
     from active as a
     inner join {{ ref('stg_state_people') }} as p on p.person_id = a.person_id
     left join party as pa on pa.person_id = a.person_id
+    left join {{ ref('state_party_registration') }} as reg
+        on reg.state = a.state
+        and reg.chamber = a.chamber
+        and reg.district = a.district
+        and lower(reg.family_name) = lower(p.family_name)
     left join {{ ref('state_districts') }} as d
         on d.state = a.state and d.chamber = a.chamber and d.district = a.district
 )
@@ -91,6 +102,7 @@ select
     placed.website_url,
     placed.party_label,
     placed.party,
+    placed.party_basis,
     -- The party as a group that can control a chamber: R, D or N, or for anyone else the party
     -- itself ("Partido Nuevo Progresista"), so Puerto Rico's parties are not lumped together.
     -- Independents form one group.

@@ -112,3 +112,32 @@ start date (above) and these rules were left to Claude:
 - **After the January rollover.** Open States takes a few weeks to record new legislators. A
   missing new member shows as a vacant seat. A missing governor is a warning
   (`assert_state_governors_recorded`) and the page says so.
+
+## Addendum, 2026-11-18: Puerto Rico's colours and Nebraska's registration
+
+The owner found an all-purple Puerto Rico unreadable and asked for something better for
+Nebraska.
+
+- **Puerto Rico.** Parties other than the national two get their own colours, by name
+  (`GROUP_FILL` in `site/src/lib/states.ts`). These are deliberately not the parties'
+  traditional colours, because on this site blue reads as Democratic and red as Republican.
+  - PNP: teal
+  - PPD: orange
+  - PIP: green
+  - Proyecto Dignidad: brown
+  - Movimiento Victoria Ciudadana: magenta
+  - independents and anyone unlisted: purple
+
+  The map, the bars, the control pill and the governor badge all use these colours. A district
+  split between two such parties is striped in both.
+- **Nebraska.** The Legislature is officially nonpartisan, and Open States records every
+  senator as Nonpartisan. `seeds/state_party_registration.csv` (hand-kept, 49 rows, drafted
+  from the Wikipedia member table) gives each seat's holder's voter registration.
+  - It applies only when the seated member's family name matches the row, so a new senator is
+    never shown with a predecessor's party. The warning `assert_state_registration_matched`
+    names any senator without a matching row.
+  - Chambers and states read this way carry `by_registration`. The page says "Officially
+    nonpartisan. Members are shown by their party registration", and the control line adds
+    "(by party registration)".
+  - On 2026-11-17 the count is 33 R, 15 D and 1 independent. That is a Republican
+    supermajority (30 needed at 3/5), so Nebraska shows as Republican control.
