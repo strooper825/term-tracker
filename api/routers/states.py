@@ -27,6 +27,7 @@ from api.schemas.states import (
     LegislatorProfile,
     Office,
     PartySeats,
+    PriorRole,
     RosterChamber,
     Social,
     StateDetail,
@@ -41,7 +42,10 @@ router = APIRouter(prefix="/states", tags=["states"])
 GOVERNMENT_SQL = """
     SELECT state, state_name, legislature_name, control, by_registration, as_of, executive_title,
            governor_person_id, governor_name, governor_party, governor_party_label,
-           governor_image_url, governor_website_url, governor_start_date,
+           governor_image_url, governor_website_url, governor_start_date, governor_since,
+           governor_term_end, governor_email, governor_office_address, governor_office_phone,
+           governor_contact_form_url, governor_twitter, governor_facebook, governor_instagram,
+           governor_youtube,
            'openstates_people' AS source, source_url, fetched_at
     FROM mart.state_government
 """
@@ -52,6 +56,11 @@ CHAMBER_SQL = """
            supermajority_denominator, supermajority_basis, control_party, control_group,
            control_kind, control_note, by_registration, chamber_slug
     FROM mart.state_chamber
+"""
+
+PRIOR_SQL = """
+    SELECT state, chamber, chamber_name, start_date, end_date
+    FROM mart.state_governor_prior_role
 """
 
 PARTY_SQL = """
@@ -174,6 +183,18 @@ def _summaries(session: Session, state: str | None = None) -> tuple[list[Any], l
         .all()
     )
     parties = session.execute(text(PARTY_SQL + where), params).mappings().all()
+    prior: dict[str, list[PriorRole]] = defaultdict(list)
+    for r in session.execute(
+        text(PRIOR_SQL + where + " ORDER BY state, start_date DESC NULLS LAST"), params
+    ).mappings():
+        prior[r["state"]].append(
+            PriorRole(
+                chamber=r["chamber"],
+                chamber_name=r["chamber_name"],
+                start_date=r["start_date"],
+                end_date=r["end_date"],
+            )
+        )
 
     parties_by: dict[tuple[str, str], list[Any]] = defaultdict(list)
     for p in parties:
@@ -195,6 +216,18 @@ def _summaries(session: Session, state: str | None = None) -> tuple[list[Any], l
                 image_url=g["governor_image_url"],
                 website_url=g["governor_website_url"],
                 start_date=g["governor_start_date"],
+                since=g["governor_since"],
+                term_end=g["governor_term_end"],
+                email=g["governor_email"],
+                office=_office(g["governor_office_address"], g["governor_office_phone"]),
+                contact_form_url=g["governor_contact_form_url"],
+                social=Social(
+                    twitter=g["governor_twitter"],
+                    facebook=g["governor_facebook"],
+                    instagram=g["governor_instagram"],
+                    youtube=g["governor_youtube"],
+                ),
+                prior_service=prior[g["state"]],
             )
         summaries.append(
             StateSummary(

@@ -166,3 +166,15 @@ chose one page per chamber instead: `/states/{abbr}/{slug}`, about 100 pages.
   reorders them), so no legislator data is sent twice.
 - **Not included:** votes and bills. They need Plural's API with a key and rate limits across
   7,000+ people, a separate decision.
+
+## Addendum, 2026-11-18: the governor card
+
+The governor card now shows how long the governor has served, when the term ends, the capitol
+office and phone, the contact form, email and social accounts where recorded, and any
+legislative service on record before taking office. Birth date is left out, as for legislators.
+
+The card used to say "Current term began" with the start of the role held on the day. Open
+States records most governors' consecutive terms as one role (44 of 52), so for most of them
+that date was when they first took office, not when the current term began. The card now says
+"Governor since" with the start of the unbroken stretch of roles (`governor_since`), and "Term
+ends" with the current role's end date.

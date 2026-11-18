@@ -122,3 +122,27 @@ def test_one_chamber_legislatures_get_their_own_slug(client, built_mart):
     dc = client.get("/api/v1/states/dc/legislators").json()
     assert [c["slug"] for c in ne["chambers"]] == ["legislature"]
     assert [c["slug"] for c in dc["chambers"]] == ["council"]
+
+
+def test_governor_card_details(states):
+    gov = states["CA"]["governor"]
+    # two back-to-back terms are one stretch in office; the term end is the current role's
+    assert (gov["start_date"], gov["since"], gov["term_end"]) == (
+        "2023-01-02",
+        "2019-01-07",
+        "2027-01-04",
+    )
+    assert gov["office"] == {"address": "1021 O St., Sacramento, CA 95814", "phone": "916-555-0200"}
+    assert gov["contact_form_url"] == "https://governor.example/contact"
+    assert gov["social"]["twitter"] == "InventedGov"
+    assert gov["prior_service"] == [
+        {
+            "chamber": "upper",
+            "chamber_name": "Senate",
+            "start_date": "2009-01-01",
+            "end_date": "2016-12-31",
+        }
+    ]
+    other = states["NV"]["governor"]
+    assert other["since"] == other["start_date"] and other["office"] is None
+    assert other["prior_service"] == []

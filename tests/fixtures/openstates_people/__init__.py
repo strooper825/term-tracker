@@ -17,7 +17,9 @@ so the mart joins as it does on live data. What the fixture sets up:
   majority, divided;
 * California senator 0: a capitol and a district office, social accounts, an earlier Assembly
   term and two unbroken Senate terms (one span on the page), and a seat on two committees (chair
-  of one); a committee member with no person id is not linked to anyone.
+  of one); a committee member with no person id is not linked to anyone;
+* California's governor: two back-to-back terms recorded as two roles (in office since 2019,
+  term ending 2027), a capitol office, a contact form, and earlier Senate service.
 """
 
 from __future__ import annotations
@@ -147,6 +149,8 @@ def people() -> list[tuple[str, str, dict]]:
             del person["roles"][0]["start_date"]
         if person["id"] == CA_SENATOR:
             _profile(person)
+        if person["id"] == _id("CA", "executive", "gov"):
+            _governor(person)
     return out
 
 
@@ -193,6 +197,41 @@ def _profile(person: dict) -> None:
             "start_date": "2024-12-02",
         },
     ]
+
+
+def _governor(person: dict) -> None:
+    """California's governor: two terms as two roles, an office, a form, earlier service."""
+    jurisdiction = _jurisdiction("CA")
+    person["roles"] = [
+        {
+            "type": "upper",
+            "district": "3",
+            "jurisdiction": jurisdiction,
+            "start_date": "2009-01-01",
+            "end_date": "2016-12-31",
+        },
+        {
+            "type": "governor",
+            "jurisdiction": jurisdiction,
+            "start_date": "2019-01-07",
+            "end_date": "2023-01-02",
+        },
+        {
+            "type": "governor",
+            "jurisdiction": jurisdiction,
+            "start_date": "2023-01-02",
+            "end_date": "2027-01-04",
+        },
+    ]
+    person["offices"] = [
+        {
+            "classification": "capitol",
+            "address": "1021 O St., Sacramento, CA 95814",
+            "voice": "916-555-0200",
+        },
+    ]
+    person["links"].append({"url": "https://governor.example/contact", "note": "webform"})
+    person["ids"] = {"twitter": "InventedGov"}
 
 
 def committees() -> list[tuple[str, dict]]:

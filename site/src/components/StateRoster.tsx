@@ -4,6 +4,7 @@
 // reorders these cards rather than re-rendering them.
 import { formatDate } from '@/lib/format';
 import {
+  addressLine,
   committeeLine,
   districtName,
   groupFill,
@@ -48,7 +49,7 @@ function Office({ label, office }: { label: string; office: StateOffice }) {
     <div className="flex flex-col">
       <dt className="text-label uppercase text-ink2">{label}</dt>
       <dd className="m-0 text-meta text-ink tnum">
-        {office.address && <span className="block">{office.address}</span>}
+        {office.address && <span className="block">{addressLine(office.address)}</span>}
         {office.phone && (
           <a href={`tel:${office.phone.replace(/[^0-9+]/g, '')}`} className={LINK}>
             {office.phone}
