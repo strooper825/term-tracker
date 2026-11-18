@@ -234,12 +234,24 @@ describe('state page', () => {
     expect(screen.getByRole('img', { name: /Senate: Democratic 8, Vacant 1, Republican 21 of 30 seats/ })).toBeInTheDocument();
   });
 
-  it('labels the supermajority line only when it is clear of the majority line', () => {
+  it('puts each line label on the side away from the other line', () => {
+    // Republicans lead, so the lines count in from the right: supermajority 20 is left of majority 16
     const { container } = render(<StateChamberBar chamber={SENATE} />);
-    expect(container.querySelector('[data-marker="upper-supermajority"]')).toHaveTextContent('');
-    const wide = chamber({ seats: 100, majority_seats: 51, supermajority_seats: 67 });
-    const { container: c2 } = render(<StateChamberBar chamber={wide} />);
-    expect(c2.querySelector('[data-marker="lower-supermajority"]')).toHaveTextContent('Supermajority 67');
+    const label = (kind: string) =>
+      container.querySelector(`[data-marker="upper-${kind}"] span`) as HTMLElement;
+    expect(label('supermajority')).toHaveTextContent('Supermajority 20');
+    expect(label('supermajority').style.right).toBe('0px');
+    expect(label('majority')).toHaveTextContent('Majority 16');
+    expect(label('majority').style.left).toBe('0px');
+    expect(label('majority').style.transform).toBe('');
+  });
+
+  it('labels only the majority line when the two lines almost touch', () => {
+    const close = chamber({ seats: 100, majority_seats: 51, supermajority_seats: 53 });
+    const { container } = render(<StateChamberBar chamber={close} />);
+    expect(container.querySelector('[data-marker="lower-supermajority"]')).toHaveTextContent('');
+    const majority = container.querySelector('[data-marker="lower-majority"] span') as HTMLElement;
+    expect(majority.style.transform).toBe('translateX(-50%)');
   });
 
   it('loads the map and opens a district card on a tap', async () => {

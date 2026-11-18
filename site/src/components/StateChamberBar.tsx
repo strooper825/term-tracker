@@ -36,23 +36,38 @@ function Pill({ text, party, fill }: { text: string; party: StateParty | null; f
   );
 }
 
-function Marker({ pct, label, chamber, kind }: { pct: number; label: string; chamber: string; kind: string }) {
+type Side = 'center' | 'before' | 'after';
+
+/* A threshold line, its label above the bar. With two lines each label sits on the side away from
+   the other line, so on a narrow screen they cannot run into each other. */
+function Marker({ pct, label, chamber, kind, side }: { pct: number; label: string; chamber: string; kind: string; side: Side }) {
+  const place =
+    side === 'before'
+      ? { right: 0, paddingRight: 4 }
+      : side === 'after'
+        ? { left: 0, paddingLeft: 4 }
+        : { left: 0, transform: 'translateX(-50%)' };
   return (
     <div
       data-marker={`${chamber}-${kind}`}
-      className="absolute top-0 bottom-0 flex flex-col items-center pointer-events-none"
-      style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
+      className="absolute top-0 bottom-0 w-0 pointer-events-none"
+      style={{ left: `${pct}%` }}
     >
-      <span className="text-meta text-ink2 whitespace-nowrap tnum">{label}</span>
-      <span aria-hidden className={`flex-1 w-0.5 ${kind === 'majority' ? 'bg-ink' : 'bg-ink2'}`} />
+      <span className="absolute top-0 text-meta text-ink2 whitespace-nowrap tnum leading-5" style={place}>
+        {label}
+      </span>
+      <span aria-hidden className={`absolute top-5 bottom-0 -left-px w-0.5 ${kind === 'majority' ? 'bg-ink' : 'bg-ink2'}`} />
     </div>
   );
 }
 
 export function StateChamberBar({ chamber }: { chamber: StateChamber }) {
   const bar = buildChamberBar(chamber);
-  // the two labels collide when the lines are close (a 3/5 threshold in a small chamber)
-  const apart = Math.abs(bar.supermajorityPct - bar.majorityPct) >= 14;
+  const both = chamber.control_kind !== 'nonpartisan';
+  // labels sit on the far side of each line; only lines almost on top of each other share one label
+  const apart = Math.abs(bar.supermajorityPct - bar.majorityPct) >= 4;
+  const superFirst = bar.supermajorityPct < bar.majorityPct;
+  const majoritySide: Side = !both || !apart ? 'center' : superFirst ? 'after' : 'before';
   return (
     <div className="flex flex-col gap-2.5" data-chamber={bar.chamber}>
       <div className="flex items-baseline gap-2.5 flex-wrap">
@@ -65,13 +80,14 @@ export function StateChamberBar({ chamber }: { chamber: StateChamber }) {
         <p className="text-meta text-ink2 m-0 tnum">{bar.detail}</p>
       </div>
       <div className="relative pt-6 pb-1">
-        <Marker pct={bar.majorityPct} label={bar.majorityLabel} chamber={bar.chamber} kind="majority" />
-        {chamber.control_kind !== 'nonpartisan' && (
+        <Marker pct={bar.majorityPct} label={bar.majorityLabel} chamber={bar.chamber} kind="majority" side={majoritySide} />
+        {both && (
           <Marker
             pct={bar.supermajorityPct}
             label={apart ? bar.supermajorityLabel : ''}
             chamber={bar.chamber}
             kind="supermajority"
+            side={superFirst ? 'before' : 'after'}
           />
         )}
         <div

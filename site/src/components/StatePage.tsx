@@ -152,7 +152,8 @@ export function StatePage({ summary, legislatureName, asOf, sourceDate, lastUpda
                 <div key={c.chamber} className="flex flex-col gap-2">
                   <StateChamberBar chamber={c} />
                   <a href={rosterPath(summary.state, c.slug)} className="self-start text-meta font-semibold text-navy underline decoration-rule underline-offset-2">
-                    All {titlePlural(c.title, c.seats - c.vacant)}: contact details and committees →
+                    All {titlePlural(c.title, c.seats - c.vacant)}: contact details and{' '}
+                    <span className="whitespace-nowrap">committees →</span>
                   </a>
                 </div>
               ))}
