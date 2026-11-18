@@ -109,5 +109,12 @@ select
     end as control_kind,
     override_note as control_note,
     case chamber when 'lower' then 2 else 1 end as chamber_order,
+    -- the chamber's roster page: /states/{state}/{chamber_slug}
+    case
+        when chamber = 'upper' then 'senate'
+        when chamber = 'legislature' and state = 'DC' then 'council'
+        when chamber = 'legislature' then 'legislature'
+        else lower(replace(chamber_name, ' ', '-'))
+    end as chamber_slug,
     (select day from as_of) as as_of
 from sized

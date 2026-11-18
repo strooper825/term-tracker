@@ -20,6 +20,7 @@ function chamber(over: Partial<StateChamber>): StateChamber {
   return {
     chamber: 'lower',
     name: 'House',
+    slug: 'house',
     title: 'Representative',
     seats: 100,
     republican: 0,
@@ -249,8 +250,8 @@ describe('state page', () => {
         <StateLegislatureMap
           abbr="XX"
           chambers={[
-            { chamber: 'upper', name: 'Senate', title: 'Senator' },
-            { chamber: 'lower', name: 'House', title: 'Representative' },
+            { chamber: 'upper', name: 'Senate', title: 'Senator', slug: 'senate' },
+            { chamber: 'lower', name: 'House', title: 'Representative', slug: 'house' },
           ]}
         />,
       );
@@ -267,7 +268,7 @@ describe('state page', () => {
     fireEvent.pointerDown(one, { pointerId: 1, pointerType: 'touch', clientX: 5, clientY: 5 });
     fireEvent.pointerUp(one, { pointerId: 1, pointerType: 'touch', clientX: 5, clientY: 5 });
     const card = screen.getByRole('dialog', { name: 'Senate: District 1' });
-    expect(within(card).getByRole('link', { name: /Ann Senator/ })).toHaveAttribute('href', 'https://leg.example/ann');
+    expect(within(card).getByRole('link', { name: /Ann Senator/ })).toHaveAttribute('href', '/states/xx/senate#1-ann-senator');
     expect(card).toHaveTextContent('Republican');
   });
 });

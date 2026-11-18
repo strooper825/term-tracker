@@ -61,6 +61,8 @@ sources:
         description: A traded company's CIK, name and SIC industry code from the SEC, keyed by normalised ticker (ADR 0032).
       - name: state_person
         description: A state legislator or governor from openstates/people, the YAML file as JSON, keyed by Open States person id (ADR 0035).
+      - name: state_committee
+        description: A state legislative committee and its members from openstates/people, the YAML file as JSON, keyed by Open States organization id (ADR 0035).
 
   - name: meta
     description: Operational metadata about the pipeline itself (Alembic and ingest/).

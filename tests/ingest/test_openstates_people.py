@@ -11,7 +11,13 @@ from sqlalchemy import Engine, text
 from ingest.db import connect
 from ingest.shape import SourceShapeError
 from ingest.sources import openstates_people as src
-from tests.fixtures.openstates_people import FIXTURE_PEOPLE, SHA, fixture_fetch, tarball
+from tests.fixtures.openstates_people import (
+    FIXTURE_COMMITTEES,
+    FIXTURE_PEOPLE,
+    SHA,
+    fixture_fetch,
+    tarball,
+)
 
 
 def test_latest_commit_reads_the_sha():
@@ -53,6 +59,14 @@ def test_read_people_keeps_recent_roles_in_scope_only():
     assert {folder for _, folder, _ in kept} == {"legislature", "executive", "retired"}
 
 
+def test_read_committees_reads_the_committee_folder_only():
+    committees = list(src.read_committees(tarball()))
+    assert len(committees) == FIXTURE_COMMITTEES
+    assert {state for state, _ in committees} == {"ca"}
+    budget = next(c for _, c in committees if c["name"] == "Budget and Fiscal Review")
+    assert budget["members"][0]["role"] == "Chair" and "person_id" not in budget["members"][2]
+
+
 def test_read_people_refuses_a_file_without_roles_shape():
     broken = {"id": "not-an-ocd-id", "name": "X", "roles": [{"type": "upper", "jurisdiction": "x"}]}
     with pytest.raises(SourceShapeError):
@@ -69,9 +83,11 @@ def test_load_replaces_the_table_and_skips_a_commit_already_loaded(migrated_engi
                 "ON CONFLICT DO NOTHING"
             )
         conn.commit()
-        loaded = src.load(conn, fetch=fixture_fetch, minimum=1, full_refresh=True)
+        loaded = src.load(
+            conn, fetch=fixture_fetch, minimum=1, minimum_committees=1, full_refresh=True
+        )
         assert loaded == FIXTURE_PEOPLE
-        again = src.load(conn, fetch=fixture_fetch, minimum=1)
+        again = src.load(conn, fetch=fixture_fetch, minimum=1, minimum_committees=1)
         assert again == 0
     with migrated_engine.connect() as conn:
         count = conn.execute(text("SELECT count(*) FROM raw.state_person")).scalar_one()
@@ -86,13 +102,16 @@ def test_load_replaces_the_table_and_skips_a_commit_already_loaded(migrated_engi
             {"s": src.SOURCE},
         ).one()
     assert count == FIXTURE_PEOPLE and stale == 0
+    with migrated_engine.connect() as conn:
+        committees = conn.execute(text("SELECT count(*) FROM raw.state_committee")).scalar_one()
+    assert committees == FIXTURE_COMMITTEES
     assert last.status == "success" and last.rows_loaded == 0 and last.source_url.endswith(SHA)
 
 
 @pytest.mark.integration
 def test_load_refuses_too_few_people_and_keeps_the_table(migrated_engine: Engine):
     with connect() as conn:
-        src.load(conn, fetch=fixture_fetch, minimum=1, full_refresh=True)
+        src.load(conn, fetch=fixture_fetch, minimum=1, minimum_committees=1, full_refresh=True)
         with pytest.raises(SourceShapeError, match="expected at least"):
             src.load(conn, fetch=fixture_fetch, full_refresh=True)
     with migrated_engine.connect() as conn:
@@ -100,3 +119,10 @@ def test_load_refuses_too_few_people_and_keeps_the_table(migrated_engine: Engine
             conn.execute(text("SELECT count(*) FROM raw.state_person")).scalar_one()
             == FIXTURE_PEOPLE
         )
+
+
+@pytest.mark.integration
+def test_load_refuses_too_few_committees(migrated_engine: Engine):
+    with connect() as conn:
+        with pytest.raises(SourceShapeError, match="committees; expected at least"):
+            src.load(conn, fetch=fixture_fetch, minimum=1, full_refresh=True)

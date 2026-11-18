@@ -359,6 +359,19 @@ models:
       - name: person_id
         tests: [unique, not_null]
 
+  - name: stg_state_offices
+    description: >
+      One row per office (capitol, district, mail, home) listed for a state legislator or governor
+      in openstates/people (ADR 0035), with its address and phone.
+
+  - name: stg_state_committee_members
+    description: >
+      One row per member of a state legislative committee in openstates/people (ADR 0035). person_id
+      is null where Open States did not link the name to a person.
+    columns:
+      - name: committee_id
+        tests: [not_null]
+
   - name: stg_state_parties
     description: One row per party a state legislator or governor has had, oldest first (ADR 0035).
 

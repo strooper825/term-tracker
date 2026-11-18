@@ -29,6 +29,8 @@ export interface StatePartySeats {
 export interface StateChamber {
   chamber: 'upper' | 'lower' | 'legislature';
   name: string;
+  /** The chamber's roster page: /states/{abbr}/{slug} (senate, house, assembly, legislature, council). */
+  slug: string;
   title: string;
   seats: number;
   republican: number;
@@ -424,4 +426,149 @@ export function seatGroups(seat: DistrictSeat): string[] {
   const groups = seat.members.map((m) => groupOf(m.party, m.partyLabel));
   for (let i = seat.members.length; i < seat.seats; i += 1) groups.push('V');
   return groups;
+}
+
+// ---- the roster pages (/states/{abbr}/{chamber slug}) -----------------------------------------
+
+export interface StateOffice {
+  address: string | null;
+  phone: string | null;
+}
+
+export interface StateTerm {
+  chamber: StateChamber['chamber'];
+  chamber_name: string | null;
+  district: string | null;
+  /** null when Open States has no start date */
+  start_date: string | null;
+  /** null while the span runs */
+  end_date: string | null;
+}
+
+export interface StateCommitteeSeat {
+  name: string;
+  /** upper, lower, or legislature (a joint committee) */
+  chamber: StateChamber['chamber'];
+  role: string | null;
+}
+
+export interface StateLegislatorProfile {
+  person_id: string;
+  district: string;
+  district_note: string | null;
+  name: string;
+  family_name: string | null;
+  party: StateParty;
+  party_group: string;
+  party_label: string | null;
+  party_basis: 'party' | 'registration';
+  image_url: string | null;
+  email: string | null;
+  website_url: string | null;
+  capitol_office: StateOffice | null;
+  district_office: StateOffice | null;
+  social: { twitter: string | null; facebook: string | null; instagram: string | null; youtube: string | null };
+  terms: StateTerm[];
+  committees: StateCommitteeSeat[];
+}
+
+export interface StateRosterChamber {
+  chamber: StateChamber['chamber'];
+  slug: string;
+  name: string;
+  title: string;
+  seats: number;
+  vacant: number;
+  legislators: StateLegislatorProfile[];
+}
+
+export interface StateRosterResponse {
+  as_of: string;
+  state: string;
+  name: string;
+  legislature_name: string;
+  chambers: StateRosterChamber[];
+  generated_at: string;
+  sources: StatesResponse['sources'];
+}
+
+/** The id of a legislator's card on the roster page, from district and name, so the map can
+ *  link to it without the person id: "berkshire-hampden-franklin-and-hampshire-paul-mark". */
+export function legislatorAnchor(district: string, name: string): string {
+  return `${district}-${name}`
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+export function rosterPath(abbr: string, slug: string, anchor?: string): string {
+  return `/states/${abbr.toLowerCase()}/${slug}${anchor ? `#${anchor}` : ''}`;
+}
+
+/** Plural of a member's title for the page's count line: "40 senators", "80 assembly members". */
+export function titlePlural(title: string, n: number): string {
+  const word = title.toLowerCase();
+  if (n === 1) return `1 ${word}`;
+  return `${n} ${word.endsWith('member') ? `${word}s` : word.endsWith('s') ? word : `${word}s`}`;
+}
+
+/** "2023–present", "2011–2023", "Since 2019", or null when no year is known. */
+export function termYears(t: Pick<StateTerm, 'start_date' | 'end_date'>): string | null {
+  const start = t.start_date?.slice(0, 4) ?? null;
+  const end = t.end_date?.slice(0, 4) ?? null;
+  if (start && end) return start === end ? start : `${start}–${end}`;
+  if (start) return `${start}–present`;
+  if (end) return `Until ${end}`;
+  return null;
+}
+
+/** A committee seat as the card lists it: "Finance (chair)", "Audit (joint)", "Rules (ranking
+ *  Democratic member)". Roles are lower-cased except the party names in them. */
+export function committeeLine(c: StateCommitteeSeat, bicameral: boolean): string {
+  const tags: string[] = [];
+  if (c.role) tags.push(c.role.toLowerCase().replace(/\b(democratic|republican)\b/g, (w) => w[0].toUpperCase() + w.slice(1)));
+  if (bicameral && c.chamber === 'legislature') tags.push('joint');
+  return tags.length ? `${c.name} (${tags.join(', ')})` : c.name;
+}
+
+export interface SocialLink {
+  label: string;
+  handle: string;
+  href: string;
+}
+
+/** Links for the accounts Open States records. Values that are not a usable account name (a
+ *  name with spaces, a mangled channel id) are left out. */
+export function socialLinks(social: StateLegislatorProfile['social']): SocialLink[] {
+  const plain = /^[A-Za-z0-9_.-]+$/;
+  const out: SocialLink[] = [];
+  const first = (v: string | null) => (v ?? '').split('|')[0].trim().replace(/^@/, '');
+  const tw = first(social.twitter);
+  if (plain.test(tw)) out.push({ label: 'X', handle: `@${tw}`, href: `https://x.com/${tw}` });
+  const fb = first(social.facebook);
+  if (plain.test(fb)) out.push({ label: 'Facebook', handle: fb, href: `https://www.facebook.com/${fb}` });
+  const ig = first(social.instagram);
+  if (plain.test(ig)) out.push({ label: 'Instagram', handle: `@${ig}`, href: `https://www.instagram.com/${ig}` });
+  const yt = first(social.youtube);
+  if (/^UC[A-Za-z0-9_-]{22}$/.test(yt)) {
+    out.push({ label: 'YouTube', handle: 'Channel', href: `https://www.youtube.com/channel/${yt}` });
+  } else if (plain.test(yt) && !/^uc[a-z0-9_-]{22}$/.test(yt)) {
+    out.push({ label: 'YouTube', handle: yt, href: `https://www.youtube.com/${yt}` });
+  }
+  return out;
+}
+
+/** Initials for a missing photo: "PM" for Paul Mark. */
+export function initials(name: string): string {
+  const words = name.replace(/[^\p{L}\s'-]/gu, ' ').split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  const last = words.length > 1 ? words[words.length - 1] : '';
+  return (words[0][0] + (last[0] ?? '')).toUpperCase();
+}
+
+/** "District 7" for a numbered district, the name as written otherwise ("2nd Berkshire", "Ward 1"). */
+export function districtName(district: string): string {
+  return /^\d+[A-Z]?$/i.test(district) ? `District ${district}` : district;
 }

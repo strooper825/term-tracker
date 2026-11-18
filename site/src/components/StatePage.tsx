@@ -2,7 +2,7 @@
 // seats as a bar, and the legislature map. Server component; the map is the client
 // StateLegislatureMap, which loads its rows from /states/data/{abbr}.json.
 import { formatDate } from '@/lib/format';
-import { controlLabel, groupFill, groupName, groupOf, type StateSummary } from '@/lib/states';
+import { controlLabel, groupFill, groupName, groupOf, rosterPath, titlePlural, type StateSummary } from '@/lib/states';
 import { PageShell } from './SiteFrame';
 import { StateChamberBar } from './StateChamberBar';
 import { StateLegislatureMap } from './StateLegislatureMap';
@@ -78,14 +78,19 @@ export function StatePage({ summary, legislatureName, asOf, sourceDate, lastUpda
             </h2>
             <div className="px-[18px] py-5 flex flex-col gap-8">
               {summary.chambers.map((c) => (
-                <StateChamberBar key={c.chamber} chamber={c} />
+                <div key={c.chamber} className="flex flex-col gap-2">
+                  <StateChamberBar chamber={c} />
+                  <a href={rosterPath(summary.state, c.slug)} className="self-start text-meta font-semibold text-navy underline decoration-rule underline-offset-2">
+                    All {titlePlural(c.title, c.seats - c.vacant)}: contact details and committees →
+                  </a>
+                </div>
               ))}
             </div>
           </section>
 
           <StateLegislatureMap
             abbr={summary.state}
-            chambers={summary.chambers.map((c) => ({ chamber: c.chamber, name: c.name, title: c.title }))}
+            chambers={summary.chambers.map((c) => ({ chamber: c.chamber, name: c.name, title: c.title, slug: c.slug }))}
           />
         </div>
         <p className="px-7 pb-6 text-label uppercase text-ink2 m-0 leading-relaxed">

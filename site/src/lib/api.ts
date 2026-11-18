@@ -25,7 +25,7 @@ import type {
   StockTradesResponse,
   AnnualDisclosuresResponse,
 } from './types';
-import type { StateDetailResponse, StatesResponse } from './states';
+import type { StateDetailResponse, StateRosterResponse, StatesResponse } from './states';
 
 function baseUrl(): string {
   const url = process.env.API_BASE_URL;
@@ -89,6 +89,8 @@ export const api = {
   seats: () => getJson<SeatsResponse>('/api/v1/congress/seats'),
   states: () => getJson<StatesResponse>('/api/v1/states'),
   state: (abbr: string) => getJson<StateDetailResponse>(`/api/v1/states/${abbr.toUpperCase()}`),
+  stateRoster: (abbr: string) =>
+    getJson<StateRosterResponse>(`/api/v1/states/${abbr.toUpperCase()}/legislators`),
   sessions: () => getJson<SessionsResponse>('/api/v1/meta/sessions'),
   freshness: () => getJson<FreshnessResponse>('/api/v1/meta/freshness'),
   committeeIndustries: () => getJson<CommitteeIndustriesResponse>('/api/v1/meta/committee-industries'),
