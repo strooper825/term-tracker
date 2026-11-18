@@ -186,7 +186,13 @@ def built_mart(migrated_engine: Engine) -> None:
             conn, FixtureFiles(), CENSUS_YEAR, full_refresh=True, minimums=GEOGRAPHY_MINIMUMS
         )
         census_acs.load(conn, census_client(), ACS_YEAR, minimums=ACS_MINIMUMS)
-        openstates_people.load(conn, fetch=openstates_fixture_fetch, minimum=1, full_refresh=True)
+        openstates_people.load(
+            conn,
+            fetch=openstates_fixture_fetch,
+            minimum=1,
+            minimum_committees=1,
+            full_refresh=True,
+        )
         # The loader now skips the Census's ZZ (no district) rows, but the 2026-09-20 nightly
         # had already stored some: staging must build with one in raw, or dbt fails on "ZZ".
         with conn.cursor() as cur:

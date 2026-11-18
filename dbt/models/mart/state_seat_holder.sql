@@ -8,6 +8,10 @@
 -- people with the latest known start dates are seated and the rest have is_seated false;
 -- assert_state_seats_not_overfilled lists them. party_basis is 'registration' when the party
 -- shown is the member's voter registration in an officially nonpartisan legislature (Nebraska).
+--
+-- Contact details: the capitol office is the first office Open States lists as capitol (or
+-- primary), else the first capitol mailing address; the district office likewise. Home addresses
+-- are never shown.
 with as_of as (
     select {{ states_as_of() }} as day
 ),
@@ -40,6 +44,34 @@ party as (
     order by pa.person_id, pa.party_index desc
 ),
 
+office as (
+    select
+        person_id,
+        (array_agg(address order by rank, office_index) filter (where kind = 'capitol'))[1]
+            as capitol_address,
+        (array_agg(phone order by rank, office_index)
+            filter (where kind = 'capitol' and phone is not null))[1] as capitol_phone,
+        (array_agg(address order by rank, office_index) filter (where kind = 'district'))[1]
+            as district_address,
+        (array_agg(phone order by rank, office_index)
+            filter (where kind = 'district' and phone is not null))[1] as district_phone
+    from (
+        select
+            person_id,
+            office_index,
+            address,
+            phone,
+            case
+                when classification in ('capitol', 'primary', 'capitol-mail') then 'capitol'
+                when classification in ('district', 'district-mail') then 'district'
+            end as kind,
+            case when classification like '%-mail' then 2 else 1 end as rank
+        from {{ ref('stg_state_offices') }}
+    ) as o
+    where kind is not null
+    group by person_id
+),
+
 placed as (
     select
         a.state,
@@ -55,6 +87,14 @@ placed as (
         p.image_url,
         p.email,
         p.website_url,
+        p.twitter,
+        p.facebook,
+        p.instagram,
+        p.youtube,
+        o.capitol_address,
+        o.capitol_phone,
+        o.district_address,
+        o.district_phone,
         -- An officially nonpartisan legislature's members are shown by their party
         -- registration where seeds/state_party_registration.csv has the seat's holder.
         coalesce(reg.party_label, pa.party_label) as party_label,
@@ -77,6 +117,7 @@ placed as (
     from active as a
     inner join {{ ref('stg_state_people') }} as p on p.person_id = a.person_id
     left join party as pa on pa.person_id = a.person_id
+    left join office as o on o.person_id = a.person_id
     left join {{ ref('state_party_registration') }} as reg
         on reg.state = a.state
         and reg.chamber = a.chamber
@@ -100,6 +141,14 @@ select
     placed.image_url,
     placed.email,
     placed.website_url,
+    placed.twitter,
+    placed.facebook,
+    placed.instagram,
+    placed.youtube,
+    placed.capitol_address,
+    placed.capitol_phone,
+    placed.district_address,
+    placed.district_phone,
     placed.party_label,
     placed.party,
     placed.party_basis,

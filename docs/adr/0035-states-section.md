@@ -141,3 +141,28 @@ Nebraska.
     "(by party registration)".
   - On 2026-11-17 the count is 33 R, 15 D and 1 independent. That is a Republican
     supermajority (30 needed at 3/5), so Nebraska shows as Republican control.
+
+## Addendum, 2026-11-18: legislator roster pages
+
+The owner asked for pages for state legislators. 7,417 separate pages would cost about 59 MB of
+the 100 MB Vercel upload (about 8 KB each), the room the rest of Congress needs, so the owner
+chose one page per chamber instead: `/states/{abbr}/{slug}`, about 100 pages.
+
+- **What a card shows:** photo (linked from the legislature's site, initials when it fails),
+  party, district, email, capitol and district office with phone, official page and social
+  accounts, service on record, and committee seats. Birth date and gender are left out by the
+  owner's decision; occupation, education and counties are too patchy (5 to 13%) to show.
+- **Links:** each card has its own anchor from district and name
+  (`legislatorAnchor`), so the map's district card links straight to it, and a later address
+  lookup can too. The state page links each chamber bar to its roster.
+- **Committees** come from the committee files in the same openstates/people tarball
+  (`raw.state_committee`, migration 0018). 97.5% of seated legislators have at least one. The
+  files have no dates, so an archived build lists none rather than pairing a past legislature
+  with today's committees.
+- **Service on record** merges consecutive roles in the same seat. Where Open States' records
+  contradict themselves (overlapping spans, about 3% of members), only the current seat is
+  shown. Earlier service is often missing; the page says so.
+- **Find and sort** run in the browser over the server-rendered cards (RosterFilter hides and
+  reorders them), so no legislator data is sent twice.
+- **Not included:** votes and bills. They need Plural's API with a key and rate limits across
+  7,000+ people, a separate decision.

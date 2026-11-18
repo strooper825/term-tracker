@@ -29,6 +29,10 @@ class PartySeats(BaseModel):
 class Chamber(BaseModel):
     chamber: str = Field(description="upper, lower, or legislature for a one-chamber body")
     name: str = Field(description='"Senate", "House of Delegates", "Nebraska Legislature"')
+    slug: str = Field(
+        description="The chamber's roster page, /states/{state}/{slug}: senate, house, assembly, "
+        "legislature (Nebraska) or council (DC)"
+    )
     title: str = Field(description="What a member is called: Senator, Representative, ...")
     seats: int = Field(description="Voting seats, vacant ones included")
     republican: int
@@ -87,6 +91,72 @@ class Legislator(BaseModel):
     image_url: str | None
     email: str | None
     website_url: str | None
+
+
+class Office(BaseModel):
+    address: str | None
+    phone: str | None
+
+
+class Term(BaseModel):
+    chamber: str
+    chamber_name: str | None
+    district: str | None
+    start_date: date | None = Field(description="Null when the source has no start date")
+    end_date: date | None = Field(description="Null while the span runs")
+
+
+class CommitteeSeat(BaseModel):
+    name: str
+    chamber: str = Field(description="upper, lower, or legislature (joint)")
+    role: str | None = Field(description='"Chair", "vice chair", ...; null for a plain member')
+
+
+class Social(BaseModel):
+    twitter: str | None
+    facebook: str | None
+    instagram: str | None
+    youtube: str | None
+
+
+class LegislatorProfile(BaseModel):
+    person_id: str
+    district: str
+    district_note: str | None = Field(description="at-large, floterial or non-voting")
+    name: str
+    family_name: str | None
+    party: str = Field(description="R, D, I or N")
+    party_group: str
+    party_label: str | None
+    party_basis: str = Field(description="party, or registration (Nebraska)")
+    image_url: str | None
+    email: str | None
+    website_url: str | None
+    capitol_office: Office | None
+    district_office: Office | None
+    social: Social
+    terms: list[Term] = Field(description="Service on record, newest first; often incomplete")
+    committees: list[CommitteeSeat] = Field(description="Leaders first; empty in an archived build")
+
+
+class RosterChamber(BaseModel):
+    chamber: str
+    slug: str
+    name: str
+    title: str
+    seats: int
+    vacant: int
+    legislators: list[LegislatorProfile] = Field(description="Seated members, by district")
+
+
+class StateRoster(BaseModel):
+    as_of: date
+    state: str
+    name: str
+    legislature_name: str
+    chambers: list[RosterChamber]
+    generated_at: datetime
+    sources: list[SourceRef]
 
 
 class District(BaseModel):

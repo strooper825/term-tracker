@@ -12,6 +12,11 @@ select
     nullif(p.payload ->> 'email', '') as email,
     -- the first link is the member's page on the legislature's site
     nullif(p.payload -> 'links' -> 0 ->> 'url', '') as website_url,
+    -- account names, not URLs
+    nullif(p.payload -> 'ids' ->> 'twitter', '') as twitter,
+    nullif(p.payload -> 'ids' ->> 'facebook', '') as facebook,
+    nullif(p.payload -> 'ids' ->> 'instagram', '') as instagram,
+    nullif(p.payload -> 'ids' ->> 'youtube', '') as youtube,
     p.source_url,
     p.fetched_at
 from {{ source('raw', 'state_person') }} as p

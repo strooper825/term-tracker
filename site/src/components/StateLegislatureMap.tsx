@@ -15,6 +15,8 @@ import {
   groupName,
   groupOf,
   indexDistricts,
+  legislatorAnchor,
+  rosterPath,
   seatGroups,
   type DistrictMember,
   type DistrictSeat,
@@ -31,6 +33,8 @@ export interface MapChamber {
   chamber: StateChamber['chamber'];
   name: string;
   title: string;
+  /** the chamber's roster page, /states/{abbr}/{slug} */
+  slug: string;
 }
 
 const MAX_ZOOM = 12;
@@ -86,28 +90,24 @@ function Badge({ member }: { member: DistrictMember }) {
   );
 }
 
-function MemberRow({ member, link }: { member: DistrictMember; link: boolean }) {
+/** A member in the district card: links to their card on the chamber's roster page (contact
+ *  details, service, committees) when the card is pinned. */
+function MemberRow({ member, href }: { member: DistrictMember; href: string | null }) {
   const body = (
     <>
       <span className="flex-1 min-w-0 flex flex-col">
         <span className="text-[14px] font-semibold leading-snug">{member.name}</span>
-        {link && member.websiteUrl && <span className="text-meta text-ink2">Official page ↗</span>}
+        {href && <span className="text-meta text-ink2">Contact and committees →</span>}
       </span>
       <Badge member={member} />
     </>
   );
-  if (!link || !member.websiteUrl) {
+  if (!href) {
     return <span className="flex items-center gap-2.5 py-1.5 border-t border-ruleSoft">{body}</span>;
   }
   return (
-    <a
-      href={member.websiteUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2.5 py-1.5 border-t border-ruleSoft text-ink hover:bg-canvas"
-    >
+    <a href={href} className="flex items-center gap-2.5 py-1.5 border-t border-ruleSoft text-ink hover:bg-canvas">
       {body}
-      <span className="sr-only"> (opens in a new tab)</span>
     </a>
   );
 }
@@ -115,10 +115,12 @@ function MemberRow({ member, link }: { member: DistrictMember; link: boolean }) 
 function SeatCard({
   seat,
   chamber,
+  abbr,
   link,
 }: {
   seat: Pick<DistrictSeat, 'districts' | 'seats' | 'members'>;
   chamber: MapChamber;
+  abbr: string;
   link: boolean;
 }) {
   const vacant = seat.seats - seat.members.length;
@@ -128,7 +130,11 @@ function SeatCard({
       <span className="text-[16px] font-bold">{districtLabel(seat.districts)}</span>
       {seat.seats > 1 && <span className="text-meta text-ink2">Elects {seat.seats} members</span>}
       {seat.members.map((m) => (
-        <MemberRow key={`${m.name}-${m.district}`} member={m} link={link} />
+        <MemberRow
+          key={`${m.name}-${m.district}`}
+          member={m}
+          href={link ? rosterPath(abbr, chamber.slug, legislatorAnchor(m.district, m.name)) : null}
+        />
       ))}
       {vacant > 0 && (
         <span className="text-body text-ink2 pt-1">
@@ -440,7 +446,7 @@ export function StateLegislatureMap({ abbr, chambers }: { abbr: string; chambers
             className="absolute z-10 w-[270px] flex flex-col gap-1 px-3.5 py-3 bg-card border border-rule rounded-card shadow-[0_10px_28px_rgba(26,26,25,0.16)] pointer-events-none text-ink"
             style={placeCard(pointer)}
           >
-            <SeatCard seat={hoverSeat} chamber={current} link={false} />
+            <SeatCard seat={hoverSeat} chamber={current} abbr={abbr} link={false} />
             <span className="text-meta text-ink2 pt-1">Click to keep this open</span>
           </div>
         )}
@@ -460,7 +466,7 @@ export function StateLegislatureMap({ abbr, chambers }: { abbr: string; chambers
             >
               ×
             </button>
-            <SeatCard seat={pinnedSeat} chamber={current} link />
+            <SeatCard seat={pinnedSeat} chamber={current} abbr={abbr} link />
           </div>
         )}
       </div>
@@ -493,7 +499,15 @@ export function StateLegislatureMap({ abbr, chambers }: { abbr: string; chambers
                         {s.seats > s.members.length ? ` · ${s.seats - s.members.length} vacant` : ''}
                       </span>
                       {s.members.map((m) => (
-                        <MemberRow key={m.name} member={m} link />
+                        <MemberRow
+                          key={m.name}
+                          member={m}
+                          href={rosterPath(
+                            abbr,
+                            (chambers.find((c) => c.chamber === s.chamber) ?? current).slug,
+                            legislatorAnchor(m.district, m.name),
+                          )}
+                        />
                       ))}
                     </li>
                   ))}

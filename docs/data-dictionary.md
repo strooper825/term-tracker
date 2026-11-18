@@ -1284,6 +1284,14 @@ One row per openstates/people file kept (a legislative or governor role held on 
 (`legislature`, `executive`, `retired`), `payload` (the YAML as JSON), `source_url` (the
 commit's tarball), `fetched_at`. Replaced whole on each load: 8,525 rows on 2026-11-17.
 
+### `raw.state_committee`
+
+One row per committee file in openstates/people (`data/{state}/committees/`), loaded with
+`raw.state_person` from the same tarball: `committee_id` (`ocd-organization/<uuid>`), `state`,
+`payload` (name, `chamber` upper, lower or legislature for a joint committee, `members` with
+`name`, `role` and usually `person_id`), `source_url`, `fetched_at`. 2,796 committees and 44,152
+memberships on 2026-11-18, 34,160 of them linked to a person.
+
 ### `seed.state_chambers`, `seed.state_districts`
 
 Written by `python -m ingest.state_maps` from the openstates-core metadata and the Census 2025
@@ -1313,7 +1321,29 @@ One row per person in a legislative role on the day: `state`, `chamber`, `distri
 `district_seats`, `shape`, `district_note`, `person_id`, `name`, `given_name`, `family_name`,
 `image_url`, `email`, `website_url`, `party_label`, `party`, `party_group`, `start_date`,
 `end_date`, `is_seated` (false for a person beyond the district's seat count),
-`is_non_voting`, `as_of`, `source_url`, `fetched_at`.
+`is_non_voting`, `as_of`, `source_url`, `fetched_at`. Contact columns for the roster pages:
+`capitol_address`, `capitol_phone`, `district_address`, `district_phone` (the first capitol or
+district office Open States lists, a mailing address only when there is no office; home
+addresses are never used) and `twitter`, `facebook`, `instagram`, `youtube` (account names as
+recorded). On 2026-11-18, of 7,417 seated: 7,372 capitol addresses, 3,058 district addresses,
+7,406 emails, 698 X accounts.
+
+### `mart.state_legislator_term`
+
+Service on record for each seated legislator: one row per unbroken span in one chamber and
+district (roles within a week of each other merge), newest first by `term_order`. `chamber`,
+`chamber_name`, `district`, `start_date`, `end_date` (null while running), `start_unknown`,
+`history_trimmed`. A person whose spans overlap by more than 30 days (227 on 2026-11-18, most in
+Montana and Maine after redistricting) gets only their current seat, `history_trimmed` true.
+Open States' earlier service is incomplete: most members have only their current role.
+
+### `mart.state_committee_member`
+
+Committee seats of seated legislators, from `raw.state_committee` memberships that carry a
+person id: `person_id`, `state`, `committee_id`, `committee_name`, `committee_chamber`, `role`
+(null for a plain member), `committee_order` (leaders first, then by name). 34,152 seats for
+7,234 people on 2026-11-18. Empty in an archived build (`states_as_of` set): the committee files
+have no dates.
 
 ### `mart.state_chamber_party`
 
@@ -1326,7 +1356,8 @@ One row per chamber: `seats`, `republican`, `democratic`, `other`, `nonpartisan`
 `vacant`, `majority_seats` (seats / 2 + 1), `supermajority_seats` (ceiling of seats x the seed's
 share), `supermajority_numerator`/`_denominator`/`_basis`, `control_party`, `control_group`,
 `control_kind` (`supermajority`, `majority`, `coalition`, `nonpartisan`, `none`),
-`control_note`, `chamber_order`, `as_of`.
+`control_note`, `chamber_order`, `chamber_slug` (the roster page: `senate`, `house`,
+`assembly`, `legislature` for Nebraska, `council` for DC), `as_of`.
 
 ### `mart.state_government`
 

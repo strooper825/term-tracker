@@ -806,6 +806,28 @@ models:
         tests:
           - accepted_values: { arguments: { values: ["R", "D", "I", "N", "split"] } }
 
+  - name: state_legislator_term
+    description: >
+      The legislative service on record for each seated state legislator (ADR 0035): one row per
+      unbroken span in one chamber and district, newest first (term_order 1). end_date is null
+      while the span runs; start_unknown is true when a role in it has no start date. Open States'
+      records of earlier service are incomplete.
+      history_trimmed is true for a person whose records contradict themselves (overlapping
+      spans): only their current seat is listed.
+    columns:
+      - name: person_id
+        tests: [not_null]
+
+  - name: state_committee_member
+    description: >
+      Committee seats of each seated state legislator (ADR 0035), leaders first (committee_order
+      1). role is null for a plain member. Empty in an archived build: the committee files have
+      no dates.
+    columns:
+      - name: committee_chamber
+        tests:
+          - accepted_values: { arguments: { values: ["upper", "lower", "legislature"] } }
+
   - name: state_chamber_party
     description: >
       Seats each party group holds in each state legislative chamber on the States section's day

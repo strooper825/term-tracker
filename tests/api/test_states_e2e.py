@@ -81,3 +81,44 @@ def test_state_detail_lists_districts_and_seated_members(client, built_mart):
     assert not any("former" in m["name"] for m in senators)
     assert all(m["shape"] for m in senators)
     assert client.get("/api/v1/states/zz").status_code == 404
+
+
+def test_roster_lists_each_chamber_with_profiles(client, built_mart):
+    response = client.get("/api/v1/states/ca/legislators")
+    assert response.status_code == 200
+    body = response.json()
+    assert [(c["slug"], len(c["legislators"])) for c in body["chambers"]] == [
+        ("senate", 40),
+        ("assembly", 80),
+    ]
+    senate = body["chambers"][0]["legislators"]
+    # natural district order: 1, 2, ... 10, not 1, 10, 11
+    assert [m["district"] for m in senate[:3]] == ["1", "2", "3"]
+    sen0 = next(m for m in senate if m["name"] == "Invented CA upper 0")
+    assert sen0["email"] == "senator0@legislature.example"
+    assert sen0["capitol_office"] == {
+        "address": "1021 O St., Sacramento, CA 95814",
+        "phone": "916-555-0100",
+    }
+    assert sen0["district_office"]["phone"] == "555-555-0101"
+    assert sen0["social"]["twitter"] == "invented_sen0"
+    # two unbroken Senate terms read as one span, newest first, then the Assembly
+    assert [(t["chamber"], t["start_date"], t["end_date"]) for t in sen0["terms"]] == [
+        ("upper", "2020-12-07", None),
+        ("lower", "2016-12-05", "2020-11-30"),
+    ]
+    # the chair first; the unlinked member is nobody's
+    assert sen0["committees"] == [
+        {"name": "Budget and Fiscal Review", "chamber": "upper", "role": "Chair"},
+        {"name": "Joint Legislative Audit", "chamber": "legislature", "role": None},
+    ]
+    others = [m for m in senate if m["name"] != "Invented CA upper 0"]
+    assert all(m["capitol_office"] is None and m["district_office"] is None for m in others)
+    assert client.get("/api/v1/states/zz/legislators").status_code == 404
+
+
+def test_one_chamber_legislatures_get_their_own_slug(client, built_mart):
+    ne = client.get("/api/v1/states/ne/legislators").json()
+    dc = client.get("/api/v1/states/dc/legislators").json()
+    assert [c["slug"] for c in ne["chambers"]] == ["legislature"]
+    assert [c["slug"] for c in dc["chambers"]] == ["council"]

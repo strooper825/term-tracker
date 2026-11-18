@@ -14,7 +14,10 @@ so the mart joins as it does on live data. What the fixture sets up:
 * one California senator whose role ended in 2025 (not seated) and one Nebraska senator with no
   start date (seated);
 * every other state: a Republican governor and no legislators -> every seat vacant, no
-  majority, divided.
+  majority, divided;
+* California senator 0: a capitol and a district office, social accounts, an earlier Assembly
+  term and two unbroken Senate terms (one span on the page), and a seat on two committees (chair
+  of one); a committee member with no person id is not linked to anyone.
 """
 
 from __future__ import annotations
@@ -142,7 +145,94 @@ def people() -> list[tuple[str, str, dict]]:
     for _, _, person in out:
         if person["id"] == _id("NE", "legislature", "0"):
             del person["roles"][0]["start_date"]
+        if person["id"] == CA_SENATOR:
+            _profile(person)
     return out
+
+
+CA_SENATOR = _id("CA", "upper", "0")
+
+
+def _profile(person: dict) -> None:
+    """California senator 0's contact details and earlier terms."""
+    person["email"] = "senator0@legislature.example"
+    person["offices"] = [
+        {
+            "classification": "capitol",
+            "address": "1021 O St., Sacramento, CA 95814",
+            "voice": "916-555-0100",
+        },
+        {
+            "classification": "district",
+            "address": "1 Main St., Example, CA 90000",
+            "voice": "555-555-0101",
+        },
+        {"classification": "home", "address": "never shown"},
+    ]
+    person["ids"] = {"twitter": "invented_sen0", "facebook": "InventedSen0"}
+    district = person["roles"][0]["district"]
+    person["roles"] = [
+        {
+            "type": "lower",
+            "district": "7",
+            "jurisdiction": _jurisdiction("CA"),
+            "start_date": "2016-12-05",
+            "end_date": "2020-11-30",
+        },
+        {
+            "type": "upper",
+            "district": district,
+            "jurisdiction": _jurisdiction("CA"),
+            "start_date": "2020-12-07",
+            "end_date": "2024-12-01",
+        },
+        {
+            "type": "upper",
+            "district": district,
+            "jurisdiction": _jurisdiction("CA"),
+            "start_date": "2024-12-02",
+        },
+    ]
+
+
+def committees() -> list[tuple[str, dict]]:
+    """(state, committee) for the fixture committees."""
+
+    def org(n: str) -> str:
+        return f"ocd-organization/{uuid.uuid5(uuid.NAMESPACE_URL, 'committee/' + n)}"
+
+    return [
+        (
+            "CA",
+            {
+                "id": org("ca-budget"),
+                "name": "Budget and Fiscal Review",
+                "chamber": "upper",
+                "classification": "committee",
+                "members": [
+                    {"name": "Invented CA upper 0", "role": "Chair", "person_id": CA_SENATOR},
+                    {
+                        "name": "Invented CA upper 1",
+                        "role": "member",
+                        "person_id": _id("CA", "upper", "1"),
+                    },
+                    {"name": "Somebody Unlinked", "role": "member"},
+                ],
+            },
+        ),
+        (
+            "CA",
+            {
+                "id": org("ca-joint-audit"),
+                "name": "Joint Legislative Audit",
+                "chamber": "legislature",
+                "classification": "committee",
+                "members": [
+                    {"name": "Invented CA upper 0", "role": "member", "person_id": CA_SENATOR}
+                ],
+            },
+        ),
+    ]
 
 
 def tarball(extra: list[tuple[str, str, dict]] | None = None) -> bytes:
@@ -153,6 +243,13 @@ def tarball(extra: list[tuple[str, str, dict]] | None = None) -> bytes:
             body = yaml.safe_dump(person, sort_keys=False).encode("utf-8")
             info = tarfile.TarInfo(
                 f"people-{SHA}/data/{state.lower()}/{folder}/{person['id'][11:]}.yml"
+            )
+            info.size = len(body)
+            archive.addfile(info, io.BytesIO(body))
+        for state, committee in committees():
+            body = yaml.safe_dump(committee, sort_keys=False, allow_unicode=True).encode("utf-8")
+            info = tarfile.TarInfo(
+                f"people-{SHA}/data/{state.lower()}/committees/{committee['id'][17:]}.yml"
             )
             info.size = len(body)
             archive.addfile(info, io.BytesIO(body))
@@ -173,3 +270,4 @@ def fixture_fetch(url: str) -> bytes:
 
 
 FIXTURE_PEOPLE = len(people())
+FIXTURE_COMMITTEES = len(committees())

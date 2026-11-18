@@ -38,3 +38,19 @@ class Person(_Model):
     party: list[Party] = Field(default_factory=list)
     roles: list[Role] = Field(min_length=1)
     image: str | None = None
+
+
+class CommitteeMember(_Model):
+    name: str = Field(min_length=1)
+    role: str | None = None
+    person_id: str | None = None
+
+
+class Committee(_Model):
+    """A file in ``data/{state}/committees/``. ``chamber`` is upper, lower, or legislature for a
+    joint committee; 34,160 of 44,152 memberships carried a person_id on 2026-11-17."""
+
+    id: str = Field(pattern=r"^ocd-organization/[0-9a-f-]{36}$")
+    name: str = Field(min_length=1)
+    chamber: str
+    members: list[CommitteeMember] = Field(default_factory=list)
