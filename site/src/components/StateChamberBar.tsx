@@ -41,7 +41,7 @@ function Marker({ pct, label, chamber, kind }: { pct: number; label: string; cha
 export function StateChamberBar({ chamber }: { chamber: StateChamber }) {
   const bar = buildChamberBar(chamber);
   // the two labels collide when the lines are close (a 3/5 threshold in a small chamber)
-  const apart = bar.supermajorityPct - bar.majorityPct >= 14;
+  const apart = Math.abs(bar.supermajorityPct - bar.majorityPct) >= 14;
   return (
     <div className="flex flex-col gap-2.5" data-chamber={bar.chamber}>
       <div className="flex items-baseline gap-2.5 flex-wrap">

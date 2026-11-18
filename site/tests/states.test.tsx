@@ -127,10 +127,57 @@ describe('states model', () => {
       ['V', 1],
       ['R', 21],
     ]);
-    expect(bar.majorityPct).toBeCloseTo(53.33, 1);
-    expect(bar.supermajorityPct).toBeCloseTo(66.67, 1);
+    // Republicans are drawn on the right, so their lines count in from the right edge
+    expect(bar.fromRight).toBe(true);
+    expect(bar.majorityPct).toBeCloseTo(46.67, 1);
+    expect(bar.supermajorityPct).toBeCloseTo(33.33, 1);
     expect(bar.detail).toBe('16 seats for a majority · 20 for a supermajority (2/3)');
     expect(bar.segments.map((s) => s.legend)).toEqual(['Democratic 8', 'Vacant 1', 'Republican 21']);
+  });
+
+  it('counts a Democratic or other leader in from the left, moving its block to the front', () => {
+    const dem = buildChamberBar(
+      chamber({
+        seats: 40,
+        majority_seats: 21,
+        supermajority_seats: 27,
+        control_party: 'D',
+        control_group: 'D',
+        control_kind: 'supermajority',
+        parties: [
+          { party: 'D', party_group: 'D', seats: 29 },
+          { party: 'R', party_group: 'R', seats: 10 },
+        ],
+        vacant: 1,
+      }),
+    );
+    expect(dem.fromRight).toBe(false);
+    expect(dem.majorityPct).toBeCloseTo(52.5, 1);
+    expect(dem.supermajorityPct).toBeCloseTo(67.5, 1);
+
+    const third = buildChamberBar(
+      chamber({
+        seats: 28,
+        majority_seats: 15,
+        supermajority_seats: 19,
+        control_party: 'I',
+        control_group: 'Partido Nuevo Progresista',
+        control_kind: 'majority',
+        parties: [
+          { party: 'D', party_group: 'D', seats: 4 },
+          { party: 'I', party_group: 'Partido Nuevo Progresista', seats: 18 },
+          { party: 'R', party_group: 'R', seats: 6 },
+        ],
+      }),
+    );
+    expect(third.segments.map((s) => s.key)).toEqual(['I-Partido Nuevo Progresista', 'D-D', 'R-R']);
+    expect(third.fromRight).toBe(false);
+
+    // no majority: the lines go with the biggest group, here the Republicans
+    const none = buildChamberBar(HOUSE);
+    expect(none.fromRight).toBe(false);
+    const rLed = buildChamberBar({ ...HOUSE, parties: [{ party: 'D', party_group: 'D', seats: 40 }, { party: 'R', party_group: 'R', seats: 50 }] });
+    expect(rLed.fromRight).toBe(true);
   });
 
   it('groups Idaho-style seats onto one shape and keeps shapeless seats apart', () => {

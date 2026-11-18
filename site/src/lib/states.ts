@@ -206,8 +206,11 @@ export interface ChamberBarModel {
   headline: string;
   headlineParty: StateParty | null;
   detail: string;
+  /** Where the lines fall along the bar, from its left edge. */
   majorityPct: number;
   supermajorityPct: number;
+  /** True when the lines count in from the right edge (a Republican-led chamber). */
+  fromRight: boolean;
   majorityLabel: string;
   supermajorityLabel: string;
   segments: BarSegment[];
@@ -240,6 +243,19 @@ export function buildChamberBar(c: StateChamber): ChamberBarModel {
     };
     segments.splice(at === -1 ? segments.length : at, 0, vacant);
   }
+  // The threshold lines count seats in from the edge where the leading party's block starts:
+  // the right edge for Republicans (drawn last), the left for anyone else, whose block is moved
+  // to the front if it is not there already (a third party leading while Democrats hold seats).
+  // The leader is the controlling group, or with no majority the group with the most seats.
+  const leader =
+    c.parties.find((p) => p.party_group === c.control_group) ??
+    [...c.parties].sort((a, b) => b.seats - a.seats)[0];
+  const fromRight = leader?.party === 'R';
+  if (leader && !fromRight) {
+    const i = segments.findIndex((s) => s.key === `${leader.party}-${leader.party_group}`);
+    if (i > 0) segments.unshift(...segments.splice(i, 1));
+  }
+  const linePct = (seats: number) => (fromRight ? 100 - pct(seats, c.seats) : pct(seats, c.seats));
   const lead = c.control_kind === 'majority' || c.control_kind === 'supermajority';
   const detailParts = [`${c.majority_seats} seats for a majority`];
   if (c.control_kind !== 'nonpartisan') {
@@ -252,8 +268,9 @@ export function buildChamberBar(c: StateChamber): ChamberBarModel {
     headline: chamberHeadline(c),
     headlineParty: lead ? c.control_party : c.control_kind === 'nonpartisan' ? 'N' : null,
     detail: c.control_note ?? detailParts.join(' · '),
-    majorityPct: pct(c.majority_seats, c.seats),
-    supermajorityPct: pct(c.supermajority_seats, c.seats),
+    majorityPct: linePct(c.majority_seats),
+    supermajorityPct: linePct(c.supermajority_seats),
+    fromRight,
     majorityLabel: `Majority ${c.majority_seats}`,
     supermajorityLabel: `Supermajority ${c.supermajority_seats}`,
     segments,
